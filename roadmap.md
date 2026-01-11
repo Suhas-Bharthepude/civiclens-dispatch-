@@ -1,6 +1,5 @@
-Below is a 75‑day roadmap (about 2.5 months). You can stretch or compress weeks if needed, but keep the order. Each day lists: what to learn, why, how it applies, and exactly what to do.
+Below is a 75‑day roadmap (about 2.5 months). Each day lists: what to learn, why, how it applies, and exactly what to do.
 
-Days 1–7: Project vision, Git, and Python setup
 Day 1 – Clarify scope and install tools
 
 What to learn: Project goals and basic tooling (Python, VS Code setup, GitHub account).
@@ -931,7 +930,6 @@ Choose one extra feature per day to implement and test.
 How your VS Code project should look
 By the end, your VS Code workspace (opened at the repo root) should look roughly like this:
 
-text
 civiclens-dispatch/
 ├── backend/
 │   ├── app/
