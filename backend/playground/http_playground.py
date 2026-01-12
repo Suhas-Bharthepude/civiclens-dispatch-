@@ -27,7 +27,7 @@ print("Status code:", response.status_code)
 
 # If the website did not return success 
 if response.status_code != 200:
-    # Print an error ,essage if status code is not 200 or success
+    # Print an error message if status code is not 200 or success
     print("Request failed:", response.status_code)
     
     # Stop the program
@@ -64,8 +64,7 @@ data = response.json()
 
 
 # Access individual fields inside the dictionary
-# Safely access data fields 
-
+# Safely access data fields
 print("Post ID:", data["id"])
 print("Title:", data["title"])
 print("Body:", data["body"])
