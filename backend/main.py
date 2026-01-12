@@ -4,6 +4,8 @@ from fastapi import FastAPI
 
 # BaseModel is the class we use to define data shapes
 # Every request body model will inherit from it 
+# Pydantic is a 
+
 from pydantic import BaseModel
 
 
@@ -21,6 +23,16 @@ class IncidentCreate(BaseModel):
     source: str
      
     # If any field is missing or wrong type, FastAPI automatically rejects the requests
+
+
+class IncidentResponse(BaseModel):
+    id: int
+    status: str
+    priority: str
+    description: str
+    location: str
+    source: str
+
 
 
 
@@ -102,7 +114,18 @@ def list_incidents():
 # This decorator means when someone sends a POST request to '/incidents', run this function"
 # POST is used when creating new data
 
-@app.post("/incidents")
+@app.post("/incidents", response_model=IncidentResponse, status_code=201)
+
+# response_model=IncidentResponse 
+#   - FastAPI validates the response before sending it
+#   - Extra fields are removed
+#   - Missing fields cause an error
+
+# status_code=201
+#   - Tells the client: "A new resource was created"
+#   - Correct REST behaviorgit add backend/main.py
+git commit -m "Part 7: Add response models and proper HTTP status codes"
+git push 
 
 def create_incident(incident: IncidentCreate):
     # 'incident: IncidentCreate' tells FastAPI to expect request body shaped like IncidentCreate 

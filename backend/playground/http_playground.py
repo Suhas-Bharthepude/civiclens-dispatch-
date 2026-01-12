@@ -16,6 +16,7 @@ response = requests.get(url)
 
 # Print the HTTP status code returned by the website
 # 200 means "success"
+# 400 Bad request basically client sent bad data
 # 404 means "not found" 
 # 500 means "server error"
 # .status_code is a built-in attribute of a response object from requests 
