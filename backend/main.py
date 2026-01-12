@@ -2,6 +2,38 @@
 # FastAPI is the framework that lets us build APIs in Python
 from fastapi import FastAPI
 
+# BaseModel is the class we use to define data shapes
+# Every request body model will inherit from it 
+from pydantic import BaseModel
+
+
+# You are defining a new data type
+# It must follow rules from the imported BaseModel
+class IncidentCreate(BaseModel):
+
+    # Short description of what happened
+    description: str
+
+    # Location of the incident (text for now)
+    location: str
+
+    # Who submitted it (citizen, police, sensor, etc.)
+    source: str
+     
+    # If any field is missing or wrong type, FastAPI automatically rejects the requests
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Routes is the URL pattern or path that maps to a specfic part of the application logic
 # Endpoints are the specific functions or logic executed when a route is matched by an incoming HTTP request  
@@ -11,6 +43,7 @@ from fastapi import FastAPI
 # All routes (endpoints) will be attached to this app
 
 app = FastAPI()
+
 
 
 # ----------------------------
@@ -71,25 +104,49 @@ def list_incidents():
 
 @app.post("/incidents")
 
-def create_incident():
-    # This function represents a citizen or system submitting a new incident 
-    
-    # In a real system, this function would:
-    # 1. Validate incoming data 
-    # 2. Save it to a database
-    # 3. Assign a real ID
-    # 4. Possibly run AI models 
-    
-    # For now, we return fake data to confirm the endpoint works 
+def create_incident(incident: IncidentCreate):
+    # 'incident: IncidentCreate' tells FastAPI to expect request body shaped like IncidentCreate 
+
+    # FastAPI automatically
+    # 1. Reads JSON from the request body
+    # 2. Validates it against IncidentCreate
+    # 3. Converts it into a Python object called 'incident'
+
 
     return {
         "id": 1,                 # Placeholder incident ID
         "status": "received",    # Initial status of the incident
-        "priority": "unknown"    # Priority will be determined later by AI
+        "priority": "unknown",    # Priority will be determined later by AI
+        "description": incident.description,
+        "location": incident.location,
+        "source": incident.source
+
 
     }
 
+
+    # test
+
+    # return {
+    #    "id": 1,                 # Placeholder incident ID
+    #    "status": "received",    # Initial status of the incident
+    #    "priority": "unknown",    # Priority will be determined later by AI
+    #    "description": "Fire reported in apartment building",
+    #    "location": "123 Main St",
+    #    "source": "citizen"
+    # }
+
     
+
+
+
+    # If a client sends bad data:
+    # The function never runs
+    # FastAPI returns a clear error automatically
+
+
+
+
 
 
 
