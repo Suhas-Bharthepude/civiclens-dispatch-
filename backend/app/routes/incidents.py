@@ -1,67 +1,66 @@
-# Import APIRouter so we can define routes outside main.py
+# This file's purpose is “What API endpoints exist for incidents?”
+
+# FastAPI router lets us group related endpoints
 from fastapi import APIRouter
 
 
-# Import List type for type hints
-from typing import List 
+from typing import List
+
+# Pydantic schemas
+from app.schemas.incident import IncidentCreate, IncidentRead
+
+# Database connection
+from app.db.database import database
+
+# SQLAlchemy table definition
+from app.db.models import incidents
 
 
-# Import the Pydantic model that defines incident data
-# .. means “go up one folder” → from routes/ to app/.
-# Now Python knows schemas is inside app/.
-from ..schemas.incident import IncidentCreate, IncidentRead
 
-
-# Create a router object
-# This groups related endpoints together 
+# Router groups all endpoints for incidents
 router = APIRouter()
 
 
-# Temporary in-memory storage
-# This is just a Python list
-# This wll be replaced by a database later
-incidents_db = []
+# ------------------------------
+# Create incident
+# ------------------------------
 
-
-@router.post("/incidents", response_model=IncidentRead, status_code=201)
-# Defines POST /incidents
-
-def create_incident(incident: IncidentCreate):
-
+@router.post("/incidents", response_model=IncidentRead)
+async def create_incident(incident: IncidentCreate):
     """
-    Create a new incident.
-    This simulates storing the incident before we add a real database.
+    Create a new incident in the database.
+    This is now async and persistent
     """
 
-    
-    # Generate a fake ID
-    # (length of list + 1)
-    incident_id = len(incidents_db) + 1
+    # Build an INSERT query
+    query = incidents.insert().values(
+        description=incident.description,
+        location=incident.location,
+        source=incident.source,
+        risk_score=None,
+        transcript=None,
+        summary=None
+    )
 
-    # Create a dictionary representing the incident
-    new_incident = {
-        "id": incident_id,
-        "description": incident.description,
-        "location": incident.location,
-        "source": incident.source,
-        "risk_score": None,
-        "transcript": None,
-        "summary": None,
+    last_record_id = await database.execute(query)
 
-    }
+    # Return the created incident
+    return {**incident.dict(), "id": last_record_id, "risk_score": None, "transcript": None, "summary": None}
 
-    # Store it in memory 
-    incidents_db.append(new_incident)
 
-    # Return it to the client 
-    return new_incident
 
+
+
+# ------------------------------
+# List all incidents
+# ------------------------------
 @router.get("/incidents", response_model=List[IncidentRead])
-def list_incidents():
-    # Return all stored incidents.
-
-    return incidents_db
-
-
+async def list_incidents():
+    """
+    List all incidents from the database asynchronously.
+    """
+    query = incidents.select()
+    all_incidents = await database.fetch_all(query)
+    return all_incidents
 
 
