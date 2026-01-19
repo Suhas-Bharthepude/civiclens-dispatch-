@@ -104,10 +104,14 @@ class IncidentRead(IncidentBase):
 
 
     class Config:
+<<<<<<< HEAD
         orm_mode = True
         # This tells Pydantic to read data from SQLAlchemy Object-Relational Mapping (ORM) objects
         # Allows us to return ORM models directly without converting to dictionary
 
+=======
+        from_attributes = True  # <-- v2 style (replaces orm_mode)
+>>>>>>> 585adbd (Day 12: Integrated FastAPI with PostgreSQL, moved backend to main repo)
 
 
 
