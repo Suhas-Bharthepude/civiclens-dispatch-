@@ -1,41 +1,90 @@
-import requests
-import sys
+# This file is used to test the API endpoints manually 
+# It send HTTP requests to the FastAPI server 
 
+
+# Import requests to send HTTP calls
+import requests
+
+
+# Base URL where FastAPI is running locally
 BASE_URL = "http://127.0.0.1:8000"
 
-# Sample incident data
-incident_data = {
-    "title": "Test Incident",
-    "description": "This is a test incident for Day 12 validation.",
-    "location": "123 Test St, Test City",
-    "risk_score": 5.0,
-    "transcript": "Test transcript data",
-    "summary": "Test summary",
-    "source": "test_api"
-}
+
+# ----------------------------------------
+# TEST: Create an incident
+# ----------------------------------------
+
 
 def post_incident():
-    try:
-        response = requests.post(f"{BASE_URL}/incidents", json=incident_data)
-        response.raise_for_status()
-        print("✅ POST succeeded:")
-        print(response.json())
-    except requests.exceptions.RequestException as e:
-        print("❌ POST request failed:", e)
-        sys.exit(1)
+    # Define a sample incident payload
+    incident_data = {
+        "description": "Test incident for Day 14",
+        "location": "456 Sample Ave",
+        "source": "test_api"
+    }
 
-def get_incidents():
-    try:
-        response = requests.get(f"{BASE_URL}/incidents")
-        response.raise_for_status()
-        incidents = response.json()
-        print(f"\n📋 GET all incidents ({len(incidents)} found):")
-        for i, incident in enumerate(incidents, start=1):
-            print(f"{i}. {incident['description']} | {incident.get('source','N/A')} | ID: {incident['id']}")
-    except requests.exceptions.RequestException as e:
-        print("❌ GET request failed:", e)
-        sys.exit(1)
+    # Send POST request to create incident
+    response = requests.post(
+        f"{BASE_URL}/incidents",
+        json=incident_data
+    )
+
+    # Print status code
+    print("POST status:", response.status_code)
+
+    # Print JSON response
+    print("POST response:", response.json())
+
+
+
+# ----------------------------------------
+# TEST: List incidents with filters
+# ----------------------------------------
+
+def get_filtered_incidents():
+    # Define query parameters
+    params = {
+        "source": "test_api",
+        "limit": 5,
+        "offset": 0,
+        "sort_by": "id",
+        "order": "desc"
+    }
+
+    # Send GET request with query params
+    response = requests.get(
+        f"{BASE_URL}/incidents",
+        params=params
+    )
+
+    # Print status code
+    print("\nGET status:", response.status_code)
+
+    # Parse JSON response
+    incidents = response.json()
+
+    # Print number of incidents returned
+    print(f"Returned {len(incidents)} incidents")
+
+    # Print each incident
+    for incident in incidents:
+        print(
+            f"ID={incident['id']} | "
+            f"source={incident['source']} | "
+            f"description={incident['description']}"
+        )
+
+     
 
 if __name__ == "__main__":
+    # Create an incident
     post_incident()
-    get_incidents()
+    
+    # Fetch filtered & sorted incidents
+    get_filtered_incidents()
+
+
+
+
+
+
