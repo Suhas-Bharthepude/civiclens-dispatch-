@@ -9,6 +9,7 @@
 
 
 
+import os
 
 
 # Import Database from databases library (async support)
@@ -20,13 +21,16 @@ from databases import Database
 # We need these to define tables and connect Python to the database.
 from sqlalchemy import create_engine, MetaData
 
-
 # Create the connection string for SQLite
 # sqlite:/// means "SQLite database"
 # ./incidents.db means "store it as a file next to this code"
 # SQLite stores data in a local file
 # Tells SQLAlchemy and FastAPI where the data file is ./ means it will be created backend/app
-DATABASE_URL = "sqlite:///./incidents.db"
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "sqlite:///./incidents.db"
+)
 
 
 # This Database object is what routes will use
@@ -34,16 +38,17 @@ DATABASE_URL = "sqlite:///./incidents.db"
 database = Database(DATABASE_URL) 
 
 
-# The engine is used by SQLAlchemy to CREATE tables
-# SQLite needs this extra augment for async safety 
-engine = create_engine(DATABASE_URL)
-
 
 # Metadata stores table defintions
 # Think of it as a registry of tables 
 metadata = MetaData()
 
 
-
+# The engine is used by SQLAlchemy to CREATE tables
+# SQLite needs this extra augment for async safety 
+engine = create_engine(
+    DATABASE_URL.replace("+asyncpg", ""),
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+)
 
 

@@ -10,17 +10,20 @@ from app.db.database import metadata
 # Define a table called "incidents"
 # This maps directly to a SQL table
 
+
+
 incidents = Table(
-    "incidents",            # table name
-    metadata,               # metadata object
-    Column("id", Integer, primary_key=True),   # unique id
-    Column("description", String, nullable=False), # description text
-    Column("location", String, nullable=False),    # location text
-    Column("source", String, nullable=False),      # source of report
-    Column("risk_score", Float, nullable=True),   # optional AI-calculated risk
-    Column("transcript", String, nullable=True),  # optional audio transcript
-    Column("summary", String, nullable=True),     # optional AI summary
+    "incidents",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True),
+    Column("source", String, nullable=False),
+    Column("description", String, nullable=False),
+    Column("audio_path", String, nullable=True),
+    Column("transcript", String, nullable=True),
+    Column("summary", String, nullable=True),
+    Column("risk_score", Float, nullable=True),
 )
+
 
  # NULL means no value, missing, etc.
     # nullable=False prevents NULL, but does NOT prevent empty strings
