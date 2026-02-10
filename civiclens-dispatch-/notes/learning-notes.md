@@ -87,3 +87,96 @@
 ---
 
 *These notes capture my learning journey building CivicLens Dispatch*
+
+
+
+
+
+civiclens-dispatch/
+│
+├── .venv/                                    # Virtual environment (do not commit)
+│
+├── backend/
+│   ├── __init__.py
+│   │
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py                          # FastAPI app entry point
+│   │   ├── config.py                        # Environment configuration
+│   │   │
+│   │   ├── db/
+│   │   │   ├── __init__.py
+│   │   │   ├── database.py                  # Database connection setup
+│   │   │   ├── dependencies.py              # get_db() dependency
+│   │   │   └── models.py                    # SQLAlchemy table definitions
+│   │   │
+│   │   ├── routes/
+│   │   │   ├── __init__.py
+│   │   │   └── incidents.py                 # All incident endpoints
+│   │   │
+│   │   ├── schemas/
+│   │   │   ├── __init__.py
+│   │   │   └── incident.py                  # Pydantic models
+│   │   │
+│   │   ├── services/
+│   │   │   └── incident_processor.py        # AI pipeline (stub)
+│   │   │
+│   │   ├── tasks/
+│   │   │   └── incident_tasks.py            # Background task helpers
+│   │   │
+│   │   ├── utils/
+│   │   │   └── file_utils.py                # File upload utilities
+│   │   │
+│   │   ├── media/
+│   │   │   └── tmp/
+│   │   │       ├── audio/
+│   │   │       │   └── .gitkeep             # Keep folder in git
+│   │   │       ├── images/
+│   │   │       │   └── .gitkeep             # Keep folder in git
+│   │   │       └── documents/
+│   │   │           └── .gitkeep             # Keep folder in git
+│   │   │
+│   │   └── uploads/
+│   │       └── .gitkeep                     # Alternative upload location
+│   │
+│   ├── playground/
+│   │   ├── http_playground.py               # HTTP/JSON experiments
+│   │   └── test_api.py                      # Manual API testing script
+│   │
+│   ├── scripts/
+│   │   └── seed_incidents.py                # Database seeding script
+│   │
+│   ├── sql/
+│   │   └── experiments.sql                  # SQL learning exercises
+│   │
+│   ├── tests/
+│   │   └── test_incidents.py                # API tests (Day 20)
+│   │
+│   ├── .env                                 # Environment variables (DO NOT COMMIT)
+│   ├── requirements.txt                     # Python dependencies
+│   ├── test.db                              # SQLite database (dev only)
+│   └── venv/                                # Alternative venv location (if used)
+│
+├── frontend/                                # React app (Days 22-30)
+│   └── (empty for now)
+│
+├── infra/                                   # Docker/deployment (Day 68)
+│   └── (empty for now)
+│
+├── docs/
+│   ├── architecture.md                      # **NEW** - System architecture
+│   ├── concepts.md                          # REST API concepts
+│   ├── database.md                          # **NEW** - Database concepts
+│   ├── pipeline.md                          # (Day 40 - future)
+│   ├── performance.md                       # (Day 58 - future)
+│   ├── demo_script.md                       # (Day 61 - future)
+│   ├── resume_bullets.md                    # (Day 64 - future)
+│   └── slides/                              # (Day 63 - future)
+│
+├── notes/
+│   └── learning-notes.md                    # Daily learning log
+│
+├── .gitignore                               # Git ignore rules
+├── LICENSE                                  # Project license
+├── README.md                                # Project overview
+└── roadmap.md                               # 75-day roadmap

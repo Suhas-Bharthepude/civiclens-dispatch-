@@ -15,6 +15,20 @@ from fastapi import UploadFile
 from app.config import settings
 
 
+def ensure_upload_dirs():
+    """
+    Ensure all required upload directories exist.
+    Call this on application startup.
+    """
+    # List of subfolders we need
+    subfolders = ["audio", "images", "documents"]
+    
+    for subfolder in subfolders:
+        path = os.path.join(settings.UPLOAD_DIR, subfolder)
+        os.makedirs(path, exist_ok=True)
+        print(f"✅ Ensured directory exists: {path}")
+
+
 def save_upload_file(file: UploadFile, subfolder: str) -> str:
     """
     Save an uploaded file to disk with a unique filename.
@@ -101,17 +115,3 @@ def get_file_size(file_path: str) -> int:
     except Exception as e:
         print(f"Error getting file size for {file_path}: {e}")
         return 0
-
-
-def ensure_upload_dirs():
-    """
-    Ensure all required upload directories exist.
-    Call this on application startup.
-    """
-    # List of subfolders we need
-    subfolders = ["audio", "images", "documents"]
-    
-    for subfolder in subfolders:
-        path = os.path.join(settings.UPLOAD_DIR, subfolder)
-        os.makedirs(path, exist_ok=True)
-        print(f"✅ Ensured directory exists: {path}")

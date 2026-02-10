@@ -16,6 +16,9 @@ from app.config import settings
 # Import routers (route handlers organized by feature)
 from app.routes.incidents import router as incidents_router
 
+# Import file utilities
+from app.utils.file_utils import ensure_upload_dirs
+
 
 # ========================================
 # CREATE DATABASE TABLES
@@ -69,11 +72,15 @@ app.include_router(
 async def startup_event():
     """
     Runs once when the application starts.
-    Connects to the database.
+    Connects to the database and ensures upload directories exist.
     """
     # Connect to the database
     await database.connect()
     print(f"✅ Database connected: {settings.DATABASE_URL}")
+    
+    # Ensure media upload directories exist
+    ensure_upload_dirs()
+    
     print(f"✅ {settings.APP_TITLE} v{settings.VERSION} started")
 
 
@@ -186,6 +193,6 @@ async def incidents_dummy(severity: str = None):
 # ========================================
 # To run this application:
 # 1. Activate virtual environment: source .venv/bin/activate (Linux/Mac)
-#                               or .venv\Scripts\activate (Windows)
+#                                or .venv\Scripts\activate (Windows)
 # 2. Run: uvicorn app.main:app --reload
 # 3. Visit: http://127.0.0.1:8000/docs for interactive API docs
