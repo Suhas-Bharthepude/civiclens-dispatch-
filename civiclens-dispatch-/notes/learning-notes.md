@@ -180,3 +180,29 @@ civiclens-dispatch/
 ├── LICENSE                                  # Project license
 ├── README.md                                # Project overview
 └── roadmap.md                               # 75-day roadmap
+
+
+
+
+
+## Day 19: Environment Variables & Configuration
+
+- **Environment variables**: Store configuration separately from code
+- **.env file**: Local file with KEY=VALUE pairs (never commit!)
+- **os.getenv()**: Read environment variables in Python
+- **python-dotenv**: Automatically load .env file on startup
+- **Configuration class**: Central place for all settings
+- **Default values**: Fallback if environment variable not set
+- **.env.example**: Template showing what variables are needed
+- **SQLite**: File-based database, perfect for development (no server needed)
+
+### Key Takeaways
+
+✅ Secrets belong in .env, not in code  
+✅ Each environment (dev/staging/prod) has its own .env  
+✅ Always provide sensible defaults for optional settings  
+✅ SQLite for dev, PostgreSQL for production  
+
+---
+
+*Day 19 complete!*

@@ -79,3 +79,9 @@ mypy==1.8.0                  # Type checker
 #
 # Some packages commented out are for later days in the roadmap
 # Uncomment them when you reach those sections
+
+
+
+# Add missing dependencies
+echo "aiosqlite==0.22.1         # Async SQLite driver" 
+echo "greenlet==3.3.1           # Required for SQLAlchemy async" 

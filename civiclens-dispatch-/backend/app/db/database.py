@@ -22,16 +22,16 @@ database = Database(settings.DATABASE_URL)
 
 # Create a sync engine for table creation
 # We need this because create_all() is a sync operation
-# connect_args only needed for SQLite
+# For SQLite: remove +aiosqlite for sync engine
 if "sqlite" in settings.DATABASE_URL:
+    # Use plain sqlite:/// for sync engine (table creation)
+    sync_db_url = settings.DATABASE_URL.replace("+aiosqlite", "")
     engine = create_engine(
-        settings.DATABASE_URL,
+        sync_db_url,
         connect_args={"check_same_thread": False}
     )
 else:
-    # For PostgreSQL, no special connect_args needed
-    # But we need to use psycopg2 (sync) for create_all
-    # Replace asyncpg with psycopg2 for the sync engine
+    # For PostgreSQL: replace asyncpg with psycopg2 for sync engine
     sync_db_url = settings.DATABASE_URL.replace(
         "postgresql+asyncpg://",
         "postgresql+psycopg2://"
