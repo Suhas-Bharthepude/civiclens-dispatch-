@@ -3,3 +3,20 @@
 *.db
 test.db
 backend/test.db
+
+# ============================================
+# CivicLens Dispatch - Uploaded Media Files
+# ============================================
+# Keep directory structure but ignore uploaded content
+backend/app/media/tmp/audio/*
+!backend/app/media/tmp/audio/.gitkeep
+
+backend/app/media/tmp/images/*
+!backend/app/media/tmp/images/.gitkeep
+
+backend/app/media/tmp/documents/*
+!backend/app/media/tmp/documents/.gitkeep
+
+# SQLite database (development only)
+backend/*.db
+
