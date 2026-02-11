@@ -206,3 +206,50 @@ civiclens-dispatch/
 ---
 
 *Day 19 complete!*
+
+
+
+## Day 20: Testing with pytest
+
+- **Testing**: Writing code to verify your code works correctly
+- **pytest**: Python testing framework
+- **Unit tests**: Test small pieces in isolation
+- **Integration tests**: Test multiple pieces together
+- **API tests**: Test HTTP endpoints
+- **Fixtures**: Setup/teardown code that runs before/after tests
+- **Assertions**: Checks that verify expected results
+- **AAA pattern**: Arrange, Act, Assert
+- **Test coverage**: Percentage of code covered by tests
+
+### Key Concepts
+
+**TestClient**: Simulates HTTP requests without starting server  
+**Fixtures**: Reusable setup code for tests  
+**@pytest.fixture**: Decorator that marks a function as a fixture  
+**assert**: Python keyword that checks if something is True  
+**pytest.raises()**: Tests that code raises expected errors  
+
+### Test Structure
+```python
+def test_something():
+    # ARRANGE - set up
+    data = prepare_data()
+    
+    # ACT - do the thing
+    result = function_to_test(data)
+    
+    # ASSERT - verify
+    assert result == expected
+```
+
+### Commands Learned
+```bash
+pytest                    # Run all tests
+pytest -v                 # Verbose output
+pytest tests/file.py      # Run specific file
+pytest --cov=app          # Show coverage
+```
+
+---
+
+*Day 20 complete! Testing fundamentals mastered.* ✅
