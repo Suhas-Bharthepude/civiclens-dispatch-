@@ -89,3 +89,4 @@ echo "greenlet==3.3.1           # Required for SQLAlchemy async"
 # TESTING (Day 20)
 # ========================================
 pytest-cov==7.0.0            # Test coverage reports
+httpx==0.26.0                # Required for TestClient

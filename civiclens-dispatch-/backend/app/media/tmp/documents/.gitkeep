@@ -1,2 +1,4 @@
 # This file ensures the documents directory is tracked by git
 # Git doesn't track empty directories, so this placeholder file keeps it in version control
+
+

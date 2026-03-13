@@ -354,14 +354,48 @@ All AI services return fake/hardcoded data for testing architecture.
 
 ## Next Steps
 
-- [ ] Day 19: Add .env configuration
-- [ ] Day 20: Write pytest tests
-- [ ] Day 21: Clean up and document
+- [x] Day 19: Add .env configuration ✅
+- [x] Day 20: Write pytest tests ✅
+- [x] Day 21: Clean up and document ✅
 - [ ] Days 22-30: Build React frontend
 - [ ] Days 31-40: Add real AI models (ASR, summarization)
 - [ ] Days 41-50: Add vision and classification models
 
----
+## Recent Changes (Day 21 Review)
 
-*Architecture last updated: Day 18*
-*This is a living document - update as system evolves*
+### What Changed Since Day 18
+
+#### Configuration (Day 19)
+- Added comprehensive environment variable management
+- Created `.env.example` template
+- Switched to SQLite for development (no PostgreSQL server needed)
+- Fixed database.py to handle sync/async SQLite properly
+
+#### Testing (Day 20)
+- Added pytest with 19 tests
+- Created test_basics.py (pytest fundamentals - 6 tests)
+- Created test_api.py (endpoint tests - 5 tests)
+- Created test_incidents.py (CRUD tests - 8 tests)
+- Added test fixtures for database setup/teardown
+- Added pytest-cov for coverage reporting
+
+#### Code Organization (Day 21)
+- Marked `app/tasks/incident_tasks.py` as deprecated
+- All background processing now in `app/services/incident_processor.py`
+- Test directory properly structured in `backend/tests/`
+- Created comprehensive project documentation
+
+### Current State Summary
+
+**Working:**
+- All API endpoints functional
+- Database operations (CRUD)
+- File uploads (audio, images)
+- Background AI processing (stub)
+- 19 tests passing
+- Configuration management
+
+**Ready for:**
+- Frontend development (React)
+- Real AI model integration (Days 31+)
+- Advanced features (maps, auth, etc.)
