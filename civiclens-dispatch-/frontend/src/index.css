@@ -1,0 +1,82 @@
+/* frontend/src/index.css
+   Global styles that apply to the entire application
+   Loaded once in main.jsx
+*/
+
+/* ========================================
+   RESET & BASE STYLES
+   ======================================== */
+
+/* Apply to all elements */
+* {
+  /* Include padding and border in width calculations */
+  box-sizing: border-box;
+  
+  /* Remove default margins */
+  margin: 0;
+  
+  /* Remove default padding */
+  padding: 0;
+}
+
+/* Base styles for entire page */
+body {
+  /* Use system fonts (looks native on each OS) */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  
+  /* Smooth font rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  /* Dark gray text */
+  color: #333;
+  
+  /* Line height for readability */
+  line-height: 1.6;
+}
+
+/* Code elements */
+code {
+  /* Monospace font for code */
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Links */
+a {
+  /* Blue color */
+  color: #3498db;
+  
+  /* No underline by default */
+  text-decoration: none;
+}
+
+a:hover {
+  /* Underline on hover */
+  text-decoration: underline;
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+/* Utility class for centering text */
+.text-center {
+  text-align: center;
+}
+
+/* Utility class for adding space below */
+.mb-1 {
+  margin-bottom: 1rem;
+}
+
+.mb-2 {
+  margin-bottom: 2rem;
+}
+
+/* Utility class for hiding elements */
+.hidden {
+  display: none;
+}

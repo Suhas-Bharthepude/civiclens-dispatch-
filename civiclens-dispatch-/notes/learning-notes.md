@@ -377,3 +377,97 @@ pytest --cov=app          # Show coverage
 *Day 22 complete! Ready for React!* 🌐
 
 
+## Day 23: React Concepts
+
+**Paradigm shift:** From imperative (vanilla JS) to declarative (React)
+
+### React Core Concepts
+
+1. **Components**: Reusable UI pieces (JavaScript functions returning JSX)
+2. **Props**: Data passed from parent to child (read-only)
+3. **State**: Data that can change (`useState` hook)
+4. **JSX**: HTML-like syntax in JavaScript
+5. **Events**: Handle user interactions (`onClick`, `onChange`)
+
+### useState Hook
+```javascript
+const [value, setValue] = useState(initialValue);
+//      ↑       ↑                    ↑
+//   current  updater            starting value
+```
+
+**Key insight:** When you call `setValue()`, React re-renders the component!
+
+### JSX vs HTML Differences
+
+| HTML | JSX | Why |
+|------|-----|-----|
+| `class` | `className` | `class` is JavaScript keyword |
+| `onclick` | `onClick` | CamelCase for all events |
+| `<img>` | `<img />` | All tags must close |
+| `for` | `htmlFor` | `for` is JavaScript keyword |
+
+### Component Composition
+```javascript
+<App>
+  <Header />
+  <Main>
+    <IncidentList>
+      <IncidentCard />
+      <IncidentCard />
+    </IncidentList>
+  </Main>
+</App>
+```
+
+Components inside components - like LEGO blocks!
+
+### What I Built
+
+- ✅ React app with Vite
+- ✅ Custom App component
+- ✅ IncidentCard component (reusable!)
+- ✅ Interactive counter (state demo)
+- ✅ Props passing between components
+- ✅ Modern styling with CSS
+
+### Key Realizations
+
+**Imperative vs Declarative:**
+- **Imperative (vanilla JS)**: "Create element, set attributes, append to parent"
+- **Declarative (React)**: "Here's what I want, React makes it happen"
+
+**State is magical:**
+- Change state → UI updates automatically
+- No manual DOM manipulation needed
+- React handles all the updates
+
+**Components are powerful:**
+- Write once, use everywhere
+- Pass different props for different data
+- Each instance is independent
+
+### Mental Model Shift
+
+**Before React:**
+```
+Think: "How do I modify the DOM?"
+Code: Manual createElement, appendChild, etc.
+```
+
+**With React:**
+```
+Think: "What should the UI look like?"
+Code: Return JSX describing the UI
+```
+
+### Preparation for Tomorrow (Day 24)
+
+- Learn `useEffect` for side effects (like API calls)
+- Fetch data from backend API
+- Display real incidents from database
+- Handle loading and error states
+
+---
+
+*Day 23 complete! React fundamentals mastered!* ⚛️
