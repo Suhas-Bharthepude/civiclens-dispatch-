@@ -331,3 +331,39 @@
   /* Green for low severity */
   background-color: #27ae60;
 }
+
+
+/* ========================================
+   INCIDENTS LIST COMPONENT
+   ======================================== */
+
+.incidents-list {
+  /* White background */
+  background-color: white;
+  
+  /* Space inside */
+  padding: 2rem;
+  
+  /* Rounded corners */
+  border-radius: 8px;
+  
+  /* Shadow for depth */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  /* Space above */
+  margin-top: 2rem;
+}
+
+.incidents-list h2 {
+  /* Dark gray heading */
+  color: #2c3e50;
+  
+  /* Space below */
+  margin-bottom: 1.5rem;
+  
+  /* Border below heading */
+  border-bottom: 2px solid #3498db;
+  
+  /* Space between text and border */
+  padding-bottom: 10px;
+}

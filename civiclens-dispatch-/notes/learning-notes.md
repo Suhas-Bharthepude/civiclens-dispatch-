@@ -471,3 +471,125 @@ Code: Return JSX describing the UI
 ---
 
 *Day 23 complete! React fundamentals mastered!* ⚛️
+
+
+## Day 24: Fetching from Backend in React
+
+**The connection!** Frontend now talks to backend!
+
+### Core Concepts
+
+1. **fetch()**: Built-in JavaScript function for HTTP requests
+2. **useEffect**: React hook for side effects (runs after render)
+3. **Promises**: Represent future values (API responses)
+4. **async/await**: Clean syntax for working with promises
+5. **Three-state pattern**: loading, error, success
+
+### useEffect Deep Dive
+```javascript
+useEffect(() => {
+    // This function runs AFTER component renders
+    fetchData();
+}, []);  // Dependencies array
+```
+
+**Dependency array controls when effect runs:**
+- `[]` - Run once on mount
+- `[count]` - Run when count changes
+- No array - Run on every render (usually wrong!)
+
+### API Call Pattern
+```javascript
+// 1. Start with loading=true
+const [loading, setLoading] = useState(true);
+
+// 2. Fetch in useEffect
+useEffect(() => {
+    async function fetch() {
+        try {
+            const data = await getIncidents();
+            setIncidents(data);
+            setLoading(false);
+        } catch (err) {
+            setError(err.message);
+            setLoading(false);
+        }
+    }
+    fetch();
+}, []);
+
+// 3. Render based on state
+if (loading) return <Loading />;
+if (error) return <Error />;
+return <Data />;
+```
+
+### What I Built
+
+- ✅ API client module (centralized API calls)
+- ✅ HealthCheck component (tests API connection)
+- ✅ IncidentsList component (fetches and displays real data)
+- ✅ Loading states (shows "Loading..." while fetching)
+- ✅ Error handling (shows errors if API fails)
+- ✅ Real-time data from database!
+
+### Key Realizations
+
+**Data flow:**
+1. Component mounts
+2. useEffect runs
+3. Fetch data from API
+4. Update state with data
+5. Component re-renders with new data
+6. User sees real data!
+
+**Why useEffect:**
+- Can't fetch in component body (would cause infinite loop!)
+- Can't make component function async
+- useEffect is the "official" way to do side effects
+
+**CORS is important:**
+- Without CORS, browser blocks requests
+- Backend must explicitly allow frontend origin
+- Already configured in our FastAPI app!
+
+### Debugging Tools Used
+
+- Browser Console - See API logs
+- Network tab - See HTTP requests/responses
+- React DevTools - Inspect component state
+- Backend logs - See server-side processing
+
+### Connections Made
+
+**Frontend ↔ Backend:**
+- React on port 5174
+- FastAPI on port 8000
+- HTTP requests between them
+- JSON data format
+- Real-time updates!
+
+**Components working together:**
+- App.jsx (parent container)
+- HealthCheck.jsx (API status)
+- IncidentsList.jsx (fetches data)
+- IncidentCard.jsx (displays one incident)
+
+### Mental Model
+
+**Before today:**
+```
+React: Hardcoded data in components
+Backend: Has data but no one uses it
+```
+
+**After today:**
+```
+React: "Give me incidents!" → API call
+Backend: "Here's the data!" → JSON response
+React: Updates state → UI shows data
+```
+
+---
+
+*Day 24 complete! Frontend and backend connected!* 🔗
