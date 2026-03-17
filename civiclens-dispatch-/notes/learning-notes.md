@@ -593,3 +593,125 @@ React: Updates state → UI shows data
 ---
 
 *Day 24 complete! Frontend and backend connected!* 🔗
+
+
+
+## Day 25: Incident List UI
+
+**From cards to tables!** Professional data presentation for dispatchers.
+
+### Core Concepts
+
+1. **Rendering lists**: `.map()` to convert array to components
+2. **Key prop**: Required for list items (helps React track changes)
+3. **Tables in React**: `<table>`, `<thead>`, `<tbody>`, `<tr>`, `<td>`
+4. **Conditional rendering**: Show different UI based on state
+5. **Component composition**: Parent fetches, child displays
+
+### The `key` Prop
+
+**Why it's required:**
+```javascript
+{incidents.map(incident => (
+    <IncidentCard key={incident.id} {...incident} />
+    //            ↑ REQUIRED!
+))}
+```
+
+Without `key`, React can't efficiently update the list.
+
+**Best practices:**
+- ✅ Use unique ID from database
+- ❌ Don't use array index (causes bugs)
+- ✅ Key must be unique among siblings
+
+### Three-State Pattern
+
+Every data-fetching component needs:
+```javascript
+const [data, setData] = useState([]);      // The data
+const [loading, setLoading] = useState(true);  // Loading flag
+const [error, setError] = useState(null);  // Error message
+
+// Render based on state
+if (loading) return <Loading />;
+if (error) return <Error />;
+if (data.length === 0) return <Empty />;
+return <Table data={data} />;
+```
+
+### Component Separation
+
+**Separation of concerns:**
+- `IncidentsList.jsx` - Fetches data (smart component)
+- `IncidentTable.jsx` - Displays data (dumb component)
+
+**Why separate:**
+- ✅ Table is reusable (could display different data)
+- ✅ Easier to test (pass mock data to table)
+- ✅ Single responsibility principle
+- ✅ Cleaner code
+
+### What I Built
+
+- ✅ IncidentTable component (professional data table)
+- ✅ LoadingSpinner component (reusable loading animation)
+- ✅ Updated IncidentsList (better states handling)
+- ✅ Table features:
+  - Zebra striping (alternating row colors)
+  - Hover effects (visual feedback)
+  - Clickable rows (opens detail - tomorrow!)
+  - Responsive design (adapts to screen size)
+  - Formatted data (risk scores, capitalized text)
+  - Color-coded severity badges
+
+### CSS Techniques Learned
+
+**Zebra striping:**
+```css
+tr:nth-child(even) {
+    background-color: #fafafa;
+}
+```
+
+**Sticky table header:**
+```css
+thead {
+    position: sticky;
+    top: 0;
+}
+```
+
+**Text truncation:**
+```css
+.description {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+```
+
+**Hover effects:**
+```css
+tr:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+```
+
+### Data Formatting
+
+**Risk scores:** `0.856789` → `"0.86"`
+**Severity:** `"high"` → `"HIGH"` with red badge
+**Source:** `"citizen"` → `"Citizen"` (capitalized)
+
+### Responsive Design
+
+Table adapts to screen size:
+- Desktop: All 7 columns visible
+- Mobile: Hides Type and Location columns
+- Horizontal scroll if needed
+
+---
+
+*Day 25 complete! Professional table UI built!* 📊

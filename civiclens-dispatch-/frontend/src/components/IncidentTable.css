@@ -1,0 +1,354 @@
+/* frontend/src/components/IncidentTable.css
+   Styles for the IncidentTable component
+   Creates a professional, interactive data table
+*/
+
+/* ========================================
+   TABLE CONTAINER
+   ======================================== */
+
+.incident-table-container {
+  /* White background */
+  background-color: white;
+  
+  /* Rounded corners */
+  border-radius: 8px;
+  
+  /* Shadow for depth */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  /* Allow horizontal scrolling on small screens */
+  overflow-x: auto;
+}
+
+
+/* ========================================
+   TABLE ELEMENT
+   ======================================== */
+
+.incident-table {
+  /* Take full width of container */
+  width: 100%;
+  
+  /* Remove spacing between table cells */
+  border-collapse: collapse;
+  
+  /* Minimum width to ensure readability */
+  min-width: 800px;
+}
+
+
+/* ========================================
+   TABLE HEADER
+   ======================================== */
+
+.incident-table thead {
+  /* Dark background for header */
+  background-color: #34495e;
+  
+  /* White text */
+  color: white;
+}
+
+.incident-table th {
+  /* Space inside header cells */
+  padding: 16px 12px;
+  
+  /* Align text to left */
+  text-align: left;
+  
+  /* Uppercase text */
+  text-transform: uppercase;
+  
+  /* Smaller font size */
+  font-size: 0.85rem;
+  
+  /* Letter spacing for readability */
+  letter-spacing: 0.5px;
+  
+  /* Bold text */
+  font-weight: 600;
+  
+  /* Sticky header - stays visible when scrolling */
+  position: sticky;
+  top: 0;
+  
+  /* Z-index ensures header stays above content */
+  z-index: 10;
+}
+
+
+/* ========================================
+   TABLE BODY ROWS
+   ======================================== */
+
+.incident-table tbody tr {
+  /* Border below each row */
+  border-bottom: 1px solid #e0e0e0;
+  
+  /* Smooth transition for hover effect */
+  transition: background-color 0.2s ease;
+}
+
+/* Hover effect on rows */
+.incident-table tbody tr:hover {
+  /* Light gray background on hover */
+  background-color: #f8f9fa;
+  
+  /* Show pointer cursor to indicate clickable */
+  cursor: pointer;
+}
+
+/* Alternate row colors (zebra striping) */
+.incident-table tbody tr:nth-child(even) {
+  /* Very light gray for even rows */
+  background-color: #fafafa;
+}
+
+
+/* ========================================
+   TABLE DATA CELLS
+   ======================================== */
+
+.incident-table td {
+  /* Space inside cells */
+  padding: 14px 12px;
+  
+  /* Font size */
+  font-size: 0.9rem;
+  
+  /* Dark gray text */
+  color: #333;
+}
+
+/* ID column - smaller, gray */
+.incident-id {
+  /* Gray text */
+  color: #999;
+  
+  /* Smaller font */
+  font-size: 0.85rem;
+  
+  /* Monospace font (like code) */
+  font-family: 'Courier New', monospace;
+}
+
+/* Type column - bold, uppercase */
+.incident-type {
+  /* Bold text */
+  font-weight: 600;
+  
+  /* Blue color */
+  color: #3498db;
+  
+  /* Smaller font */
+  font-size: 0.85rem;
+}
+
+/* Description column - truncate long text */
+.incident-description {
+  /* Maximum width before wrapping */
+  max-width: 300px;
+  
+  /* Hide overflow text */
+  overflow: hidden;
+  
+  /* Show ellipsis (...) for truncated text */
+  text-overflow: ellipsis;
+  
+  /* Don't wrap to multiple lines */
+  white-space: nowrap;
+}
+
+/* Location column */
+.incident-location {
+  /* Maximum width */
+  max-width: 200px;
+  
+  /* Gray text */
+  color: #666;
+  
+  /* Smaller font */
+  font-size: 0.88rem;
+}
+
+/* Risk score column - centered, monospace */
+.risk-score {
+  /* Center text */
+  text-align: center;
+  
+  /* Monospace font (aligns decimals) */
+  font-family: 'Courier New', monospace;
+  
+  /* Bold text */
+  font-weight: 600;
+}
+
+
+/* ========================================
+   SEVERITY BADGES
+   ======================================== */
+
+.severity-badge {
+  /* Inline-block for proper padding */
+  display: inline-block;
+  
+  /* Space inside badge */
+  padding: 4px 10px;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+  
+  /* White text */
+  color: white;
+  
+  /* Small, bold text */
+  font-size: 0.75rem;
+  font-weight: 700;
+  
+  /* Uppercase text */
+  text-transform: uppercase;
+  
+  /* Letter spacing */
+  letter-spacing: 0.5px;
+}
+
+/* High severity - red */
+.severity-high {
+  background-color: #e74c3c;
+}
+
+/* Medium severity - orange */
+.severity-medium {
+  background-color: #f39c12;
+}
+
+/* Low severity - green */
+.severity-low {
+  background-color: #27ae60;
+}
+
+/* Critical severity - dark red */
+.severity-critical {
+  background-color: #c0392b;
+}
+
+
+/* ========================================
+   TABLE FOOTER
+   ======================================== */
+
+.table-footer {
+  /* Space inside footer */
+  padding: 16px;
+  
+  /* Light gray background */
+  background-color: #f8f9fa;
+  
+  /* Border above footer */
+  border-top: 1px solid #e0e0e0;
+  
+  /* Center text */
+  text-align: center;
+  
+  /* Smaller, gray text */
+  font-size: 0.9rem;
+  color: #666;
+}
+
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+/* On screens smaller than 768px (mobile/tablet) */
+@media (max-width: 768px) {
+  .incident-table {
+    /* Reduce minimum width */
+    min-width: 600px;
+  }
+  
+  .incident-table th,
+  .incident-table td {
+    /* Reduce padding on small screens */
+    padding: 10px 8px;
+    
+    /* Reduce font size */
+    font-size: 0.85rem;
+  }
+  
+  /* Hide less important columns on mobile */
+  .incident-type,
+  .incident-location {
+    display: none;
+  }
+}
+
+
+/* ========================================
+   LOADING AND ERROR STATES
+   ======================================== */
+
+.table-loading {
+  /* Center content */
+  text-align: center;
+  
+  /* Space inside */
+  padding: 40px 20px;
+  
+  /* Light background */
+  background-color: #f0f0f0;
+  
+  /* Rounded corners */
+  border-radius: 8px;
+}
+
+.table-loading p {
+  /* Larger text */
+  font-size: 1.1rem;
+  
+  /* Gray text */
+  color: #666;
+}
+
+.table-error {
+  /* Space inside */
+  padding: 20px;
+  
+  /* Red background */
+  background-color: #f8d7da;
+  
+  /* Red border */
+  border: 1px solid #f5c6cb;
+  
+  /* Dark red text */
+  color: #721c24;
+  
+  /* Rounded corners */
+  border-radius: 8px;
+}
+
+.table-empty {
+  /* Center content */
+  text-align: center;
+  
+  /* Space inside */
+  padding: 40px 20px;
+  
+  /* White background */
+  background-color: white;
+  
+  /* Dashed border */
+  border: 2px dashed #ddd;
+  
+  /* Rounded corners */
+  border-radius: 8px;
+}
+
+.table-empty p {
+  /* Gray text */
+  color: #999;
+  
+  /* Larger text */
+  font-size: 1.1rem;
+}
