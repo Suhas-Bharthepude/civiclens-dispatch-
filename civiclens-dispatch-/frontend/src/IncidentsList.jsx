@@ -16,7 +16,7 @@ import IncidentTable from './components/IncidentTable'
 // INCIDENTS LIST COMPONENT
 // ========================================
 
-function IncidentsList() {
+function IncidentsList({ onIncidentClick }) {
   
   // ========================================
   // STATE MANAGEMENT
@@ -194,7 +194,10 @@ function IncidentsList() {
       
       {/* Render the table component */}
       {/* Pass incidents array as prop */}
-      <IncidentTable incidents={incidents} />
+      <IncidentTable 
+        incidents={incidents} 
+        onIncidentClick={onIncidentClick}
+      />
     </div>
   )
 }

@@ -1,32 +1,95 @@
 // frontend/src/App.jsx
-// Main App component - displays the dispatcher dashboard
-// Now shows real incidents in a professional table format
+// Main App component - now manages selected incident state
+// Shows detail panel when incident is clicked
 
-// Import React hooks (we might use useState later for filters)
-import { useState } from 'react'
-
-// Import CSS for styling
+// Import CSS
 import './App.css'
 
-// Import our custom components
+// Import components
 import HealthCheck from './HealthCheck'
 import IncidentsList from './IncidentsList'
+import IncidentDetail from './components/IncidentDetail'
+
+// Import useEffect at top
+import { useState, useEffect } from 'react'
 
 
 // ========================================
 // APP COMPONENT
 // ========================================
 
-// Main application component
-// This is the root component that contains everything
 function App() {
   
   // ========================================
-  // STATE (for future features)
+  // STATE - Selected Incident
   // ========================================
   
-  // We'll add filter state here tomorrow (Day 26)
-  // For now, just showing all incidents
+  // State: currently selected incident for detail view
+  // Starts as null (no incident selected)
+  // When user clicks a row, this becomes the incident object
+  const [selectedIncident, setSelectedIncident] = useState(null)
+  
+  // selectedIncident will be:
+  // - null (no selection) → detail panel hidden
+  // - incident object (selected) → detail panel shown
+
+  // ========================================
+  // KEYBOARD SHORTCUT - ESC to Close
+  // ========================================
+
+  // useEffect to listen for ESC key press
+  useEffect(() => {
+      // Define function that handles keydown events
+      function handleKeyDown(event) {
+          // If ESC key (key code 27) and panel is open
+          if (event.key === 'Escape' && selectedIncident) {
+              // Close the detail panel
+              handleCloseDetail();
+          }
+      }
+      
+      // Add event listener to document
+      // Listens for any keydown event on the page
+      document.addEventListener('keydown', handleKeyDown);
+      
+      // Cleanup function - runs when component unmounts
+      // Removes event listener to prevent memory leaks
+      return () => {
+          document.removeEventListener('keydown', handleKeyDown);
+      };
+      
+      // Dependency: selectedIncident
+      // Re-run effect when selectedIncident changes
+  }, [selectedIncident]);
+    
+  
+  
+  
+  
+  // ========================================
+  // EVENT HANDLERS
+  // ========================================
+  
+  // Called when user clicks an incident row in the table
+  // incident parameter is the clicked incident object
+  function handleIncidentClick(incident) {
+    // Log for debugging
+    console.log('Incident clicked:', incident);
+    
+    // Update state with selected incident
+    // This triggers re-render and shows detail panel
+    setSelectedIncident(incident);
+  }
+  
+  // Called when user closes the detail panel
+  function handleCloseDetail() {
+    // Log for debugging
+    console.log('Closing detail panel');
+    
+    // Clear selected incident (set back to null)
+    // This triggers re-render and hides detail panel
+    setSelectedIncident(null);
+  }
   
   
   // ========================================
@@ -34,22 +97,18 @@ function App() {
   // ========================================
   
   return (
-    // Fragment - wraps multiple elements without adding div
     <>
       {/* Main app container */}
       <div className="app-container">
         
         {/* ========================================
-            HEADER - Top Navigation Bar
+            HEADER
             ======================================== */}
         <header className="app-header">
-          {/* Application title */}
           <h1>🚨 CivicLens Dispatch</h1>
-          
-          {/* Subtitle */}
           <p>Emergency Incident Triage System</p>
           
-          {/* Version badge (optional) */}
+          {/* Version badge */}
           <span style={{
             display: 'inline-block',
             marginTop: '10px',
@@ -58,30 +117,27 @@ function App() {
             borderRadius: '12px',
             fontSize: '0.85rem'
           }}>
-            v1.0.0 - Day 25
+            v1.0.0 - Day 26
           </span>
         </header>
         
         {/* ========================================
-            MAIN CONTENT AREA
+            MAIN CONTENT
             ======================================== */}
         <main className="app-main">
           
-          {/* Health Check Component */}
-          {/* Shows green box if backend is connected */}
-          {/* Shows red box with error if backend is down */}
+          {/* API Health Check */}
           <HealthCheck />
           
-          {/* Incidents List Component */}
-          {/* Fetches incidents from API */}
-          {/* Displays them in a professional table */}
-          {/* Handles loading, error, and empty states */}
-          <IncidentsList />
+          {/* Incidents List with Table */}
+          {/* Pass handleIncidentClick as prop */}
+          {/* Child will call this when row is clicked */}
+          <IncidentsList onIncidentClick={handleIncidentClick} />
           
         </main>
         
         {/* ========================================
-            FOOTER (Optional)
+            FOOTER
             ======================================== */}
         <footer style={{
           textAlign: 'center',
@@ -93,14 +149,27 @@ function App() {
         </footer>
         
       </div>
+      
+      {/* ========================================
+          DETAIL PANEL (Conditional)
+          ======================================== */}
+      
+      {/* Only render detail panel if an incident is selected */}
+      {/* && means: if left side is truthy, render right side */}
+      {/* If selectedIncident is null, nothing renders */}
+      {/* If selectedIncident has data, IncidentDetail renders */}
+      {selectedIncident && (
+        <IncidentDetail 
+          incident={selectedIncident}
+          onClose={handleCloseDetail}
+        />
+      )}
+      
     </>
   )
 }
 
-// ========================================
-// EXPORT
-// ========================================
-
-// Export App component as default
-// main.jsx imports this and renders it
 export default App
+
+
+

@@ -715,3 +715,157 @@ Table adapts to screen size:
 ---
 
 *Day 25 complete! Professional table UI built!* 📊
+
+
+
+## Day 26: Incident Detail Panel
+
+**Big feature!** Interactive detail view with sliding panel.
+
+### Core Concepts
+
+1. **Lifting state up**: Move state to parent when multiple children need it
+2. **Callback props**: Pass functions down to let children communicate up
+3. **Conditional rendering**: Show/hide components based on state
+4. **Event propagation**: stopPropagation() prevents event bubbling
+5. **Keyboard events**: Listen for ESC key to close panel
+6. **CSS animations**: Smooth slide-in and fade-in effects
+
+### Lifting State Up
+
+**Problem:** IncidentTable needs to tell App which row was clicked.
+
+**Solution:** Pass callback function as prop.
+```javascript
+// App (parent) - has state and handler
+const [selected, setSelected] = useState(null);
+function handleClick(incident) {
+    setSelected(incident);
+}
+
+// Pass handler down
+<IncidentsList onIncidentClick={handleClick} />
+
+// Child calls it when row clicked
+<tr onClick={() => onIncidentClick(incident)}>
+```
+
+### Conditional Rendering with &&
+```javascript
+{selectedIncident && <IncidentDetail />}
+```
+
+**How it works:**
+- If selectedIncident is `null` → Evaluates to `null`, nothing renders
+- If selectedIncident is `{...}` → Evaluates to `<IncidentDetail />`, renders panel
+
+### Event Propagation
+
+**Problem:** Clicking inside panel also clicks overlay (closes panel).
+
+**Solution:** `e.stopPropagation()`
+```javascript
+<div className="overlay" onClick={closePanel}>
+    <div className="panel" onClick={(e) => e.stopPropagation()}>
+        Content here
+    </div>
+</div>
+```
+
+Clicking panel → event stops → doesn't reach overlay → panel stays open!
+
+### Keyboard Events
+```javascript
+useEffect(() => {
+    function handleKey(event) {
+        if (event.key === 'Escape') {
+            closePanel();
+        }
+    }
+    
+    document.addEventListener('keydown', handleKey);
+    
+    // Cleanup!
+    return () => document.removeEventListener('keydown', handleKey);
+}, [selectedIncident]);
+```
+
+**Important:** Always clean up event listeners in return function!
+
+### What I Built
+
+- ✅ IncidentDetail component (side panel with full details)
+- ✅ Sliding animation (slides in from right)
+- ✅ Overlay (dark background when panel open)
+- ✅ State management in App (selectedIncident)
+- ✅ Callback props (onIncidentClick passed down)
+- ✅ Keyboard shortcut (ESC to close)
+- ✅ Click outside to close
+- ✅ Professional styling (badges, sections, formatting)
+
+### User Experience Features
+
+**Multiple ways to close:**
+- ✅ Click X button
+- ✅ Click outside panel (on overlay)
+- ✅ Press ESC key
+
+**Visual feedback:**
+- ✅ Smooth slide-in animation
+- ✅ Fade-in overlay
+- ✅ Hover effects on buttons
+- ✅ Color-coded severity
+
+**Information architecture:**
+- ✅ Core info at top
+- ✅ AI analysis in middle
+- ✅ Media attachments at bottom
+- ✅ Clear section dividers
+
+### Data Flow Understanding
+
+**Props down, events up:**
+```
+App (state)
+  ↓ props (onIncidentClick function)
+IncidentsList
+  ↓ props (passes through)
+IncidentTable
+  ↓ user clicks row
+  ↑ calls onIncidentClick(incident)
+  ↑ event bubbles up
+App (updates state)
+  ↓ re-renders
+  ↓ selectedIncident is now set
+  ↓ renders IncidentDetail
+Panel appears!
+```
+
+### CSS Animation Techniques
+
+**Slide in:**
+```css
+@keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+```
+
+**Fade in:**
+```css
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+```
+
+**Hover lift:**
+```css
+.card:hover {
+    transform: translateY(-2px);
+}
+```
+
+---
+
+*Day 26 complete! Interactive detail panel working!* 🎨

@@ -1,0 +1,485 @@
+/* frontend/src/components/IncidentDetail.css
+   Styles for the incident detail panel
+   Creates a sliding side panel with overlay
+*/
+/* ========================================
+   OVERLAY (Dark Background)
+   ======================================== */
+
+.detail-overlay {
+  /* Fixed position - stays in place when scrolling */
+  position: fixed;
+  
+  /* Cover entire viewport */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  
+  /* Semi-transparent black background */
+  background-color: rgba(0, 0, 0, 0.5);
+  
+  /* Stack on top of everything else */
+  z-index: 1000;
+  
+  /* Fade in animation */
+  animation: fadeIn 0.3s ease;
+  
+  /* IMPORTANT: Allow clicks to pass through to table */
+  /* This lets you click other rows while panel is open */
+  pointer-events: none;
+}
+
+
+
+
+/* ========================================
+   DETAIL PANEL (Slides in from right)
+   ======================================== */
+
+
+
+   
+.detail-panel {
+  /* Fixed position on right side */
+  position: fixed;
+  top: 0;
+  right: 0;
+  
+  /* Full height */
+  height: 100vh;
+  
+  /* Width of panel */
+  width: 500px;
+  
+  /* White background */
+  background-color: white;
+  
+  /* Shadow for depth */
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  
+  /* Flexbox layout for header/content/footer */
+  display: flex;
+  flex-direction: column;
+  
+  /* Slide in animation */
+  animation: slideIn 0.3s ease;
+  
+  /* Stack above overlay */
+  z-index: 1001;
+  
+  /* IMPORTANT: Re-enable clicks for panel */
+  pointer-events: auto;
+}
+
+
+
+/* Slide in animation from right */
+@keyframes slideIn {
+  from {
+    /* Start off-screen to the right */
+    transform: translateX(100%);
+  }
+  to {
+    /* End in normal position */
+    transform: translateX(0);
+  }
+}
+
+/* Responsive - full width on small screens */
+@media (max-width: 768px) {
+  .detail-panel {
+    /* Take full width on mobile */
+    width: 100%;
+  }
+}
+
+
+/* ========================================
+   PANEL HEADER
+   ======================================== */
+
+.detail-header {
+  /* Flexbox for title and close button */
+  display: flex;
+  
+  /* Space between title and button */
+  justify-content: space-between;
+  
+  /* Vertically center items */
+  align-items: center;
+  
+  /* Space inside */
+  padding: 20px 24px;
+  
+  /* Border below header */
+  border-bottom: 1px solid #e0e0e0;
+  
+  /* Prevent shrinking when content grows */
+  flex-shrink: 0;
+}
+
+.detail-header h2 {
+  /* Remove default margin */
+  margin: 0;
+  
+  /* Blue color */
+  color: #2c3e50;
+  
+  /* Font size */
+  font-size: 1.5rem;
+}
+
+.close-button {
+  /* Size of close button */
+  width: 36px;
+  height: 36px;
+  
+  /* No border */
+  border: none;
+  
+  /* Light gray background */
+  background-color: #f0f0f0;
+  
+  /* Circular button */
+  border-radius: 50%;
+  
+  /* Font size for X */
+  font-size: 20px;
+  
+  /* Gray text */
+  color: #666;
+  
+  /* Pointer cursor */
+  cursor: pointer;
+  
+  /* Smooth transition */
+  transition: all 0.2s ease;
+  
+  /* Center the X */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-button:hover {
+  /* Darker background on hover */
+  background-color: #e74c3c;
+  
+  /* White text on hover */
+  color: white;
+}
+
+
+/* ========================================
+   PANEL CONTENT (Scrollable)
+   ======================================== */
+
+.detail-content {
+  /* Take remaining vertical space */
+  flex: 1;
+  
+  /* Allow scrolling if content is tall */
+  overflow-y: auto;
+  
+  /* Space inside */
+  padding: 24px;
+}
+
+
+/* ========================================
+   SEVERITY BADGE (Large)
+   ======================================== */
+
+.detail-severity {
+  /* Center the badge */
+  text-align: center;
+  
+  /* Space below */
+  margin-bottom: 24px;
+}
+
+.severity-badge-large {
+  /* Inline-block for sizing */
+  display: inline-block;
+  
+  /* Space inside */
+  padding: 10px 24px;
+  
+  /* Rounded corners */
+  border-radius: 8px;
+  
+  /* White text */
+  color: white;
+  
+  /* Large, bold text */
+  font-size: 1rem;
+  font-weight: 700;
+  
+  /* Uppercase */
+  text-transform: uppercase;
+  
+  /* Letter spacing */
+  letter-spacing: 1px;
+}
+
+
+/* ========================================
+   DETAIL FIELDS
+   ======================================== */
+
+.detail-field {
+  /* Space below each field */
+  margin-bottom: 20px;
+  
+  /* Border below for separation */
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-field:last-child {
+  /* Remove border from last field */
+  border-bottom: none;
+}
+
+.detail-field label {
+  /* Display as block (takes full width) */
+  display: block;
+  
+  /* Small, uppercase label */
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  
+  /* Gray text */
+  color: #999;
+  
+  /* Letter spacing */
+  letter-spacing: 0.5px;
+  
+  /* Space below label */
+  margin-bottom: 6px;
+  
+  /* Bold text */
+  font-weight: 600;
+}
+
+.field-value {
+  /* Remove default margin */
+  margin: 0;
+  
+  /* Font size */
+  font-size: 1rem;
+  
+  /* Dark text */
+  color: #333;
+  
+  /* Line height for readability */
+  line-height: 1.6;
+}
+
+/* Special styling for incident type */
+.incident-type-value {
+  /* Blue color */
+  color: #3498db;
+  
+  /* Bold text */
+  font-weight: 600;
+  
+  /* Larger text */
+  font-size: 1.1rem;
+}
+
+/* Full description - allow wrapping */
+.description-full {
+  /* Allow text to wrap */
+  white-space: normal;
+  
+  /* Background for emphasis */
+  background-color: #f8f9fa;
+  
+  /* Space inside */
+  padding: 12px;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+  
+  /* Border */
+  border-left: 3px solid #3498db;
+}
+
+/* Risk score - large and prominent */
+.risk-score-value {
+  /* Very large text */
+  font-size: 2rem;
+  
+  /* Bold */
+  font-weight: 700;
+  
+  /* Blue color */
+  color: #3498db;
+}
+
+/* Transcript text styling */
+.transcript-text {
+  /* Italic for transcript */
+  font-style: italic;
+  
+  /* Light background */
+  background-color: #f0f8ff;
+  
+  /* Space inside */
+  padding: 12px;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+  
+  /* Border */
+  border-left: 3px solid #3498db;
+}
+
+/* Summary text styling */
+.summary-text {
+  /* Light yellow background */
+  background-color: #fffbf0;
+  
+  /* Space inside */
+  padding: 12px;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+  
+  /* Border */
+  border-left: 3px solid #f39c12;
+}
+
+/* Field notes (smaller helper text) */
+.field-note {
+  /* Small text */
+  font-size: 0.8rem;
+  
+  /* Gray color */
+  color: #999;
+  
+  /* Italic */
+  font-style: italic;
+  
+  /* Space above */
+  margin-top: 6px;
+}
+
+
+/* ========================================
+   SECTION DIVIDERS
+   ======================================== */
+
+.section-divider {
+  /* Space above and below */
+  margin: 30px 0 20px 0;
+  
+  /* Border above */
+  border-top: 2px solid #e0e0e0;
+  
+  /* Space above border */
+  padding-top: 20px;
+}
+
+.section-divider h3 {
+  /* Dark gray heading */
+  color: #2c3e50;
+  
+  /* Font size */
+  font-size: 1.1rem;
+  
+  /* Uppercase */
+  text-transform: uppercase;
+  
+  /* Letter spacing */
+  letter-spacing: 0.5px;
+  
+  /* Remove default margin */
+  margin: 0;
+}
+
+
+/* ========================================
+   PANEL FOOTER (Action Buttons)
+   ======================================== */
+
+.detail-footer {
+  /* Border above footer */
+  border-top: 1px solid #e0e0e0;
+  
+  /* Space inside */
+  padding: 20px 24px;
+  
+  /* Flexbox for buttons */
+  display: flex;
+  
+  /* Space between buttons */
+  gap: 12px;
+  
+  /* Prevent shrinking */
+  flex-shrink: 0;
+}
+
+/* Button styles */
+.btn-primary,
+.btn-secondary {
+  /* Space inside buttons */
+  padding: 10px 20px;
+  
+  /* No border */
+  border: none;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+  
+  /* Font size */
+  font-size: 0.95rem;
+  
+  /* Bold text */
+  font-weight: 600;
+  
+  /* Pointer cursor */
+  cursor: pointer;
+  
+  /* Smooth transition */
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  /* Blue background */
+  background-color: #3498db;
+  
+  /* White text */
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  /* Darker blue on hover */
+  background-color: #2980b9;
+}
+
+.btn-primary:disabled {
+  /* Gray when disabled */
+  background-color: #bdc3c7;
+  
+  /* Not allowed cursor */
+  cursor: not-allowed;
+  
+  /* Slightly transparent */
+  opacity: 0.6;
+}
+
+.btn-secondary {
+  /* Light gray background */
+  background-color: #ecf0f1;
+  
+  /* Dark text */
+  color: #2c3e50;
+}
+
+.btn-secondary:hover {
+  /* Darker gray on hover */
+  background-color: #bdc3c7;
+}

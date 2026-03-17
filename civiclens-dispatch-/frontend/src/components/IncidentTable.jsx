@@ -16,8 +16,8 @@ import './IncidentTable.css'
 // Component that displays incidents in a table format
 // Props:
 //   - incidents: Array of incident objects from API
-function IncidentTable({ incidents }) {
-  
+function IncidentTable({ incidents, onIncidentClick }) {
+      
   // ========================================
   // HELPER FUNCTION - Format Risk Score
   // ========================================
@@ -62,9 +62,9 @@ function IncidentTable({ incidents }) {
   // Called when user clicks a table row
   // For now, just shows alert (Day 26 will show detail panel)
   function handleRowClick(incident) {
-    // Show alert with incident details
-    // In Day 26, this will open a side panel instead
-    alert(`Incident #${incident.id}\n\nDescription: ${incident.description}\n\nLocation: ${incident.location}\n\n(Tomorrow we'll build a detail panel!)`);
+    // Call the function passed from parent
+    // Parent will handle showing the detail panel
+    onIncidentClick(incident);
   }
   
   
