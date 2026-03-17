@@ -1,0 +1,169 @@
+/* frontend/src/components/Toast.css
+   Styles for toast notifications
+   Creates slide-in notifications in top-right corner
+*/
+
+/* ========================================
+   TOAST BASE STYLES
+   ======================================== */
+
+.toast {
+  /* Fixed position in top-right corner */
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  
+  /* Z-index to appear above everything */
+  z-index: 9999;
+  
+  /* Flexbox for icon, message, and close button */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  /* Minimum width */
+  min-width: 300px;
+  
+  /* Maximum width */
+  max-width: 500px;
+  
+  /* Space inside */
+  padding: 16px 20px;
+  
+  /* Rounded corners */
+  border-radius: 8px;
+  
+  /* Shadow for depth */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  
+  /* Slide in animation */
+  animation: slideInRight 0.3s ease;
+  
+  /* White text */
+  color: white;
+  
+  /* Font size */
+  font-size: 0.95rem;
+}
+
+/* Slide in from right animation */
+@keyframes slideInRight {
+  from {
+    /* Start off-screen to the right */
+    transform: translateX(400px);
+    
+    /* Start invisible */
+    opacity: 0;
+  }
+  to {
+    /* End in normal position */
+    transform: translateX(0);
+    
+    /* End visible */
+    opacity: 1;
+  }
+}
+
+
+/* ========================================
+   TOAST TYPES (Different Colors)
+   ======================================== */
+
+/* Success toast - green */
+.toast-success {
+  background-color: #27ae60;
+}
+
+/* Error toast - red */
+.toast-error {
+  background-color: #e74c3c;
+}
+
+/* Warning toast - orange */
+.toast-warning {
+  background-color: #f39c12;
+}
+
+/* Info toast - blue */
+.toast-info {
+  background-color: #3498db;
+}
+
+
+/* ========================================
+   TOAST ELEMENTS
+   ======================================== */
+
+.toast-icon {
+  /* Icon size */
+  font-size: 24px;
+  
+  /* Prevent shrinking */
+  flex-shrink: 0;
+}
+
+.toast-message {
+  /* Take available space */
+  flex: 1;
+  
+  /* Line height for readability */
+  line-height: 1.5;
+}
+
+.toast-close {
+  /* No background */
+  background: none;
+  
+  /* No border */
+  border: none;
+  
+  /* White text */
+  color: white;
+  
+  /* Large X */
+  font-size: 24px;
+  
+  /* Pointer cursor */
+  cursor: pointer;
+  
+  /* Prevent shrinking */
+  flex-shrink: 0;
+  
+  /* Size of button */
+  width: 24px;
+  height: 24px;
+  
+  /* Center the X */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Slightly transparent by default */
+  opacity: 0.8;
+  
+  /* Smooth transition */
+  transition: opacity 0.2s ease;
+}
+
+.toast-close:hover {
+  /* Fully opaque on hover */
+  opacity: 1;
+}
+
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+/* On mobile screens */
+@media (max-width: 768px) {
+  .toast {
+    /* Full width on mobile */
+    left: 20px;
+    right: 20px;
+    
+    /* Remove min/max width constraints */
+    min-width: auto;
+    max-width: none;
+  }
+}

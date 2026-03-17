@@ -1097,3 +1097,165 @@ Table shows new incident!
 **The complete loop works:**
 ```
 Submit form → Backend saves → Table refreshes → Click row → See details!
+
+## Day 28: Basic Styling and Layout
+
+**Visual polish day!** Transform from functional to professional.
+
+### Core Concepts
+
+1. **Flexbox**: Modern CSS layout system (flexible boxes)
+2. **Two-column layout**: Form left, data right
+3. **Responsive design**: Works on all screen sizes
+4. **CSS variables**: Define once, use everywhere
+5. **Design system**: Consistent colors, spacing, typography
+6. **Component-based styling**: Each component has own CSS file
+
+### Flexbox Deep Dive
+
+**Container properties:**
+```css
+display: flex;              /* Enable flexbox */
+flex-direction: row;        /* Horizontal (or column) */
+justify-content: center;    /* Main axis alignment */
+align-items: center;        /* Cross axis alignment */
+gap: 20px;                  /* Space between items */
+```
+
+**Item properties:**
+```css
+flex: 1;           /* Grow to fill space */
+flex: 0 0 250px;   /* Fixed 250px width */
+```
+
+**Key insight:** 
+- Parent has `display: flex`
+- Children automatically become flex items
+- Super powerful for layouts!
+
+### CSS Variables (Custom Properties)
+
+**Define once:**
+```css
+:root {
+    --primary-color: #3498db;
+    --spacing-lg: 24px;
+}
+```
+
+**Use everywhere:**
+```css
+.button {
+    background: var(--primary-color);
+    margin: var(--spacing-lg);
+}
+```
+
+**Benefits:**
+- Change color once, updates everywhere
+- Easier to maintain
+- Can be changed with JavaScript
+- Self-documenting code
+
+### Responsive Design Strategy
+
+**Mobile-first approach:**
+1. Design for mobile first (smallest screen)
+2. Add styles for larger screens with @media
+3. Progressive enhancement
+
+**Breakpoints used:**
+- 768px: Tablet and up
+- 1024px: Desktop and up
+- 1400px: Large desktop
+
+### Layout Pattern
+
+**Two-column with Flexbox:**
+```css
+.layout {
+    display: flex;
+    gap: 24px;
+}
+
+.left { flex: 1; }   /* 1/3 width */
+.right { flex: 2; }  /* 2/3 width */
+```
+
+**On mobile:**
+```css
+@media (max-width: 1024px) {
+    .layout {
+        flex-direction: column;  /* Stack */
+    }
+}
+```
+
+### What I Built
+
+- ✅ DashboardLayout component (flexible two-column)
+- ✅ SectionDivider component (visual separation)
+- ✅ CSS variable system (consistent colors/spacing)
+- ✅ Responsive layout (desktop and mobile)
+- ✅ Enhanced typography (better readability)
+- ✅ Improved spacing (8px grid system)
+- ✅ Custom scrollbars (better aesthetics)
+- ✅ Focus states (accessibility)
+
+### Design Decisions
+
+**Why two columns:**
+- Efficient screen space usage
+- See form and results simultaneously
+- Standard dashboard pattern (users expect it)
+
+**Why sticky left column:**
+- Form stays visible while scrolling table
+- Don't have to scroll back up to submit
+- Better UX for quick submissions
+
+**Why CSS variables:**
+- Easy theme changes
+- Consistency across components
+- Self-documenting (`--primary-color` vs `#3498db`)
+
+**Why system fonts:**
+- Native appearance (feels like OS)
+- Fast (no download needed)
+- Excellent readability
+
+### Professional Polish Applied
+
+**Before Day 28:**
+- Functional but basic
+- Single column layout
+- Inconsistent spacing
+- Generic styling
+
+**After Day 28:**
+- Professional appearance
+- Efficient two-column layout
+- Consistent spacing (8px grid)
+- Cohesive design system
+- Responsive on all devices
+
+### CSS Organization
+
+**Per-component CSS:**
+- `App.css` - App-level styles
+- `IncidentTable.css` - Table styles
+- `SubmitIncidentForm.css` - Form styles
+- `DashboardLayout.css` - Layout styles
+
+**Global CSS:**
+- `index.css` - Reset, variables, utilities
+
+**Benefits:**
+- Easy to find styles
+- Scope is clear
+- Can remove component CSS when removing component
+- No style conflicts
+
+---
+
+*Day 28 complete! Professional design system established!* 🎨

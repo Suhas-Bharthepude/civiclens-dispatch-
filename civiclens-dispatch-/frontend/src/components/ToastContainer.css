@@ -1,0 +1,26 @@
+/* frontend/src/components/ToastContainer.css */
+
+.toast-container {
+  /* Fixed position container */
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  
+  /* High z-index */
+  z-index: 9999;
+  
+  /* Pointer events pass through container */
+  /* But toasts themselves still receive clicks */
+  pointer-events: none;
+}
+
+.toast-wrapper {
+  /* Relative positioning for stacking */
+  position: relative;
+  
+  /* Re-enable pointer events for toasts */
+  pointer-events: auto;
+  
+  /* Space below each toast */
+  margin-bottom: 12px;
+}

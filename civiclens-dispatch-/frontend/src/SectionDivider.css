@@ -1,0 +1,62 @@
+/* frontend/src/components/SectionDivider.css
+   Styles for section divider component
+*/
+
+.section-divider {
+  /* Flexbox for centering title between lines */
+  display: flex;
+  
+  /* Vertically center items */
+  align-items: center;
+  
+  /* Space above and below */
+  margin: 2rem 0;
+}
+
+.divider-line {
+  /* Take available space */
+  flex: 1;
+  
+  /* Height of line */
+  height: 1px;
+  
+  /* Light gray color */
+  background-color: #e0e0e0;
+}
+
+.divider-title {
+  /* Space on left and right of title */
+  padding: 0 1rem;
+  
+  /* Gray text */
+  color: #999;
+  
+  /* Uppercase */
+  text-transform: uppercase;
+  
+  /* Smaller text */
+  font-size: 0.85rem;
+  
+  /* Bold */
+  font-weight: 600;
+  
+  /* Letter spacing */
+  letter-spacing: 0.5px;
+}
+
+.simple-divider {
+  /* Full width */
+  width: 100%;
+  
+  /* Height */
+  height: 1px;
+  
+  /* No border */
+  border: none;
+  
+  /* Light gray background */
+  background-color: #e0e0e0;
+  
+  /* Space above and below */
+  margin: 2rem 0;
+}

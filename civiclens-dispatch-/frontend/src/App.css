@@ -1,26 +1,30 @@
 /* frontend/src/App.css
-   Styles for the App component
-   This is "component-scoped" CSS - only applies to App.jsx
+   Styles for the main App component
+   Enhanced with two-column layout and professional design
 */
 
 /* ========================================
-   MAIN CONTAINER
+   APP CONTAINER
    ======================================== */
 
 .app-container {
-  /* Take full width of viewport */
+  /* Take full width */
   width: 100%;
   
-  /* Minimum height = full viewport height */
+  /* Minimum height = full viewport */
   min-height: 100vh;
   
   /* Light gray background */
   background-color: #f5f5f5;
+  
+  /* Flexbox for header/main/footer layout */
+  display: flex;
+  flex-direction: column;
 }
 
 
 /* ========================================
-   HEADER
+   HEADER SECTION
    ======================================== */
 
 .app-header {
@@ -33,33 +37,71 @@
   /* Space inside header */
   padding: 2rem;
   
-  /* Center text horizontally */
+  /* Center text */
   text-align: center;
   
-  /* Shadow below header for depth */
+  /* Shadow for depth */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
 
 .app-header h1 {
   /* Remove default margin */
   margin: 0;
   
-  /* Large text */
+  /* Large heading */
   font-size: 2.5rem;
   
-  /* Space below heading */
+  /* Space below */
   margin-bottom: 0.5rem;
+  
+  /* Letter spacing for elegance */
+  letter-spacing: -0.5px;
+  
+  /* IMPORTANT: White text color! */
+  color: white;
 }
+
 
 .app-header p {
   /* Remove default margin */
   margin: 0;
   
-  /* Slightly transparent white */
+  /* Slightly transparent WHITE */
   opacity: 0.9;
   
-  /* Slightly smaller text */
+  /* Font size */
   font-size: 1.1rem;
+  
+  /* Space below */
+  margin-bottom: 0.5rem;
+  
+  /* IMPORTANT: White text! */
+  color: white;
+}
+
+
+
+
+/* Version badge in header */
+.version-badge {
+  /* Inline block for sizing */
+  display: inline-block;
+  
+  /* Space inside */
+  padding: 4px 12px;
+  
+  /* Semi-transparent white background */
+  background-color: rgba(255, 255, 255, 0.2);
+  
+  /* Rounded corners */
+  border-radius: 12px;
+  
+  /* Smaller text */
+  font-size: 0.85rem;
+  
+  /* Space above */
+  margin-top: 10px;
 }
 
 
@@ -68,304 +110,53 @@
    ======================================== */
 
 .app-main {
-  /* Maximum width */
-  max-width: 800px;
+  /* Take remaining vertical space */
+  /* This pushes footer to bottom */
+  flex: 1;
+  
+  /* Maximum width for readability */
+  max-width: 1400px;
   
   /* Center horizontally */
-  /* auto = equal margins on left and right */
   margin: 0 auto;
   
-  /* Space above and below */
+  /* Full width up to max-width */
+  width: 100%;
+  
+  /* Space inside */
   padding: 2rem 1rem;
 }
 
 
 /* ========================================
-   CONTENT SECTIONS
+   COLUMN HEADERS
    ======================================== */
 
-.welcome-section,
-.counter-section,
-.info-section {
-  /* White background */
-  background-color: white;
-  
-  /* Space inside */
-  padding: 2rem;
-  
-  /* Rounded corners */
-  border-radius: 8px;
-  
-  /* Shadow for depth */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  
-  /* Space below each section */
-  margin-bottom: 2rem;
-}
-
-.welcome-section h2,
-.counter-section h3,
-.info-section h3 {
-  /* Dark gray text */
-  color: #2c3e50;
-  
-  /* Space below headings */
-  margin-bottom: 1rem;
-}
-
-.welcome-section code {
-  /* Light gray background for code */
-  background-color: #f0f0f0;
-  
-  /* Space inside */
-  padding: 2px 6px;
-  
-  /* Rounded corners */
-  border-radius: 3px;
-  
-  /* Monospace font (looks like code) */
-  font-family: 'Courier New', monospace;
-  
-  /* Slightly pink text */
-  color: #e74c3c;
-}
-
-
-/* ========================================
-   COUNTER SECTION
-   ======================================== */
-
-.counter-section p {
-  /* Larger text for counter value */
-  font-size: 1.2rem;
-  
-  /* Space below */
-  margin-bottom: 1rem;
-}
-
-.counter-section button {
-  /* Blue background */
-  background-color: #3498db;
-  
-  /* White text */
-  color: white;
-  
-  /* Space inside button */
-  padding: 10px 20px;
-  
-  /* No border */
-  border: none;
-  
-  /* Rounded corners */
-  border-radius: 4px;
-  
-  /* Pointer cursor on hover */
-  cursor: pointer;
-  
-  /* Smooth transition for hover effect */
-  transition: background-color 0.3s;
-  
-  /* Medium text size */
-  font-size: 1rem;
-  
-  /* Bold text */
-  font-weight: bold;
-}
-
-.counter-section button:hover {
-  /* Darker blue on hover */
-  background-color: #2980b9;
-}
-
-
-/* ========================================
-   INFO SECTION
-   ======================================== */
-
-.info-section ul {
-  /* Remove default list styling */
-  list-style-type: none;
-  
-  /* Remove default padding */
-  padding: 0;
-}
-
-.info-section li {
-  /* Space between list items */
-  padding: 0.5rem 0;
-  
-  /* Larger text */
-  font-size: 1.1rem;
-  
-  /* Border below each item */
-  border-bottom: 1px solid #eee;
-}
-
-.info-section li:last-child {
-  /* Remove border from last item */
-  border-bottom: none;
-}
-
-/* ========================================
-   CUSTOM COMPONENT DEMO
-   ======================================== */
-
-.demo-section {
-  background-color: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-top: 2rem;
-}
-
-.demo-section h3 {
-  color: #2c3e50;
-  margin-bottom: 1.5rem;
-}
-
-
-/* ========================================
-   INCIDENT CARD COMPONENT
-   ======================================== */
-
-.incident-card {
-  /* White background */
-  background-color: white;
-  
-  /* Border around card */
-  border: 2px solid #e0e0e0;
-  
-  /* Rounded corners */
-  border-radius: 8px;
-  
-  /* Space inside card */
-  padding: 1.5rem;
-  
-  /* Space below card */
-  margin-bottom: 1rem;
-  
-  /* Smooth hover transition */
-  transition: all 0.3s ease;
-}
-
-.incident-card:hover {
-  /* Lift card on hover */
-  transform: translateY(-2px);
-  
-  /* Stronger shadow on hover */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  
-  /* Blue border on hover */
-  border-color: #3498db;
-}
-
-.incident-card h3 {
-  /* Blue color */
-  color: #3498db;
-  
-  /* Space below */
-  margin-bottom: 1rem;
-}
-
-.incident-card p {
-  /* Space below paragraphs */
-  margin-bottom: 0.5rem;
-}
-
-.badge {
-  /* Inline block so padding works */
-  display: inline-block;
-  
-  /* Space inside badge */
-  padding: 4px 12px;
-  
-  /* Rounded corners */
-  border-radius: 4px;
-  
-  /* Gray background */
-  background-color: #95a5a6;
-  
-  /* White text */
-  color: white;
-  
-  /* Smaller text */
-  font-size: 0.85rem;
-  
-  /* Space to the left */
-  margin-left: 0.5rem;
-}
-
-.severity-badge {
-  /* Inline block */
-  display: inline-block;
-  
-  /* Space inside */
-  padding: 4px 12px;
-  
-  /* Rounded corners */
-  border-radius: 4px;
-  
-  /* White text */
-  color: white;
-  
-  /* Smaller, bold text */
-  font-size: 0.85rem;
-  font-weight: bold;
-  
-  /* Space to the left */
-  margin-left: 0.5rem;
-}
-
-/* Severity-specific colors */
-.severity-high {
-  /* Red for high severity */
-  background-color: #e74c3c;
-}
-
-.severity-medium {
-  /* Orange for medium severity */
-  background-color: #f39c12;
-}
-
-.severity-low {
-  /* Green for low severity */
-  background-color: #27ae60;
-}
-
-
-/* ========================================
-   INCIDENTS LIST COMPONENT
-   ======================================== */
-
-.incidents-list {
-  /* White background */
-  background-color: white;
-  
-  /* Space inside */
-  padding: 2rem;
-  
-  /* Rounded corners */
-  border-radius: 8px;
-  
-  /* Shadow for depth */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  
-  /* Space above */
-  margin-top: 2rem;
-}
-
-.incidents-list h2 {
-  /* Dark gray heading */
-  color: #2c3e50;
-  
+.column-header {
   /* Space below */
   margin-bottom: 1.5rem;
+}
+
+.column-header h3 {
+  /* Remove default margin */
+  margin: 0 0 0.5rem 0;
   
-  /* Border below heading */
-  border-bottom: 2px solid #3498db;
+  /* Dark gray color */
+  color: #2c3e50;
   
-  /* Space between text and border */
-  padding-bottom: 10px;
+  /* Font size */
+  font-size: 1.5rem;
+}
+
+.column-description {
+  /* Remove default margin */
+  margin: 0;
+  
+  /* Gray text */
+  color: #666;
+  
+  /* Smaller font */
+  font-size: 0.95rem;
 }
 
 
@@ -374,8 +165,8 @@
    ======================================== */
 
 .incidents-section {
-  /* Space above */
-  margin-top: 2rem;
+  /* No extra margin (handled by layout gap) */
+  margin: 0;
 }
 
 .incidents-section h2 {
@@ -385,9 +176,157 @@
   /* Space below */
   margin-bottom: 1rem;
   
-  /* Border below heading */
+  /* Border below */
   border-bottom: 2px solid #3498db;
   
   /* Space between text and border */
   padding-bottom: 10px;
+  
+  /* Font size */
+  font-size: 1.8rem;
+}
+
+
+/* ========================================
+   FOOTER
+   ======================================== */
+
+.app-footer {
+  /* Dark background */
+  background-color: #34495e;
+  
+  /* White text */
+  color: white;
+  
+  /* Center text */
+  text-align: center;
+  
+  /* Space inside */
+  padding: 2rem;
+  
+  /* Border above */
+  border-top: 3px solid #3498db;
+}
+
+.app-footer p {
+  /* Remove default margin */
+  margin: 0 0 0.5rem 0;
+  
+  /* Font size */
+  font-size: 0.9rem;
+  
+  /* Slightly transparent */
+  opacity: 0.9;
+}
+
+.footer-note {
+  /* Smaller text for note */
+  font-size: 0.8rem;
+  
+  /* More transparent */
+  opacity: 0.7;
+  
+  /* Italic */
+  font-style: italic;
+}
+
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+
+/* Large desktop (1400px+) */
+@media (min-width: 1400px) {
+  .app-main {
+    /* More padding on very large screens */
+    padding: 2rem 2rem;
+  }
+}
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+  .app-header h1 {
+    /* Smaller heading on tablets */
+    font-size: 2rem;
+  }
+  
+  .app-main {
+    /* Less padding on tablets */
+    padding: 1.5rem 1rem;
+  }
+}
+
+/* Mobile (max-width: 768px) */
+@media (max-width: 768px) {
+  .app-header {
+    /* Less padding on mobile */
+    padding: 1.5rem 1rem;
+  }
+  
+  .app-header h1 {
+    /* Even smaller on mobile */
+    font-size: 1.75rem;
+  }
+  
+  .app-header p {
+    /* Smaller subtitle */
+    font-size: 1rem;
+  }
+  
+  .app-main {
+    /* Minimal padding on mobile */
+    padding: 1rem 0.5rem;
+  }
+  
+  .app-footer {
+    /* Less padding on mobile */
+    padding: 1.5rem 1rem;
+  }
+}
+
+/* ========================================
+   CARD CONTAINERS
+   ======================================== */
+
+.card {
+  /* White background */
+  background-color: white;
+  
+  /* Rounded corners */
+  border-radius: var(--radius-md);
+  
+  /* Shadow for depth */
+  box-shadow: var(--shadow-md);
+  
+  /* Space inside */
+  padding: var(--spacing-lg);
+  
+  /* Space below */
+  margin-bottom: var(--spacing-lg);
+}
+
+.card-header {
+  /* Space below header */
+  margin-bottom: var(--spacing-lg);
+  
+  /* Border below */
+  border-bottom: 2px solid var(--gray-200);
+  
+  /* Space between text and border */
+  padding-bottom: var(--spacing-md);
+}
+
+.card-title {
+  /* Remove margin */
+  margin: 0;
+  
+  /* Color */
+  color: var(--secondary-color);
+  
+  /* Font size */
+  font-size: 1.5rem;
+}
+
+.card-body {
+  /* No extra spacing (content handles its own) */
 }

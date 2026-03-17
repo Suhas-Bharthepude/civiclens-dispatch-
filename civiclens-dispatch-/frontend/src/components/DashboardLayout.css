@@ -1,0 +1,145 @@
+/* frontend/src/components/DashboardLayout.css
+   Styles for two-column dashboard layout
+   Uses flexbox for flexible, responsive design
+*/
+
+/* ========================================
+   MAIN LAYOUT CONTAINER
+   ======================================== */
+
+.dashboard-layout {
+  /* Enable flexbox layout */
+  /* This makes child divs arrange in a row by default */
+  display: flex;
+  
+  /* Direction: row means horizontal (side by side) */
+  /* Default is row, but being explicit is good practice */
+  flex-direction: row;
+  
+  /* Space between columns */
+  /* gap is modern CSS property (like margin between flex items) */
+  gap: 24px;
+  
+  /* Align items to start of cross-axis (top) */
+  /* This means both columns start at the same height */
+  align-items: flex-start;
+  
+  /* Full width of parent container */
+  width: 100%;
+}
+
+
+/* ========================================
+   LEFT COLUMN (Form Side)
+   ======================================== */
+
+.dashboard-left {
+  /* flex: 1 means "take 1 portion of available space" */
+  /* If right column is flex: 2, left gets 1/3, right gets 2/3 */
+  /* This is overridden by inline style prop */
+  flex: 1;
+  
+  /* Minimum width before wrapping */
+  /* Prevents column from getting too narrow */
+  min-width: 300px;
+  
+  /* Sticky positioning - stays visible when scrolling */
+  /* This keeps the form visible as user scrolls through table */
+  position: sticky;
+  top: 20px;
+  
+  /* Maximum height (90% of viewport height) */
+  max-height: 90vh;
+  
+  /* Allow scrolling if content is taller than max-height */
+  overflow-y: auto;
+}
+
+
+/* ========================================
+   RIGHT COLUMN (Table Side)
+   ======================================== */
+
+.dashboard-right {
+  /* flex: 2 means "take 2 portions of space" */
+  /* Gets twice as much space as left column */
+  flex: 2;
+  
+  /* Minimum width */
+  min-width: 400px;
+}
+
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+/* Tablet and smaller (max-width: 1024px) */
+@media (max-width: 1024px) {
+  .dashboard-layout {
+    /* Stack columns vertically on tablets */
+    flex-direction: column;
+  }
+  
+  .dashboard-left {
+    /* Remove sticky on mobile (doesn't make sense when stacked) */
+    position: static;
+    
+    /* Full width when stacked */
+    width: 100%;
+    
+    /* Remove max-height constraint */
+    max-height: none;
+  }
+  
+  .dashboard-right {
+    /* Full width when stacked */
+    width: 100%;
+  }
+}
+
+/* Mobile (max-width: 768px) */
+@media (max-width: 768px) {
+  .dashboard-layout {
+    /* Reduce gap on mobile (save space) */
+    gap: 16px;
+  }
+  
+  .dashboard-left,
+  .dashboard-right {
+    /* Remove minimum widths on mobile */
+    min-width: 0;
+  }
+}
+
+
+/* ========================================
+   SCROLLBAR STYLING (for sticky left column)
+   ======================================== */
+
+/* Custom scrollbar for webkit browsers (Chrome, Safari) */
+.dashboard-left::-webkit-scrollbar {
+  /* Thin scrollbar */
+  width: 8px;
+}
+
+.dashboard-left::-webkit-scrollbar-track {
+  /* Light gray track */
+  background: #f0f0f0;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+}
+
+.dashboard-left::-webkit-scrollbar-thumb {
+  /* Darker gray thumb */
+  background: #bbb;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+}
+
+.dashboard-left::-webkit-scrollbar-thumb:hover {
+  /* Even darker on hover */
+  background: #999;
+}

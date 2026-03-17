@@ -1,15 +1,16 @@
 /* frontend/src/index.css
-   Global styles that apply to the entire application
-   Loaded once in main.jsx
+   Global styles and CSS reset
+   Provides consistent base styling across entire application
 */
 
 /* ========================================
-   RESET & BASE STYLES
+   CSS RESET
    ======================================== */
 
-/* Apply to all elements */
+/* Universal selector - applies to all elements */
 * {
-  /* Include padding and border in width calculations */
+  /* Include padding/border in width calculations */
+  /* This makes sizing more intuitive */
   box-sizing: border-box;
   
   /* Remove default margins */
@@ -19,64 +20,236 @@
   padding: 0;
 }
 
-/* Base styles for entire page */
-body {
-  /* Use system fonts (looks native on each OS) */
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+
+/* ========================================
+   ROOT ELEMENT
+   ======================================== */
+
+:root {
+  /* CSS Custom Properties (Variables) */
+  /* Define colors once, use everywhere */
   
-  /* Smooth font rendering */
+  /* Brand colors */
+  --primary-color: #3498db;      /* Blue */
+  --secondary-color: #2c3e50;    /* Dark gray */
+  --success-color: #27ae60;      /* Green */
+  --warning-color: #f39c12;      /* Orange */
+  --danger-color: #e74c3c;       /* Red */
+  
+  /* Neutral colors */
+  --gray-50: #f8f9fa;
+  --gray-100: #f0f0f0;
+  --gray-200: #e0e0e0;
+  --gray-300: #bbb;
+  --gray-400: #999;
+  --gray-500: #666;
+  --gray-600: #333;
+  
+  /* Spacing scale (consistent spacing throughout app) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+
+/* ========================================
+   BASE BODY STYLES
+   ======================================== */
+
+body {
+  /* System font stack - uses OS native fonts */
+  /* -apple-system = macOS/iOS */
+  /* BlinkMacSystemFont = macOS Chrome */
+  /* Segoe UI = Windows */
+  /* Roboto = Android */
+  /* Fallback to sans-serif */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 
+    'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 
+    'Helvetica Neue', sans-serif;
+  
+  /* Smooth font rendering on macOS */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   
-  /* Dark gray text */
-  color: #333;
+  /* Dark gray text (easier on eyes than pure black) */
+  color: var(--gray-600);
   
   /* Line height for readability */
   line-height: 1.6;
+  
+  /* Base font size */
+  font-size: 16px;
+}
+
+
+/* ========================================
+   TYPOGRAPHY
+   ======================================== */
+
+/* All headings */
+h1, h2, h3, h4, h5, h6 {
+  /* Darker color for headings */
+  color: var(--secondary-color);
+  
+  /* Tighter line height for headings */
+  line-height: 1.2;
+  
+  /* Slightly tighter letter spacing */
+  letter-spacing: -0.02em;
+}
+
+/* Heading sizes */
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+h5 { font-size: 1.1rem; }
+h6 { font-size: 1rem; }
+
+/* Paragraphs */
+p {
+  /* Space below paragraphs */
+  margin-bottom: 1rem;
+}
+
+/* Links */
+a {
+  /* Blue color using CSS variable */
+  color: var(--primary-color);
+  
+  /* No underline by default */
+  text-decoration: none;
+  
+  /* Smooth transition */
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  /* Darker blue on hover */
+  color: #2980b9;
+  
+  /* Underline on hover */
+  text-decoration: underline;
 }
 
 /* Code elements */
 code {
   /* Monospace font for code */
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
-
-/* Links */
-a {
-  /* Blue color */
-  color: #3498db;
+  font-family: 'Courier New', Consolas, Monaco, monospace;
   
-  /* No underline by default */
-  text-decoration: none;
+  /* Light background */
+  background-color: var(--gray-100);
+  
+  /* Small padding */
+  padding: 2px 6px;
+  
+  /* Rounded corners */
+  border-radius: var(--radius-sm);
+  
+  /* Slightly smaller */
+  font-size: 0.9em;
+  
+  /* Reddish color */
+  color: #e74c3c;
 }
 
-a:hover {
-  /* Underline on hover */
-  text-decoration: underline;
-}
 
 /* ========================================
    UTILITY CLASSES
    ======================================== */
 
-/* Utility class for centering text */
-.text-center {
-  text-align: center;
+/* Text alignment */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+/* Margin utilities */
+.mb-1 { margin-bottom: var(--spacing-md); }
+.mb-2 { margin-bottom: var(--spacing-lg); }
+.mt-1 { margin-top: var(--spacing-md); }
+.mt-2 { margin-top: var(--spacing-lg); }
+
+/* Padding utilities */
+.p-1 { padding: var(--spacing-md); }
+.p-2 { padding: var(--spacing-lg); }
+
+/* Visibility */
+.hidden { display: none; }
+
+/* Text colors */
+.text-muted { color: var(--gray-400); }
+.text-primary { color: var(--primary-color); }
+.text-success { color: var(--success-color); }
+.text-danger { color: var(--danger-color); }
+
+
+/* ========================================
+   SCROLLBAR STYLING (Global)
+   ======================================== */
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  /* Width of scrollbar */
+  width: 10px;
 }
 
-/* Utility class for adding space below */
-.mb-1 {
-  margin-bottom: 1rem;
+::-webkit-scrollbar-track {
+  /* Background of scrollbar track */
+  background: var(--gray-100);
 }
 
-.mb-2 {
-  margin-bottom: 2rem;
+::-webkit-scrollbar-thumb {
+  /* Scrollbar handle */
+  background: var(--gray-300);
+  
+  /* Rounded corners */
+  border-radius: var(--radius-sm);
 }
 
-/* Utility class for hiding elements */
-.hidden {
-  display: none;
+::-webkit-scrollbar-thumb:hover {
+  /* Darker on hover */
+  background: var(--gray-400);
+}
+
+
+/* ========================================
+   SELECTION STYLING
+   ======================================== */
+
+/* Text selection color */
+::selection {
+  /* Blue background */
+  background-color: var(--primary-color);
+  
+  /* White text */
+  color: white;
+}
+
+
+/* ========================================
+   FOCUS OUTLINE (Accessibility)
+   ======================================== */
+
+/* Better focus outline for keyboard navigation */
+*:focus-visible {
+  /* Blue outline */
+  outline: 2px solid var(--primary-color);
+  
+  /* Offset from element */
+  outline-offset: 2px;
+  
+  /* Rounded corners */
+  border-radius: var(--radius-sm);
 }

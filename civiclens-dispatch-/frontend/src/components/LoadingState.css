@@ -1,0 +1,188 @@
+/* frontend/src/components/LoadingState.css
+   Styles for loading states (spinner, skeleton, inline)
+*/
+
+/* ========================================
+   SPINNER TYPE
+   ======================================== */
+
+.loading-spinner-container {
+  /* Center content */
+  text-align: center;
+  
+  /* Space inside */
+  padding: 40px 20px;
+  
+  /* Light background */
+  background-color: #f8f9fa;
+  
+  /* Rounded corners */
+  border-radius: 8px;
+}
+
+.loading-spinner {
+  /* Size of spinner */
+  width: 48px;
+  height: 48px;
+  
+  /* Center horizontally */
+  margin: 0 auto 20px;
+  
+  /* Circular shape */
+  border-radius: 50%;
+  
+  /* Border with transparent sections creates spinning effect */
+  /* Full circle is light gray, top quarter is blue */
+  border: 4px solid rgba(52, 152, 219, 0.2);
+  border-top-color: #3498db;
+  
+  /* Spin animation */
+  /* spin is defined below */
+  /* 1s = one rotation per second */
+  /* linear = constant speed */
+  /* infinite = never stops */
+  animation: spin 1s linear infinite;
+}
+
+/* Define spinning animation */
+@keyframes spin {
+  /* Start position: 0 degrees */
+  0% {
+    transform: rotate(0deg);
+  }
+  
+  /* End position: 360 degrees (full circle) */
+  100% {
+    transform: rotate(360deg);
+  }
+  
+  /* Browser automatically animates between start and end */
+}
+
+.loading-message {
+  /* Gray text */
+  color: #666;
+  
+  /* Medium size */
+  font-size: 1.1rem;
+  
+  /* Remove default margin */
+  margin: 0;
+}
+
+
+/* ========================================
+   SKELETON TYPE (Placeholder Loading)
+   ======================================== */
+
+.loading-skeleton {
+  /* Space inside */
+  padding: 20px;
+  
+  /* Light background */
+  background-color: white;
+  
+  /* Rounded corners */
+  border-radius: 8px;
+}
+
+.skeleton-row {
+  /* Flexbox for items in row */
+  display: flex;
+  
+  /* Space between items */
+  gap: 12px;
+  
+  /* Space below each row */
+  margin-bottom: 16px;
+}
+
+.skeleton-row:last-child {
+  /* Remove margin from last row */
+  margin-bottom: 0;
+}
+
+.skeleton-item {
+  /* Height of skeleton box */
+  height: 20px;
+  
+  /* Light gray background */
+  background-color: #e0e0e0;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+  
+  /* Shimmer animation */
+  /* shimmer is defined below */
+  animation: shimmer 1.5s infinite;
+}
+
+/* Different widths for variety */
+.skeleton-small {
+  /* 20% width */
+  flex: 0 0 20%;
+}
+
+.skeleton-medium {
+  /* 30% width */
+  flex: 0 0 30%;
+}
+
+.skeleton-large {
+  /* Take remaining space */
+  flex: 1;
+}
+
+/* Shimmer animation - creates "loading" effect */
+@keyframes shimmer {
+  /* Start: normal gray */
+  0% {
+    opacity: 1;
+  }
+  
+  /* Middle: lighter (shimmer effect) */
+  50% {
+    opacity: 0.5;
+  }
+  
+  /* End: back to normal */
+  100% {
+    opacity: 1;
+  }
+}
+
+
+/* ========================================
+   INLINE TYPE (Small Spinner)
+   ======================================== */
+
+.loading-inline {
+  /* Inline display */
+  display: inline-flex;
+  
+  /* Vertically center items */
+  align-items: center;
+  
+  /* Space between spinner and text */
+  gap: 8px;
+}
+
+.loading-spinner-small {
+  /* Small spinner for inline use */
+  /* Display as inline-block so dimensions work */
+  display: inline-block;
+  
+  /* Small size */
+  width: 16px;
+  height: 16px;
+  
+  /* Circular */
+  border-radius: 50%;
+  
+  /* Border with blue top section */
+  border: 2px solid rgba(52, 152, 219, 0.2);
+  border-top-color: #3498db;
+  
+  /* Spin animation */
+  animation: spin 0.8s linear infinite;
+}
