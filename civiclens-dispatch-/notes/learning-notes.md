@@ -869,3 +869,231 @@ Panel appears!
 ---
 
 *Day 26 complete! Interactive detail panel working!* 🎨
+
+
+
+
+## Day 27: Citizen Submission Form UI
+
+**Complete the loop!** Users can now submit incidents that dispatchers see.
+
+### Core Concepts
+
+1. **Controlled inputs**: React manages input values via state
+2. **Form state object**: Single object holds all field values
+3. **onChange handler**: Updates state as user types
+4. **Form submission**: Prevent default, validate, call API
+5. **File uploads**: Handle file selection with state
+6. **Parent-child callbacks**: Notify parent when form submits
+7. **Form reset**: Clear all fields after successful submission
+
+### Controlled Inputs Explained
+
+**The pattern:**
+```javascript
+const [value, setValue] = useState('');
+
+<input 
+    value={value}                          // React controls value
+    onChange={(e) => setValue(e.target.value)}  // Update on change
+/>
+```
+
+**Why this works:**
+- User types → onChange fires
+- setState updates value
+- Component re-renders
+- Input shows new value
+- React always knows current value
+
+### Form State Management
+
+**Single object for all fields:**
+```javascript
+const [formData, setFormData] = useState({
+    source: '',
+    description: '',
+    location: ''
+});
+
+// Update one field without losing others
+setFormData({
+    ...formData,              // Spread existing values
+    description: 'New value'  // Override one field
+});
+```
+
+**Spread operator `...` is crucial:**
+- Without it: Only description would exist, source and location would disappear!
+- With it: All fields preserved, only description changes
+
+### Event Object Destructuring
+```javascript
+function handleChange(event) {
+    const { name, value } = event.target;
+    //      ↑      ↑
+    //   field   new value
+    
+    setFormData({
+        ...formData,
+        [name]: value  // Dynamic key
+    });
+}
+```
+
+**`[name]` uses variable as object key:**
+- If name = "description" → { description: value }
+- If name = "location" → { location: value }
+
+### Form Submission Flow
+
+1. User clicks Submit
+2. `onSubmit` event fires
+3. `handleSubmit` function runs
+4. `event.preventDefault()` stops page reload
+5. Validate form data
+6. Set `submitting = true` (disable button)
+7. Call API
+8. If success: show message, reset form
+9. If error: show error message
+10. Set `submitting = false` (re-enable button)
+
+### File Handling
+
+**File objects contain:**
+- `name` - Filename ("audio.wav")
+- `size` - Size in bytes (102400)
+- `type` - MIME type ("audio/wav")
+
+**Displaying file info:**
+```javascript
+{file && <p>{file.name} ({file.size} bytes)</p>}
+```
+
+### What I Built
+
+- ✅ SubmitIncidentForm component (complete form)
+- ✅ Controlled inputs for all fields
+- ✅ File upload interface (audio and image)
+- ✅ Form validation (client-side)
+- ✅ API integration (POST /incidents)
+- ✅ Success/error messages
+- ✅ Form reset after submission
+- ✅ Auto-refresh incidents list
+- ✅ Loading states (disabled button while submitting)
+- ✅ Professional styling
+
+### User Flow Working
+
+**Citizen's perspective:**
+1. Opens app
+2. Sees submission form at top
+3. Fills out incident details
+4. Optionally attaches audio/photo
+5. Clicks Submit
+6. Sees success message
+7. Form clears, ready for next report
+
+**Dispatcher's perspective:**
+1. Monitoring dashboard
+2. New incident appears in table
+3. Clicks to see details
+4. Reviews information
+5. Takes appropriate action
+
+### Validation Layers
+
+**Layer 1: HTML5 (automatic)**
+- `required` attribute
+- `type="email"` format checking
+- `minLength` / `maxLength`
+
+**Layer 2: JavaScript (custom)**
+- Check description length >= 10
+- Trim whitespace
+- Custom business rules
+
+**Layer 3: Backend (safety)**
+- Pydantic validates data structure
+- Database constraints
+- Final safety check
+
+### State Flow
+
+**On form submission:**
+```
+User fills form
+  ↓
+Clicks Submit
+  ↓
+handleSubmit() runs
+  ↓
+validateForm() checks data
+  ↓
+createIncident() API call
+  ↓
+Backend saves to database
+  ↓
+Success! Returns new incident
+  ↓
+onIncidentSubmitted() callback
+  ↓
+App increments refreshTrigger
+  ↓
+IncidentsList useEffect re-runs
+  ↓
+Fetches updated list
+  ↓
+Table shows new incident!
+```
+
+### File Upload Notes
+
+**Current implementation:**
+- Files are selected and stored in state
+- File metadata shown (name, size)
+- Actual upload will be added in Day 31 (audio processing)
+
+**Why defer upload:**
+- Learning focus: Form handling today
+- File upload requires multipart/form-data (more complex)
+- Will integrate with audio transcription pipeline
+
+---
+
+*Day 27 complete! Full CRUD cycle working!* 📝
+```
+
+**Save:** `Ctrl+X` → `Y` → `Enter`
+
+---
+
+### Task 13: Final Complete Test
+
+**Test the entire workflow:**
+
+1. **Submit new incident:**
+   - Fill: Source="Citizen", Description="Gas leak reported at residential building", Location="321 Maple Avenue"
+   - Submit
+   - ✅ Success message appears
+   - ✅ Form clears
+
+2. **Verify it appears in table:**
+   - Scroll down
+   - ✅ See new incident #11 in table
+   - ✅ Shows your description
+
+3. **Click the new incident:**
+   - ✅ Detail panel opens
+   - ✅ Shows your submitted data
+   - ✅ Shows AI-generated fields (risk score, type)
+
+4. **Submit another:**
+   - Fill different data
+   - Submit
+   - ✅ Table auto-refreshes
+   - ✅ Now shows 12 incidents
+
+**The complete loop works:**
+```
+Submit form → Backend saves → Table refreshes → Click row → See details!

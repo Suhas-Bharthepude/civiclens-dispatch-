@@ -1,0 +1,455 @@
+/* frontend/src/components/SubmitIncidentForm.css
+   Styles for the incident submission form
+   Creates a clean, accessible, user-friendly form
+*/
+
+/* ========================================
+   FORM CONTAINER
+   ======================================== */
+
+.submit-form-container {
+  /* White background */
+  background-color: white;
+  
+  /* Space inside */
+  padding: 30px;
+  
+  /* Rounded corners */
+  border-radius: 8px;
+  
+  /* Shadow for depth */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  /* Maximum width (don't get too wide on large screens) */
+  max-width: 700px;
+  
+  /* Center horizontally */
+  margin: 0 auto;
+}
+
+.submit-form-container h2 {
+  /* Dark gray heading */
+  color: #2c3e50;
+  
+  /* Space below */
+  margin-bottom: 10px;
+  
+  /* Border below */
+  border-bottom: 2px solid #27ae60;
+  
+  /* Space between text and border */
+  padding-bottom: 10px;
+}
+
+.form-description {
+  /* Gray text */
+  color: #666;
+  
+  /* Smaller text */
+  font-size: 0.95rem;
+  
+  /* Space below */
+  margin-bottom: 30px;
+}
+
+
+/* ========================================
+   ALERT MESSAGES (Success/Error)
+   ======================================== */
+
+.alert {
+  /* Space inside */
+  padding: 15px 20px;
+  
+  /* Rounded corners */
+  border-radius: 6px;
+  
+  /* Space below */
+  margin-bottom: 20px;
+  
+  /* Border */
+  border: 1px solid transparent;
+  
+  /* Font size */
+  font-size: 0.95rem;
+}
+
+/* Success alert - green */
+.alert-success {
+  /* Light green background */
+  background-color: #d4edda;
+  
+  /* Green border */
+  border-color: #c3e6cb;
+  
+  /* Dark green text */
+  color: #155724;
+}
+
+/* Error alert - red */
+.alert-error {
+  /* Light red background */
+  background-color: #f8d7da;
+  
+  /* Red border */
+  border-color: #f5c6cb;
+  
+  /* Dark red text */
+  color: #721c24;
+}
+
+
+/* ========================================
+   FORM ELEMENT
+   ======================================== */
+
+.incident-form {
+  /* No special styling needed */
+  /* Individual form groups handle their own spacing */
+}
+
+
+/* ========================================
+   FORM GROUPS (Each Input Field)
+   ======================================== */
+
+.form-group {
+  /* Space below each form group */
+  margin-bottom: 25px;
+}
+
+.form-group label {
+  /* Display as block (takes full width) */
+  display: block;
+  
+  /* Space below label */
+  margin-bottom: 8px;
+  
+  /* Font weight */
+  font-weight: 600;
+  
+  /* Color */
+  color: #333;
+  
+  /* Font size */
+  font-size: 0.95rem;
+}
+
+/* Required field asterisk */
+.required {
+  /* Red color */
+  color: #e74c3c;
+  
+  /* Space to left */
+  margin-left: 4px;
+}
+
+
+/* ========================================
+   FORM CONTROLS (Inputs)
+   ======================================== */
+
+.form-control {
+  /* Full width */
+  width: 100%;
+  
+  /* Space inside */
+  padding: 12px;
+  
+  /* Border */
+  border: 1px solid #ddd;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+  
+  /* Font size */
+  font-size: 0.95rem;
+  
+  /* Font family matches page */
+  font-family: inherit;
+  
+  /* Smooth transition for focus effect */
+  transition: border-color 0.2s ease;
+}
+
+/* Focus state (when input is selected) */
+.form-control:focus {
+  /* Remove default outline */
+  outline: none;
+  
+  /* Blue border */
+  border-color: #3498db;
+  
+  /* Subtle blue glow */
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Textarea specific styles */
+textarea.form-control {
+  /* Allow vertical resizing only */
+  resize: vertical;
+  
+  /* Minimum height */
+  min-height: 120px;
+}
+
+/* Select dropdown specific styles */
+select.form-control {
+  /* Ensure consistent appearance across browsers */
+  appearance: none;
+  
+  /* Add custom dropdown arrow */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  
+  /* Space for arrow */
+  padding-right: 40px;
+}
+
+
+/* ========================================
+   FILE INPUT STYLING
+   ======================================== */
+
+.form-control-file {
+  /* Full width */
+  width: 100%;
+  
+  /* Space inside */
+  padding: 10px;
+  
+  /* Border */
+  border: 2px dashed #ddd;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+  
+  /* Light background */
+  background-color: #f8f9fa;
+  
+  /* Pointer cursor */
+  cursor: pointer;
+  
+  /* Smooth transition */
+  transition: all 0.2s ease;
+}
+
+.form-control-file:hover {
+  /* Blue border on hover */
+  border-color: #3498db;
+  
+  /* Slightly darker background */
+  background-color: #e9ecef;
+}
+
+/* Show selected file info */
+.file-selected {
+  /* Space above */
+  margin-top: 10px;
+  
+  /* Space inside */
+  padding: 8px 12px;
+  
+  /* Light blue background */
+  background-color: #e3f2fd;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+  
+  /* Blue text */
+  color: #1976d2;
+  
+  /* Smaller font */
+  font-size: 0.9rem;
+}
+
+
+/* ========================================
+   FORM HINTS (Helper Text)
+   ======================================== */
+
+.form-hint {
+  /* Display as block */
+  display: block;
+  
+  /* Space above */
+  margin-top: 6px;
+  
+  /* Gray text */
+  color: #999;
+  
+  /* Smaller font */
+  font-size: 0.85rem;
+  
+  /* Italic */
+  font-style: italic;
+}
+
+
+/* ========================================
+   FORM ACTIONS (Buttons)
+   ======================================== */
+
+.form-actions {
+  /* Flexbox for buttons */
+  display: flex;
+  
+  /* Space between buttons */
+  gap: 12px;
+  
+  /* Space above */
+  margin-top: 30px;
+}
+
+/* Submit button */
+.btn-submit {
+  /* Flexible width */
+  flex: 1;
+  
+  /* Space inside */
+  padding: 14px 24px;
+  
+  /* Green background */
+  background-color: #27ae60;
+  
+  /* White text */
+  color: white;
+  
+  /* No border */
+  border: none;
+  
+  /* Rounded corners */
+  border-radius: 6px;
+  
+  /* Font size */
+  font-size: 1rem;
+  
+  /* Bold text */
+  font-weight: 600;
+  
+  /* Pointer cursor */
+  cursor: pointer;
+  
+  /* Smooth transition */
+  transition: background-color 0.2s ease;
+}
+
+.btn-submit:hover:not(:disabled) {
+  /* Darker green on hover */
+  background-color: #229954;
+}
+
+.btn-submit:disabled {
+  /* Gray when disabled */
+  background-color: #95a5a6;
+  
+  /* Not-allowed cursor */
+  cursor: not-allowed;
+  
+  /* Slightly transparent */
+  opacity: 0.7;
+}
+
+/* Reset button */
+.btn-reset {
+  /* Space inside */
+  padding: 14px 24px;
+  
+  /* Light gray background */
+  background-color: #ecf0f1;
+  
+  /* Dark text */
+  color: #2c3e50;
+  
+  /* No border */
+  border: none;
+  
+  /* Rounded corners */
+  border-radius: 6px;
+  
+  /* Font size */
+  font-size: 1rem;
+  
+  /* Bold text */
+  font-weight: 600;
+  
+  /* Pointer cursor */
+  cursor: pointer;
+  
+  /* Smooth transition */
+  transition: background-color 0.2s ease;
+}
+
+.btn-reset:hover:not(:disabled) {
+  /* Darker gray on hover */
+  background-color: #bdc3c7;
+}
+
+.btn-reset:disabled {
+  /* Even lighter gray when disabled */
+  opacity: 0.5;
+  
+  /* Not-allowed cursor */
+  cursor: not-allowed;
+}
+
+
+/* ========================================
+   FORM FOOTER (Help Text)
+   ======================================== */
+
+.form-footer {
+  /* Space above */
+  margin-top: 30px;
+  
+  /* Space inside */
+  padding: 20px;
+  
+  /* Light background */
+  background-color: #f8f9fa;
+  
+  /* Rounded corners */
+  border-radius: 6px;
+  
+  /* Border */
+  border-left: 4px solid #3498db;
+}
+
+.form-footer p {
+  /* Remove margin */
+  margin: 0;
+  
+  /* Gray text */
+  color: #666;
+  
+  /* Smaller font */
+  font-size: 0.9rem;
+  
+  /* Line height */
+  line-height: 1.6;
+}
+
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+/* On small screens (mobile) */
+@media (max-width: 768px) {
+  .submit-form-container {
+    /* Less padding on mobile */
+    padding: 20px;
+  }
+  
+  .form-actions {
+    /* Stack buttons vertically on mobile */
+    flex-direction: column;
+  }
+  
+  .btn-submit,
+  .btn-reset {
+    /* Full width on mobile */
+    width: 100%;
+  }
+}

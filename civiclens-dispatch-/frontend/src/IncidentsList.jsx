@@ -16,7 +16,7 @@ import IncidentTable from './components/IncidentTable'
 // INCIDENTS LIST COMPONENT
 // ========================================
 
-function IncidentsList({ onIncidentClick }) {
+function IncidentsList({ onIncidentClick, refreshTrigger }) {
   
   // ========================================
   // STATE MANAGEMENT
@@ -81,7 +81,8 @@ function IncidentsList({ onIncidentClick }) {
     // Empty dependency array [] means:
     // "Run this effect only once when component mounts"
     // Like componentDidMount in class components
-  }, []);
+  }, [refreshTrigger]);
+
   
   
   // ========================================

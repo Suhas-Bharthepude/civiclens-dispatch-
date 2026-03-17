@@ -13,6 +13,9 @@ import IncidentDetail from './components/IncidentDetail'
 // Import useEffect at top
 import { useState, useEffect } from 'react'
 
+import SubmitIncidentForm from './components/SubmitIncidentForm'
+
+
 
 // ========================================
 // APP COMPONENT
@@ -28,6 +31,8 @@ function App() {
   // Starts as null (no incident selected)
   // When user clicks a row, this becomes the incident object
   const [selectedIncident, setSelectedIncident] = useState(null)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
   
   // selectedIncident will be:
   // - null (no selection) → detail panel hidden
@@ -90,6 +95,15 @@ function App() {
     // This triggers re-render and hides detail panel
     setSelectedIncident(null);
   }
+
+  // Add this function after handleCloseDetail
+  function handleIncidentSubmitted() {
+    console.log('New incident submitted! Refreshing list...');
+    
+    // Increment refresh trigger
+    // This causes IncidentsList to re-fetch
+    setRefreshTrigger(prev => prev + 1);
+  }
   
   
   // ========================================
@@ -124,15 +138,25 @@ function App() {
         {/* ========================================
             MAIN CONTENT
             ======================================== */}
+
+        
         <main className="app-main">
           
           {/* API Health Check */}
           <HealthCheck />
           
+          {/* Incident Submission Form */}
+          <SubmitIncidentForm onIncidentSubmitted={handleIncidentSubmitted} />
+
+
+
           {/* Incidents List with Table */}
           {/* Pass handleIncidentClick as prop */}
           {/* Child will call this when row is clicked */}
-          <IncidentsList onIncidentClick={handleIncidentClick} />
+          <IncidentsList 
+              onIncidentClick={handleIncidentClick}
+              refreshTrigger={refreshTrigger}
+          />
           
         </main>
         
