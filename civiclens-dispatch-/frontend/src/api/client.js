@@ -81,6 +81,126 @@ async function apiRequest(endpoint, options = {}) {
     }
 }
 
+// ========================================
+// FILE UPLOAD OPERATIONS
+// ========================================
+
+// Upload audio file for an incident
+export async function uploadAudio(incidentId, audioFile) {
+    /*
+    Uploads audio file to backend for an existing incident
+    
+    Args:
+        incidentId: ID of the incident to attach audio to
+        audioFile: File object from input[type="file"]
+    
+    Returns:
+        Object with upload confirmation and file path
+    
+    Example usage:
+        const result = await uploadAudio(5, audioFileObject);
+        console.log(result.audio_path);
+    */
+    
+    // Create FormData object to send file
+    // FormData is required for file uploads (can't use JSON)
+    const formData = new FormData();
+    
+    // Append the file to FormData
+    // 'file' is the field name that backend expects
+    // audioFile is the actual File object
+    formData.append('file', audioFile);
+    
+    // Build endpoint URL
+    const url = `${API_BASE_URL}/incidents/${incidentId}/audio`;
+    
+    // Log upload attempt
+    console.log(`[API] POST ${url} - Uploading audio file:`, audioFile.name);
+    
+    try {
+        // Make POST request with FormData body
+        // DO NOT set Content-Type header - browser sets it automatically
+        // Browser will set: Content-Type: multipart/form-data; boundary=...
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData  // Send FormData (not JSON!)
+            // No headers! Browser auto-sets correct Content-Type
+        });
+        
+        // Check if upload succeeded
+        if (!response.ok) {
+            throw new Error(`Upload failed! status: ${response.status}`);
+        }
+        
+        // Parse response
+        const data = await response.json();
+        
+        // Log success
+        console.log('[API] Audio upload successful:', data);
+        
+        return data;
+        
+    } catch (error) {
+        console.error('[API] Audio upload error:', error);
+        throw error;
+    }
+}
+
+
+// Upload image file for an incident
+export async function uploadImage(incidentId, imageFile) {
+    /*
+    Uploads image file to backend for an existing incident
+    
+    Args:
+        incidentId: ID of the incident to attach image to
+        imageFile: File object from input[type="file"]
+    
+    Returns:
+        Object with upload confirmation and file path
+    
+    Example usage:
+        const result = await uploadImage(5, imageFileObject);
+        console.log(result.image_path);
+    */
+    
+    // Create FormData object
+    const formData = new FormData();
+    
+    // Append the image file
+    formData.append('file', imageFile);
+    
+    // Build endpoint URL
+    const url = `${API_BASE_URL}/incidents/${incidentId}/image`;
+    
+    // Log upload attempt
+    console.log(`[API] POST ${url} - Uploading image file:`, imageFile.name);
+    
+    try {
+        // Make POST request
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+        
+        // Check response
+        if (!response.ok) {
+            throw new Error(`Upload failed! status: ${response.status}`);
+        }
+        
+        // Parse response
+        const data = await response.json();
+        
+        // Log success
+        console.log('[API] Image upload successful:', data);
+        
+        return data;
+        
+    } catch (error) {
+        console.error('[API] Image upload error:', error);
+        throw error;
+    }
+}
 
 // ========================================
 // HEALTH CHECK

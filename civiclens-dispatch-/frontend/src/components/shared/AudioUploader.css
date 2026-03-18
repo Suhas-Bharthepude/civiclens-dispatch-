@@ -1,0 +1,334 @@
+/* frontend/src/components/shared/AudioUploader.css
+   Styles for audio upload component
+*/
+
+/* ========================================
+   MAIN CONTAINER
+   ======================================== */
+
+.audio-uploader {
+  /* White background */
+  background-color: white;
+  
+  /* Border */
+  border: 2px solid #e0e0e0;
+  
+  /* Rounded corners */
+  border-radius: 8px;
+  
+  /* Space inside */
+  padding: 20px;
+  
+  /* Space below */
+  margin-bottom: 20px;
+}
+
+
+/* ========================================
+   FILE INPUT SECTION
+   ======================================== */
+
+.audio-input-container {
+  /* Center content */
+  text-align: center;
+}
+
+.audio-label {
+  /* Display as block */
+  display: block;
+  
+  /* Space below */
+  margin-bottom: 15px;
+  
+  /* Font styling */
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.audio-input {
+  /* Full width */
+  width: 100%;
+  
+  /* Space inside */
+  padding: 15px;
+  
+  /* Light background */
+  background-color: #f8f9fa;
+  
+  /* Dashed border */
+  border: 2px dashed #3498db;
+  
+  /* Rounded corners */
+  border-radius: 6px;
+  
+  /* Pointer cursor */
+  cursor: pointer;
+  
+  /* Smooth transition */
+  transition: all 0.3s ease;
+}
+
+.audio-input:hover {
+  /* Darker background on hover */
+  background-color: #e9ecef;
+  
+  /* Solid border on hover */
+  border-style: solid;
+}
+
+.audio-hint {
+  /* Small gray text */
+  font-size: 0.85rem;
+  color: #999;
+  
+  /* Space above */
+  margin-top: 10px;
+}
+
+
+/* ========================================
+   SELECTED FILE PREVIEW
+   ======================================== */
+
+.audio-selected {
+  /* Flexbox layout */
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.audio-file-info {
+  /* Flexbox for icon and details */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  /* Light blue background */
+  background-color: #e3f2fd;
+  
+  /* Space inside */
+  padding: 15px;
+  
+  /* Rounded corners */
+  border-radius: 6px;
+}
+
+.audio-icon {
+  /* Large emoji */
+  font-size: 32px;
+}
+
+.audio-details {
+  /* Take remaining space */
+  flex: 1;
+}
+
+.audio-filename {
+  /* Remove margin */
+  margin: 0 0 4px 0;
+  
+  /* Font styling */
+  font-weight: 600;
+  color: #1976d2;
+  font-size: 0.95rem;
+}
+
+.audio-filesize {
+  /* Remove margin */
+  margin: 0;
+  
+  /* Small gray text */
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.audio-actions {
+  /* Flexbox for buttons */
+  display: flex;
+  gap: 10px;
+}
+
+.btn-upload,
+.btn-remove {
+  /* Flex to equal width */
+  flex: 1;
+  
+  /* Space inside */
+  padding: 10px 20px;
+  
+  /* No border */
+  border: none;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+  
+  /* Font styling */
+  font-size: 0.95rem;
+  font-weight: 600;
+  
+  /* Pointer cursor */
+  cursor: pointer;
+  
+  /* Smooth transition */
+  transition: background-color 0.2s ease;
+}
+
+.btn-upload {
+  /* Blue background */
+  background-color: #3498db;
+  
+  /* White text */
+  color: white;
+}
+
+.btn-upload:hover {
+  /* Darker blue on hover */
+  background-color: #2980b9;
+}
+
+.btn-remove {
+  /* Light gray background */
+  background-color: #ecf0f1;
+  
+  /* Dark text */
+  color: #2c3e50;
+}
+
+.btn-remove:hover {
+  /* Red tint on hover */
+  background-color: #e74c3c;
+  color: white;
+}
+
+
+/* ========================================
+   UPLOAD PROGRESS
+   ======================================== */
+
+.audio-uploading {
+  /* Center content */
+  text-align: center;
+}
+
+.upload-status {
+  /* Font styling */
+  font-weight: 600;
+  color: #3498db;
+  
+  /* Space below */
+  margin-bottom: 15px;
+}
+
+.upload-progress-bar {
+  /* Full width */
+  width: 100%;
+  
+  /* Height of progress bar */
+  height: 24px;
+  
+  /* Rounded corners */
+  border-radius: 12px;
+  
+  /* Remove default appearance */
+  appearance: none;
+  
+  /* Space below */
+  margin-bottom: 10px;
+}
+
+/* Style progress bar for webkit browsers (Chrome, Safari) */
+.upload-progress-bar::-webkit-progress-bar {
+  /* Background of unfilled part */
+  background-color: #e0e0e0;
+  
+  /* Rounded corners */
+  border-radius: 12px;
+}
+
+.upload-progress-bar::-webkit-progress-value {
+  /* Blue filled part */
+  background-color: #3498db;
+  
+  /* Rounded corners */
+  border-radius: 12px;
+  
+  /* Smooth transition as progress updates */
+  transition: width 0.3s ease;
+}
+
+/* Style progress bar for Firefox */
+.upload-progress-bar::-moz-progress-bar {
+  background-color: #3498db;
+  border-radius: 12px;
+}
+
+.upload-percentage {
+  /* Font styling */
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #3498db;
+}
+
+
+/* ========================================
+   ERROR MESSAGE
+   ======================================== */
+
+.upload-error {
+  /* Light red background */
+  background-color: #fee;
+  
+  /* Red border */
+  border: 1px solid #fcc;
+  
+  /* Space inside */
+  padding: 12px;
+  
+  /* Rounded corners */
+  border-radius: 6px;
+  
+  /* Flexbox for message and button */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.upload-error p {
+  /* Remove margin */
+  margin: 0;
+  
+  /* Red text */
+  color: #c00;
+  
+  /* Font size */
+  font-size: 0.9rem;
+}
+
+.btn-clear-error {
+  /* Space inside */
+  padding: 6px 12px;
+  
+  /* Red background */
+  background-color: #e74c3c;
+  
+  /* White text */
+  color: white;
+  
+  /* No border */
+  border: none;
+  
+  /* Rounded corners */
+  border-radius: 4px;
+  
+  /* Pointer cursor */
+  cursor: pointer;
+  
+  /* Font size */
+  font-size: 0.85rem;
+}
+
+.btn-clear-error:hover {
+  /* Darker red on hover */
+  background-color: #c0392b;
+}

@@ -1609,3 +1609,207 @@ Days 31-40: Audio Pipeline (Real AI!)
 ---
 
 *Day 30 complete! Frontend phase finished!* 🎉
+
+
+
+
+## Day 31: Audio Basics and Recording/Upload UX
+
+**First day of AI phase!** Implementing real file uploads to backend.
+
+### Core Concepts
+
+1. **Audio formats**: WAV (uncompressed), MP3 (compressed), M4A (iPhone)
+2. **File object**: JavaScript representation of file (name, size, type)
+3. **FormData**: Special object for uploading files via HTTP
+4. **Multipart upload**: HTTP format for sending files
+5. **File validation**: Check size and type before upload
+6. **Upload progress**: Track and display upload status
+
+### Audio Formats Compared
+
+**WAV:**
+- Uncompressed, large files
+- Best quality
+- Best for AI (no quality loss from compression)
+- 1 minute ≈ 10MB
+
+**MP3:**
+- Compressed, smaller files
+- Good quality
+- Most common format
+- 1 minute ≈ 1MB
+
+**M4A:**
+- Compressed, efficient
+- iPhone default
+- Good quality
+- 1 minute ≈ 0.8MB
+
+### File Upload Process
+
+**Complete workflow:**
+```
+1. User selects file (input[type="file"])
+   ↓
+2. File object created by browser
+   ↓
+3. Validate size and type (frontend)
+   ↓
+4. Create incident (get ID)
+   ↓
+5. Upload file via FormData
+   ↓
+6. Backend saves to disk
+   ↓
+7. Backend updates database with path
+   ↓
+8. Success!
+```
+
+### FormData vs JSON
+
+**JSON (what we used before):**
+```javascript
+{
+    "description": "Fire",
+    "location": "123 St"
+}
+```
+- ❌ Can't send files
+- ✅ Good for text data
+
+**FormData (for files):**
+```javascript
+const formData = new FormData();
+formData.append('description', 'Fire');
+formData.append('file', audioFile);
+```
+- ✅ Can send files
+- ✅ Can send text too
+- ✅ Browser handles encoding
+
+### File Object Properties
+
+**When user selects file:**
+```javascript
+const file = event.target.files[0];
+
+console.log(file.name);  // "recording.mp3"
+console.log(file.size);  // 1048576 (bytes)
+console.log(file.type);  // "audio/mp3"
+```
+
+**Useful calculations:**
+```javascript
+// Bytes to KB
+const sizeKB = file.size / 1024;
+
+// Bytes to MB  
+const sizeMB = file.size / 1024 / 1024;
+```
+
+### File Validation Pattern
+```javascript
+function validateFile(file) {
+    // Check exists
+    if (!file) return false;
+    
+    // Check size (10MB max)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+        return false;
+    }
+    
+    // Check type
+    const allowed = ['audio/mp3', 'audio/wav'];
+    if (!allowed.includes(file.type)) {
+        return false;
+    }
+    
+    return true;
+}
+```
+
+### What I Built
+
+- ✅ AudioUploader component (dedicated upload widget)
+- ✅ File validation (size, type)
+- ✅ Upload progress display (0-100%)
+- ✅ Updated API client (uploadAudio, uploadImage functions)
+- ✅ Updated SubmitIncidentForm (actual file upload)
+- ✅ Error handling for uploads
+- ✅ Success confirmation
+
+### Upload Flow in SubmitIncidentForm
+
+**Sequential process:**
+1. Validate form
+2. Create incident → Get ID
+3. If audio file: Upload to incident ID
+4. If image file: Upload to incident ID
+5. Show success
+6. Reset form
+
+**Why sequential:**
+- Need incident ID before uploading
+- Can't upload to non-existent incident
+- Backend needs incident record first
+
+**Error handling:**
+- If incident creation fails → Stop, show error
+- If incident succeeds but audio fails → Still show success (incident created!)
+- Log file upload errors but don't fail entire submission
+
+### Upload Progress
+
+**Simulated progress (current):**
+```javascript
+// Update progress every 200ms
+setInterval(() => {
+    setProgress(prev => prev + 10);
+}, 200);
+
+// Stops at 90%, jumps to 100% when done
+```
+
+**Why simulated:**
+- fetch() API doesn't support progress events
+- Real progress requires XMLHttpRequest
+- Good enough for small files
+
+**Future enhancement:**
+- Real progress tracking with XHR
+- Chunked uploads for large files
+- Resume capability for interrupted uploads
+
+### Testing Learned
+
+**Test matrix:**
+| File Type | Size | Expected Result |
+|-----------|------|----------------|
+| MP3 | 500KB | ✅ Success |
+| WAV | 2MB | ✅ Success |
+| MP3 | 15MB | ❌ Too large |
+| PDF | 1MB | ❌ Wrong type |
+| (none) | N/A | ✅ Success (optional field) |
+
+### Backend Integration
+
+**Backend endpoints used:**
+- POST /incidents → Create incident, get ID
+- POST /incidents/{id}/audio → Upload audio file
+- POST /incidents/{id}/image → Upload image file
+
+**Backend saves:**
+- File to: `backend/app/media/tmp/audio/`
+- Path to: database incident.audio_path column
+
+**Background processing:**
+- Automatically triggered when file uploaded
+- Will transcribe audio (Days 32-35)
+- Updates incident with transcript
+
+---
+
+*Day 31 complete! Audio upload working!* 🎤
