@@ -18,6 +18,8 @@
 const API_BASE_URL = 'http://localhost:8000';
 
 
+
+
 // ========================================
 // HELPER FUNCTION - Make API Request
 // ========================================
@@ -178,9 +180,7 @@ export async function createIncident(incidentData) {
     */
     return apiRequest('/incidents', {
         method: 'POST',  // HTTP POST method
-        headers: {
-            'Content-Type': 'application/json',  // Tell server we're sending JSON
-        },
+        headers: { 'Content-Type': 'application/json' }, // Tell server we're sending JSON
         body: JSON.stringify(incidentData),  // Convert object to JSON string
     });
 }

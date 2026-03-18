@@ -9,6 +9,7 @@ import React from 'react'
 import './IncidentTable.css'
 
 
+
 // ========================================
 // INCIDENT TABLE COMPONENT
 // ========================================

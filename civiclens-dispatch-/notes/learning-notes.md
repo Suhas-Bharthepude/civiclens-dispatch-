@@ -1259,3 +1259,353 @@ flex: 0 0 250px;   /* Fixed 250px width */
 ---
 
 *Day 28 complete! Professional design system established!* 🎨
+
+
+
+## Day 29: Error Handling and Loading States
+
+**Polish day!** Making the app feel smooth and professional.
+
+### Core Concepts
+
+1. **Error handling**: Try-catch blocks, error state, error messages
+2. **Loading states**: Three-state pattern (loading/error/success)
+3. **Toast notifications**: Non-intrusive user feedback
+4. **Skeleton screens**: Placeholder content while loading
+5. **Retry logic**: Let users retry failed operations
+6. **Custom hooks**: useToast for reusable functionality
+
+### Three-State Pattern Everywhere
+
+**Every async operation needs:**
+```javascript
+const [data, setData] = useState(null);      // The data
+const [loading, setLoading] = useState(true); // Loading flag
+const [error, setError] = useState(null);    // Error message
+```
+
+**Why this pattern:**
+- User always has feedback (never uncertain)
+- Loading: "Working on it..."
+- Error: "Failed because X"
+- Success: Show the data
+
+### Custom Hooks
+
+**useToast is our first custom hook!**
+```javascript
+// Define hook
+function useToast() {
+    const [toasts, setToasts] = useState([]);
+    
+    function showToast(msg, type) {
+        // Add toast logic
+    }
+    
+    return { toasts, showToast };
+}
+
+// Use hook
+const { showToast } = useToast();
+showToast('Success!', 'success');
+```
+
+**Custom hooks let you:**
+- Reuse stateful logic
+- Keep components clean
+- Share functionality across components
+
+### Toast Notifications vs Alerts
+
+**alert() (bad):**
+- ❌ Blocks entire screen
+- ❌ Stops JavaScript execution
+- ❌ Looks unprofessional
+- ❌ Can't customize appearance
+
+**Toast (good):**
+- ✅ Non-blocking
+- ✅ Professional appearance
+- ✅ Auto-dismisses
+- ✅ Can stack multiple
+- ✅ Customizable
+
+### Skeleton Screens
+
+**Why skeleton > spinner:**
+
+**Spinner:**
+- Shows generic "loading..."
+- No information about what's loading
+- Feels slower
+
+**Skeleton:**
+- Shows layout of content
+- User knows what to expect
+- Feels 20-30% faster (perception)
+- Modern pattern (used by Facebook, LinkedIn)
+
+### Error Recovery UX
+
+**Good error state includes:**
+1. ✅ What went wrong (error message)
+2. ✅ Why it might have happened (possible causes)
+3. ✅ How to fix it (action button)
+4. ✅ Who to contact if persistent (support link - future)
+
+**Retry button implementation:**
+- Reset error state
+- Trigger re-fetch
+- Could add exponential backoff (advanced)
+
+### What I Built
+
+- ✅ LoadingState component (spinner/skeleton/inline)
+- ✅ Toast notification system
+- ✅ ToastContainer component (manages multiple toasts)
+- ✅ useToast custom hook (reusable toast logic)
+- ✅ Retry buttons in error states
+- ✅ Better error messages with troubleshooting
+- ✅ Skeleton screens for table loading
+- ✅ Integrated toasts into App
+- ✅ Form shows success toast on submission
+
+### UX Improvements Applied
+
+**Loading states:**
+- Skeleton for table (shows structure)
+- Spinner for health check (quick operation)
+- Inline for form submit button (shows button is active)
+
+**Error states:**
+- Specific error messages (not generic "Error")
+- Retry buttons (user can recover)
+- Troubleshooting tips (help users help themselves)
+- Visual distinction (red boxes, clear icons)
+
+**Success feedback:**
+- Toast notification (non-intrusive)
+- Auto-dismisses (doesn't require action)
+- Green color (positive reinforcement)
+
+### Professional Polish
+
+**Before Day 29:**
+- Errors crash app or show confusing messages
+- Loading shows nothing or generic spinner
+- No feedback on success
+- Users confused about what's happening
+
+**After Day 29:**
+- Errors caught and displayed helpfully
+- Loading shows appropriate indicator
+- Success shows toast notification
+- Users always know app status
+
+### Code Patterns Learned
+
+**Try-finally for cleanup:**
+```javascript
+try {
+    setLoading(true);
+    await api();
+} catch (err) {
+    setError(err);
+} finally {
+    setLoading(false);  // Always runs
+}
+```
+
+**Conditional rendering combinations:**
+```javascript
+{loading && <Loading />}
+{!loading && error && <Error />}
+{!loading && !error && <Data />}
+```
+
+**Custom hook pattern:**
+```javascript
+function useCustomHook() {
+    const [state, setState] = useState();
+    // Logic here
+    return { state, functions };
+}
+```
+
+---
+
+*Day 29 complete! Professional error handling implemented!* ✨
+
+
+
+## Day 30: Frontend Cleanup and Documentation
+
+**Consolidation day!** Organize, document, and prepare for AI phase.
+
+### What is Code Organization?
+
+Moving from "it works" to "it's maintainable":
+- Logical folder structure
+- Clear naming conventions
+- Updated imports
+- Removed dead code
+
+### File Structure Before vs After
+
+**Before (flat):**
+```
+src/
+├── App.jsx
+├── HealthCheck.jsx
+├── IncidentsList.jsx
+├── IncidentCard.jsx
+├── Toast.jsx
+├── ... 15 more files ...
+```
+
+**After (organized):**
+```
+src/
+├── App.jsx
+├── components/
+│   ├── dashboard/ (4 files)
+│   ├── forms/ (1 file)
+│   ├── layout/ (2 files)
+│   └── shared/ (5 files)
+├── api/ (1 file)
+└── hooks/ (1 file)
+```
+
+**Benefits:**
+- ✅ Easy to find files
+- ✅ Grouped by functionality
+- ✅ Scales as project grows
+- ✅ Clear dependencies
+
+### Import Path Changes
+
+**When you move files, imports break!**
+```javascript
+// Before move
+import IncidentCard from './IncidentCard'
+
+// After moving to components/shared/
+import IncidentCard from './components/shared/IncidentCard'
+
+// From nested component
+import IncidentCard from '../../shared/IncidentCard'
+```
+
+**Pattern:**
+- `./` = same folder
+- `../` = parent folder
+- `../../` = grandparent folder
+
+### Documentation Created
+
+1. **Frontend README.md** - Setup, structure, usage
+2. **component_api.md** - Props and usage for each component
+3. **frontend_organization.md** - Where to put new files
+4. **frontend_architecture.md** - Component relationships
+
+**Why document:**
+- Future you will forget details
+- Other developers need guidance
+- Shows professional practice
+- Portfolio piece (employers read docs!)
+
+### Refactoring Lessons
+
+**What refactoring means:**
+- Change structure, not behavior
+- Improve readability
+- Remove duplication
+- Make code more maintainable
+
+**What refactoring is NOT:**
+- Adding features
+- Fixing bugs
+- Changing behavior
+
+**Safe refactoring:**
+1. Commit current code first
+2. Make one change at a time
+3. Test after each change
+4. Commit when working
+
+### Code Quality Indicators
+
+**Good code is:**
+- ✅ Easy to understand
+- ✅ Well organized
+- ✅ Consistent style
+- ✅ Properly commented
+- ✅ DRY (Don't Repeat Yourself)
+
+**Your code now:**
+- ✅ All of the above!
+
+### Frontend Phase Complete!
+
+**Days 22-30 accomplished:**
+- Day 22: HTML/CSS/JS fundamentals
+- Day 23: React basics (components, props, state)
+- Day 24: API integration (useEffect, fetch)
+- Day 25: Table UI (list rendering, keys)
+- Day 26: Detail panel (conditional rendering, state lifting)
+- Day 27: Submission form (controlled inputs, validation)
+- Day 28: Professional layout (flexbox, two-column)
+- Day 29: Error handling (toasts, retry, loading states)
+- Day 30: Organization and documentation
+
+**What you've built:**
+- 📊 Professional dispatcher dashboard
+- 📝 Incident submission form
+- 🔍 Detail view panel
+- ⚡ Real-time data from backend
+- 🎨 Responsive design
+- ✨ Professional UX
+- 📚 Comprehensive documentation
+
+### Mental Model: Frontend Complete
+
+**You now have:**
+```
+Complete React application
+├── Fetches data from backend API ✅
+├── Displays data professionally ✅
+├── Handles user input ✅
+├── Manages complex state ✅
+├── Provides great UX ✅
+└── Well documented ✅
+```
+
+**Ready for:**
+```
+Days 31-40: Audio Pipeline (Real AI!)
+├── Actual speech-to-text
+├── Hugging Face integration
+├── Audio file uploads
+└── Real transcription
+```
+
+### Key Takeaways
+
+**Organization matters:**
+- Scales with project size
+- Easier to onboard new developers
+- Faster to find and fix bugs
+
+**Documentation is code:**
+- README is as important as code
+- Future you will thank present you
+- Employers read docs to assess code quality
+
+**Refactoring is normal:**
+- Professional developers refactor constantly
+- Code evolves with understanding
+- "Perfect" code doesn't exist, improving code does
+
+---
+
+*Day 30 complete! Frontend phase finished!* 🎉

@@ -1,15 +1,17 @@
 // frontend/src/components/SubmitIncidentForm.jsx
 // Form component for citizens to submit new incident reports
 // Features: Controlled inputs, validation, file uploads, API integration
+// Day 29: Enhanced with better error handling and troubleshooting
 
 // Import React hooks
 import { useState } from 'react'
 
 // Import API function to create incidents
-import { createIncident } from '../api/client'
+import { createIncident } from '../../api/client'
 
 // Import CSS
 import './SubmitIncidentForm.css'
+
 
 
 // ========================================
@@ -27,20 +29,17 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
   
   // State: form field values
   // All inputs are controlled by React state
-  // This is a single object containing all form fields
   const [formData, setFormData] = useState({
     source: '',         // Who is reporting (dropdown)
     description: '',    // What happened (textarea)
     location: ''        // Where it happened (text input)
   })
   
-  // State: uploaded files (for future Day 31 when we implement actual upload)
-  // For now, we'll just track them in state
+  // State: uploaded files (for future Day 31)
   const [audioFile, setAudioFile] = useState(null)
   const [imageFile, setImageFile] = useState(null)
   
   // State: form submission status
-  // These control what messages to show and whether form is active
   const [submitting, setSubmitting] = useState(false)  // Is form being submitted?
   const [submitSuccess, setSubmitSuccess] = useState(false)  // Was submission successful?
   const [submitError, setSubmitError] = useState(null)  // Error message if failed
@@ -52,7 +51,6 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
   
   // Validate form data before submission
   // Returns true if valid, false if invalid
-  // Sets error message if validation fails
   function validateForm() {
     // Clear any existing error first
     setSubmitError(null);
@@ -70,7 +68,6 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
     }
     
     // Check location is not empty
-    // .trim() removes whitespace from start and end
     if (formData.location.trim() === '') {
       setSubmitError('Location is required');
       return false;
@@ -86,150 +83,105 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
   // ========================================
   
   // Handle changes to text inputs, textareas, and selects
-  // This function is called whenever any input changes
   function handleInputChange(event) {
-    // event.target is the input element that changed
-    // Destructure to get name and value
     const { name, value } = event.target;
     
-    // Log for debugging
     console.log(`Field "${name}" changed to:`, value);
     
     // Update formData state
-    // Use spread operator (...) to copy existing data
-    // Then override the specific field that changed
     setFormData({
-      ...formData,      // Copy all existing fields (source, description, location)
-      [name]: value     // Update the field that changed (dynamic key)
+      ...formData,      // Copy all existing fields
+      [name]: value     // Update the field that changed
     });
-    
-    // Example walkthrough:
-    // Current formData: { source: 'citizen', description: '', location: '' }
-    // User types "F" in description
-    // name = "description", value = "F"
-    // New formData: { source: 'citizen', description: 'F', location: '' }
   }
   
   // Handle audio file selection
   function handleAudioChange(event) {
-    // event.target.files is a FileList object (array-like)
-    // [0] gets the first (and only) file selected
     const file = event.target.files[0];
-    
-    // Update audioFile state with the selected file
     setAudioFile(file);
     
-    // Log file details for debugging
     if (file) {
       console.log('Audio file selected:', {
-        name: file.name,      // Filename
-        size: file.size,      // Size in bytes
-        type: file.type       // MIME type (audio/wav, audio/mp3, etc.)
+        name: file.name,
+        size: file.size,
+        type: file.type
       });
     }
   }
   
   // Handle image file selection
   function handleImageChange(event) {
-    // Same as audio - get first file from FileList
     const file = event.target.files[0];
-    
-    // Update imageFile state
     setImageFile(file);
     
-    // Log file details
     if (file) {
       console.log('Image file selected:', {
         name: file.name,
         size: file.size,
-        type: file.type       // MIME type (image/jpeg, image/png, etc.)
+        type: file.type
       });
     }
   }
   
   // Handle form submission
   async function handleSubmit(event) {
-    // CRITICAL: Prevent default form submission behavior
-    // Without this, the page would reload (old-school HTML form behavior)
-    // We want to handle submission with JavaScript instead
+    // Prevent default form submission
     event.preventDefault();
     
-    // Log submission attempt
     console.log('Form submitted with data:', formData);
     
-    // Validate form data before sending to API
-    // If validation fails, stop here
+    // Validate form data
     if (!validateForm()) {
       console.log('Validation failed');
-      return;  // Exit function early
+      return;
     }
     
-    // Set submitting state to true
-    // This disables the submit button (prevents double submission)
-    // Also changes button text to "Submitting..."
+    // Set submitting state
     setSubmitting(true);
-    
-    // Clear any previous error messages
     setSubmitError(null);
-    
-    // Clear any previous success messages
     setSubmitSuccess(false);
     
     try {
       // Call API to create incident
-      // This makes POST request to http://localhost:8000/incidents
-      // Sends formData as JSON in request body
       const newIncident = await createIncident(formData);
       
-      // Log successful creation
       console.log('Incident created successfully:', newIncident);
       
       // Show success message
       setSubmitSuccess(true);
       
-      // Reset form fields to empty
-      // This clears the form for the next submission
+      // Reset form fields
       setFormData({
         source: '',
         description: '',
         location: ''
       });
       
-      // Clear file selections from state
+      // Clear file selections
       setAudioFile(null);
       setImageFile(null);
       
-      // Reset file input elements (clear the selected file names shown in UI)
-      // getElementById finds the input element by its id attribute
+      // Reset file inputs
       const audioInput = document.getElementById('audio');
       const imageInput = document.getElementById('image');
-      
-      // Clear the file inputs if they exist
       if (audioInput) audioInput.value = '';
       if (imageInput) imageInput.value = '';
       
-      // Notify parent component that incident was submitted
-      // Parent will increment refreshTrigger which causes IncidentsList to re-fetch
+      // Notify parent component
       if (onIncidentSubmitted) {
         onIncidentSubmitted();
       }
       
       // Hide success message after 5 seconds
-      // setTimeout runs a function after a delay (in milliseconds)
       setTimeout(() => {
         setSubmitSuccess(false);
-      }, 5000);  // 5000ms = 5 seconds
+      }, 5000);
       
     } catch (error) {
-      // If API call fails, catch the error
       console.error('Failed to create incident:', error);
-      
-      // Show error message to user
       setSubmitError(error.message);
       
     } finally {
-      // Always turn off submitting state (whether success or error)
-      // finally block runs regardless of try/catch outcome
       setSubmitting(false);
     }
   }
@@ -240,13 +192,10 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
   // ========================================
   
   return (
-    // Main container div for the form
     <div className="submit-form-container">
       
-      {/* Form header */}
       <h2>📝 Submit New Incident Report</h2>
       
-      {/* Form description */}
       <p className="form-description">
         Report an emergency or incident. All fields marked with * are required.
       </p>
@@ -255,9 +204,6 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
           SUCCESS MESSAGE
           ======================================== */}
       
-      {/* Show success message if submission succeeded */}
-      {/* && means: only render if submitSuccess is true */}
-      {/* If submitSuccess is false, nothing renders */}
       {submitSuccess && (
         <div className="alert alert-success">
           <strong>✅ Success!</strong> Incident submitted successfully. 
@@ -266,13 +212,48 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
       )}
       
       {/* ========================================
-          ERROR MESSAGE
+          ERROR MESSAGE (Enhanced - Day 29)
           ======================================== */}
       
-      {/* Show error message if submission failed */}
       {submitError && (
         <div className="alert alert-error">
-          <strong>❌ Error!</strong> {submitError}
+          <strong>❌ Submission Failed</strong>
+          <p style={{ margin: '8px 0' }}>{submitError}</p>
+          
+          {/* Troubleshooting tips - collapsible */}
+          <details style={{ marginTop: '10px', fontSize: '0.9rem' }}>
+            <summary style={{ cursor: 'pointer', fontWeight: '600' }}>
+              💡 Troubleshooting tips
+            </summary>
+            <ul style={{ marginTop: '8px', paddingLeft: '20px', lineHeight: '1.6' }}>
+              <li>Check that the backend server is running on port 8000</li>
+              <li>Verify all required fields are filled correctly</li>
+              <li>Ensure description is at least 10 characters</li>
+              <li>Try refreshing the page</li>
+              <li>Check your network connection</li>
+            </ul>
+          </details>
+          
+          {/* Clear error button */}
+          <button
+            type="button"
+            onClick={() => {
+              // Clear error message
+              setSubmitError(null);
+            }}
+            style={{
+              marginTop: '10px',
+              padding: '8px 16px',
+              backgroundColor: '#c0392b',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            Clear Error
+          </button>
         </div>
       )}
       
@@ -280,23 +261,17 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
           FORM ELEMENT
           ======================================== */}
       
-      {/* The <form> element wraps all inputs */}
-      {/* onSubmit is called when form is submitted (user clicks submit or presses Enter) */}
-      {/* className for styling from CSS */}
       <form onSubmit={handleSubmit} className="incident-form">
         
         {/* ========================================
-            FORM FIELD: Source (Dropdown)
+            SOURCE FIELD
             ======================================== */}
         
         <div className="form-group">
-          {/* Label for this field */}
-          {/* htmlFor links to input with matching id (accessibility) */}
           <label htmlFor="source">
             Report Source: <span className="required">*</span>
           </label>
           
-          {/* Select dropdown */}
           <select
             id="source"
             name="source"
@@ -305,10 +280,7 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
             required
             className="form-control"
           >
-            {/* Placeholder option (empty value) */}
             <option value="">-- Select Source --</option>
-            
-            {/* Available options */}
             <option value="citizen">Citizen</option>
             <option value="police">Police</option>
             <option value="dispatcher">Dispatcher</option>
@@ -317,7 +289,7 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
         </div>
         
         {/* ========================================
-            FORM FIELD: Description (Textarea)
+            DESCRIPTION FIELD
             ======================================== */}
         
         <div className="form-group">
@@ -325,8 +297,6 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
             Incident Description: <span className="required">*</span>
           </label>
           
-          {/* Textarea for multi-line input */}
-          {/* rows="5" sets initial height (5 lines) */}
           <textarea
             id="description"
             name="description"
@@ -338,17 +308,14 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
             className="form-control"
           />
           
-          {/* Character count helper text */}
-          {/* Shows current length and warning if too short */}
           <small className="form-hint">
             {formData.description.length} characters
-            {/* Show warning if less than 20 characters */}
             {formData.description.length < 20 && ' (minimum 20 recommended)'}
           </small>
         </div>
         
         {/* ========================================
-            FORM FIELD: Location (Text Input)
+            LOCATION FIELD
             ======================================== */}
         
         <div className="form-group">
@@ -356,8 +323,6 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
             Location: <span className="required">*</span>
           </label>
           
-          {/* Text input for location */}
-          {/* type="text" makes it a single-line text field */}
           <input
             type="text"
             id="location"
@@ -375,7 +340,7 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
         </div>
         
         {/* ========================================
-            FORM FIELD: Audio Upload (Optional)
+            AUDIO UPLOAD
             ======================================== */}
         
         <div className="form-group">
@@ -383,10 +348,6 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
             Audio Recording (Optional)
           </label>
           
-          {/* File input for audio */}
-          {/* type="file" creates file picker */}
-          {/* accept="audio/*" limits to audio files only */}
-          {/* onChange is called when user selects a file */}
           <input
             type="file"
             id="audio"
@@ -396,8 +357,6 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
             className="form-control-file"
           />
           
-          {/* Show selected file name and size */}
-          {/* Only renders if audioFile is not null */}
           {audioFile && (
             <div className="file-selected">
               🎤 {audioFile.name} ({(audioFile.size / 1024).toFixed(1)} KB)
@@ -410,7 +369,7 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
         </div>
         
         {/* ========================================
-            FORM FIELD: Image Upload (Optional)
+            IMAGE UPLOAD
             ======================================== */}
         
         <div className="form-group">
@@ -418,8 +377,6 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
             Photo (Optional)
           </label>
           
-          {/* File input for images */}
-          {/* accept="image/*" limits to image files only */}
           <input
             type="file"
             id="image"
@@ -429,7 +386,6 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
             className="form-control-file"
           />
           
-          {/* Show selected file name and size */}
           {imageFile && (
             <div className="file-selected">
               📷 {imageFile.name} ({(imageFile.size / 1024).toFixed(1)} KB)
@@ -442,54 +398,45 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
         </div>
         
         {/* ========================================
-            SUBMIT BUTTON
+            FORM ACTIONS
             ======================================== */}
         
         <div className="form-actions">
           {/* Submit button */}
-          {/* type="submit" triggers form onSubmit event */}
-          {/* disabled={submitting} prevents clicking while submitting */}
           <button 
             type="submit" 
             className="btn-submit"
             disabled={submitting}
           >
-            {/* Conditional text: shows different message while submitting */}
-            {/* Ternary operator: condition ? ifTrue : ifFalse */}
             {submitting ? '⏳ Submitting...' : '🚀 Submit Incident Report'}
           </button>
           
           {/* Reset button */}
-          {/* type="button" prevents form submission (default is submit) */}
           <button 
             type="button" 
             className="btn-reset"
             onClick={() => {
-              // Reset all form fields to empty
+              // Reset all form fields
               setFormData({ 
                 source: '', 
                 description: '', 
                 location: '' 
               });
               
-              // Clear file selections
+              // Clear files
               setAudioFile(null);
               setImageFile(null);
               
-              // Clear any messages
+              // Clear messages
               setSubmitError(null);
               setSubmitSuccess(false);
               
-              // Clear file input elements
-              // document.getElementById finds element by id
+              // Clear file inputs
               const audioInput = document.getElementById('audio');
               const imageInput = document.getElementById('image');
-              
-              // Set value to empty string to clear file selection
               if (audioInput) audioInput.value = '';
               if (imageInput) imageInput.value = '';
               
-              // Log for debugging
               console.log('Form reset');
             }}
             disabled={submitting}
