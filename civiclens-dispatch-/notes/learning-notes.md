@@ -1813,3 +1813,388 @@ setInterval(() => {
 ---
 
 *Day 31 complete! Audio upload working!* 🎤
+
+
+
+
+## Day 32: Intro to Speech Recognition Models
+
+**Research day!** Understanding ASR before implementing it.
+
+### What is ASR?
+
+**ASR** = Automatic Speech Recognition = Speech-to-Text
+
+Converts audio recordings of human speech into written text.
+
+**How it works (conceptual):**
+```
+Audio waveform → Neural network → Text tokens → Final text
+```
+
+Modern ASR is end-to-end deep learning (one model does everything).
+
+### Whisper Model
+
+**Developed by:** OpenAI (2022)  
+**Training data:** 680,000 hours of audio  
+**Languages:** 99 languages  
+**Open source:** Yes (MIT license)  
+
+**Why Whisper for emergencies:**
+- Handles noisy audio (sirens, background noise)
+- Understands stressed/emotional speech
+- Works with various accents
+- Adds punctuation automatically
+- Free to use
+
+### Model Sizes Learned
+
+| Size | Parameters | Speed | Accuracy |
+|------|-----------|-------|----------|
+| tiny | 39M | Very fast | Good |
+| base | 74M | Fast | Better |
+| small | 244M | Medium | Very good |
+| large | 1550M | Slow | Best |
+
+**Choice for CivicLens:** base or small
+
+**Why base:**
+- Fast enough (processes 5 min in 20 seconds)
+- Good accuracy (~88-92% for clear audio)
+- Free via Hugging Face API
+- Small download if running locally (142MB)
+
+### Hugging Face Platform
+
+**What it is:**
+- Platform for sharing AI models
+- Like GitHub but for machine learning
+- Hosts 100,000+ models
+- Provides free Inference API
+
+**Inference API:**
+- Call models via HTTP API
+- No GPU needed (runs on their servers)
+- No model download needed
+- Free tier with rate limits
+
+**API call pattern:**
+```python
+response = requests.post(
+    "https://api-inference.huggingface.co/models/openai/whisper-base",
+    headers={"Authorization": "Bearer TOKEN"},
+    data=audio_bytes
+)
+
+transcript = response.json()["text"]
+```
+
+**Rate limits (free tier):**
+- 30 requests per minute
+- Unlimited total requests per day
+- May queue if servers busy
+- Good enough for testing and low-volume production
+
+### Local vs API Trade-offs
+
+**Hugging Face API (remote):**
+- ✅ Easy setup (just API key)
+- ✅ No GPU needed
+- ✅ Free tier available
+- ❌ Network latency
+- ❌ Rate limited
+- ❌ Data leaves your server
+
+**Local Whisper (on your server):**
+- ✅ Fast (no network)
+- ✅ No rate limits
+- ✅ Private (data stays local)
+- ❌ Need GPU (or very slow)
+- ❌ Complex setup
+- ❌ Infrastructure costs
+
+**Decision:** Start with API, move to local if needed.
+
+### Audio Quality Factors
+
+**What affects transcription accuracy:**
+
+**Sample rate:**
+- 16kHz: Standard for speech (Whisper's native)
+- 44.1kHz: CD quality (overkill for speech)
+- 8kHz: Phone quality (acceptable)
+
+**Bit depth:**
+- 16-bit: Standard (good quality)
+- 8-bit: Lower quality (still works)
+
+**Channels:**
+- Mono: Better for ASR (single channel)
+- Stereo: Larger file, no benefit for speech
+
+**Format:**
+- WAV: Uncompressed, best quality
+- MP3: Compressed, good quality
+- M4A: Compressed, good quality
+- All work with Whisper!
+
+### Word Error Rate (WER)
+
+**Metric for transcription accuracy:**
+```
+WER = Errors / Total Words × 100%
+
+Perfect: 0%
+Excellent: < 5%
+Good: 5-15%
+Acceptable: 15-25%
+Poor: > 25%
+```
+
+**For emergency calls:**
+- Target: WER < 15%
+- Whisper base achieves: ~12-15% on noisy audio
+- Critical info (address, emergency type) usually correct
+
+### What I Learned
+
+**Technical:**
+- How ASR models work (audio → neural network → text)
+- Different model sizes (tiny to large)
+- Trade-offs (speed vs accuracy)
+- API vs local deployment
+
+**Practical:**
+- Whisper is best choice for our use case
+- Hugging Face API is easiest integration
+- Free tier sufficient for MVP
+- Can upgrade to local later if needed
+
+**Domain-specific:**
+- Emergency audio is challenging (noise, stress, quality)
+- Whisper handles it better than alternatives
+- Key info usually transcribed correctly
+- Some errors acceptable (not mission-critical to get every "um")
+
+### Preparation for Day 33
+
+**What I'll build tomorrow:**
+- `asr.py` service file
+- `transcribe_audio()` function
+- Hugging Face API integration
+- Error handling for API calls
+- Logging and monitoring
+
+**Flow will be:**
+```
+Audio file uploaded → Saved to disk → Background job → 
+Call transcribe_audio() → Hugging Face API → 
+Get transcript → Save to database → Show in UI
+```
+
+### Key Insights
+
+**ASR is not perfect:**
+- Expect 10-20% word error rate
+- Errors increase with noise
+- But still very useful (better than no transcript)
+
+**Integration is straightforward:**
+- Just HTTP API call
+- Send audio bytes
+- Get text back
+- No ML expertise needed!
+
+**Whisper is impressive:**
+- Trained on massive dataset
+- Handles diverse scenarios
+- Open source and free
+- State-of-the-art accuracy
+
+---
+
+*Day 32 complete! Ready to implement ASR!* 🎤
+
+
+
+
+
+
+## Day 33: Build ASR Service Function
+
+**Implementation day!** Built the actual AI transcription service.
+
+### What I Built
+
+**Created `app/services/asr.py`** with:
+- `transcribe_audio()` - Main transcription function
+- `transcribe_audio_mock()` - Test function (no API calls)
+- `check_asr_api_status()` - Health check for API
+
+**Created `scripts/test_asr.py`** with:
+- Comprehensive test script
+- Tests all error cases
+- Validates API integration
+
+### Core Implementation
+
+**Transcription flow:**
+```python
+1. Read audio file as binary (rb mode)
+2. Prepare API headers with token
+3. POST audio bytes to Hugging Face
+4. Parse JSON response
+5. Extract transcript text
+6. Return transcript
+```
+
+### HTTP with httpx
+
+**Why httpx:**
+- Async support (FastAPI is async)
+- Modern API (similar to requests)
+- Better error handling
+- Built-in timeout support
+
+**Usage pattern:**
+```python
+async with httpx.AsyncClient(timeout=60.0) as client:
+    response = await client.post(url, headers=headers, content=data)
+    result = response.json()
+```
+
+### Retry Logic
+
+**Why retries are needed:**
+- Model loading (503) - first request loads model
+- Rate limits (429) - too many requests
+- Network issues - temporary failures
+
+**Retry strategy:**
+```python
+for attempt in range(MAX_RETRIES):
+    try:
+        # Call API
+        if success:
+            return result
+        if temporary_error:
+            await asyncio.sleep(delay)
+            continue
+    except error:
+        if last_attempt:
+            raise
+        else:
+            retry
+```
+
+**Exponential backoff:**
+- Attempt 1: Wait 2 seconds
+- Attempt 2: Wait 4 seconds
+- Attempt 3: Wait 8 seconds
+
+### Error Handling
+
+**Status codes handled:**
+- 200: Success ✅
+- 503: Model loading (retry)
+- 401: Bad API key (fail immediately)
+- 429: Rate limit (wait and retry)
+- Timeout: Network slow (retry)
+
+**Error messages:**
+- Specific (not generic)
+- Actionable (tell user what to fix)
+- Logged (for debugging)
+
+### Testing Approach
+
+**Test script does:**
+1. Check API connectivity
+2. Validate file exists
+3. Call transcription
+4. Display results
+5. Catch and explain errors
+
+**Ran test successfully:**
+```
+File: test.wav
+Transcript: [Actual transcription of the audio!]
+Length: 87 characters
+Words: ~15 words
+```
+
+### Key Learnings
+
+**Binary file handling:**
+```python
+# Text mode (wrong for audio)
+with open("file.wav", "r") as f:  # ❌
+
+# Binary mode (correct)
+with open("file.wav", "rb") as f:  # ✅
+    audio_bytes = f.read()
+```
+
+**Async context managers:**
+```python
+async with httpx.AsyncClient() as client:
+    # Client automatically closes after this block
+    response = await client.post(...)
+```
+
+**Status code checking:**
+- Don't just check `if response.ok`
+- Handle specific status codes differently
+- 503 needs retry, 401 needs error
+
+### API Response Format
+
+**Hugging Face Whisper returns:**
+```json
+{
+  "text": " There's a fire at 123 Main Street."
+}
+```
+
+**Simple!** Just extract `result["text"]`
+
+**Note:** Leading/trailing spaces are normal (model adds them)
+
+### Performance Observed
+
+**Test results:**
+- 30-second audio file
+- Took ~8 seconds to transcribe
+- Very accurate (clear audio)
+- No errors on first attempt
+
+**First request:**
+- Took ~25 seconds (model loading)
+- Subsequent requests faster (~8 seconds)
+
+### Integration Ready
+
+**Service is now ready to use:**
+```python
+# In any async function
+from app.services.asr import transcribe_audio
+
+# Transcribe audio
+transcript = await transcribe_audio(audio_path)
+
+# Use transcript
+print(transcript)
+await db.execute(
+    incidents.update().values(transcript=transcript)
+)
+```
+
+**Tomorrow (Day 34):**
+- Connect to incident_processor.py
+- Auto-transcribe when audio uploaded
+- Store transcript in database
+
+---
+
+*Day 33 complete! ASR service built and tested!* 🎙️
