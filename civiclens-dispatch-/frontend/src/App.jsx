@@ -24,6 +24,27 @@ function App() {
 
   const handleSelect    = (inc) => setSelectedIncident(inc)
   const handleClose     = ()    => setSelectedIncident(null)
+
+  // Called by IncidentDetail when dispatcher clicks a status button.
+  // id: the incident's database ID
+  // newStatus: 'pending' | 'active' | 'resolved'
+  // We do two things:
+  //   1. Update selectedIncident in memory so the detail panel reflects
+  //      the new status badge immediately (optimistic update)
+  //   2. Increment refreshTrigger so IncidentsList re-fetches the table,
+  //      updating the status badge in the table row too
+  const handleStatusChange = (id, newStatus) => {
+    // Update the selected incident's status in local state
+    // so the detail panel re-renders with the new status badge instantly
+    setSelectedIncident(prev =>
+      prev && prev.id === id
+        ? { ...prev, status: newStatus }  // spread copies all fields, overrides status
+        : prev                            // different incident, no change
+    )
+    // Trigger a table refresh so the row's status badge updates too
+    setRefreshTrigger(n => n + 1)
+  }
+
   const handleSubmitted = ()    => {
     setRefreshTrigger(n => n + 1)
     addToast('Incident submitted successfully!', 'success')
@@ -60,6 +81,7 @@ function App() {
             <IncidentDetail
               incident={selectedIncident}
               onClose={handleClose}
+              onStatusChange={handleStatusChange}
             />
           </DashboardLayout>
         </div>

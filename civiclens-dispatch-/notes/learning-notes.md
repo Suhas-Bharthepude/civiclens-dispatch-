@@ -2542,3 +2542,71 @@ expands to fit the text and ellipsis never triggers.
 Day 37 will add incident status management — dispatchers will be able to
 mark incidents as "active" or "resolved" directly from the detail panel.
 This will require a PATCH request to the backend and optimistic UI updates.
+
+
+
+
+
+
+
+## Day 37: Incident Status Management
+
+**Full-stack day** — touched backend API (existing PATCH endpoint), API client,
+IncidentDetail component, and App.jsx.
+
+### What I built
+
+- Status action buttons in the detail panel footer:
+    - "⚡ Mark Active" (shown when status is pending)
+    - "✅ Resolve" (shown when status is pending or active)
+    - "↩ Reopen" (shown when status is resolved)
+- Buttons are disabled while a request is in flight (prevents double-clicking)
+- Optimistic UI update — status badge changes instantly before server confirms
+- Revert on failure — if the PATCH fails, the status goes back to what it was
+- Error banner in the footer when an update fails, with a dismiss button
+- Table row status badge also updates immediately via refreshTrigger
+
+### Key concepts learned
+
+**HTTP PATCH vs PUT**
+PATCH = partial update. Only the fields you send are changed.
+PUT = full replacement. Missing fields get wiped.
+Always use PATCH when updating a single field like status.
+
+**Optimistic UI updates**
+Pattern: update the UI immediately, then send the request.
+If success → do nothing (UI was already correct).
+If failure → revert UI to old value + show error.
+This makes apps feel instant even with network latency.
+
+**The 'finally' block**
+```javascript
+try {
+  await request()
+} catch (err) {
+  handleError()
+} finally {
+  setIsUpdating(false)  // ← ALWAYS runs, even if catch threw
+}
+```
+If you put cleanup code only in try, it won't run when an error occurs.
+Always put cleanup (like re-enabling buttons) in finally.
+
+**Spread operator for updating one field in an object**
+```javascript
+setSelectedIncident(prev => ({ ...prev, status: newStatus }))
+```
+...prev copies all existing fields. Then status: newStatus overwrites just that one.
+This avoids mutating state directly.
+
+**Conditional button rendering based on state**
+Show "Mark Active" only when status is 'pending'.
+Show "Resolve" only when status is pending or active.
+Show "Reopen" only when status is 'resolved'.
+Hiding impossible actions reduces confusion.
+
+### What's next
+
+Day 38 will add auto-refresh — the table will poll the backend every
+30 seconds so new incidents appear automatically without manual refresh.
+This mimics how real dispatch consoles work.

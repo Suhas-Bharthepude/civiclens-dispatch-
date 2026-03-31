@@ -1,360 +1,193 @@
 // frontend/src/api/client.js
-// This file contains all API calls to the FastAPI backend
-// Components import functions from here instead of calling fetch directly
+// Central API module — ALL fetch() calls live here.
+// Components import named functions from this file.
+// They never call fetch() directly.
 //
-// Benefits:
-// 1. Centralized API logic (one place to update URLs)
-// 2. Consistent error handling
-// 3. Reusable across components
-// 4. Easy to test
+// This keeps network logic in one place so:
+//   - If the backend URL changes, you change it here once
+//   - If you need to add auth headers later, you add them here once
+//   - Each function has a clear name describing what it does
+//
+// Day 37 addition: updateIncidentStatus()
 
-// ========================================
-// CONFIGURATION
-// ========================================
+// The base URL of the backend API.
+// Vite exposes environment variables prefixed with VITE_ via import.meta.env
+// If not set in .env, defaults to localhost:8000
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-// Base URL for API
-// In development: localhost:8000
-// In production: would be your deployed API URL
-const API_BASE_URL = 'http://localhost:8000';
-
-
-
-
-// ========================================
-// HELPER FUNCTION - Make API Request
-// ========================================
-
-// Generic function to make API requests
-// This handles common logic like error checking
-// Other functions will use this internally
+// ============================================================
+// HELPER: apiRequest
+// ============================================================
+// Shared wrapper around fetch() used by every function below.
+// Handles:
+//   - Building the full URL
+//   - Logging the request for debugging
+//   - Checking for non-2xx HTTP status codes
+//   - Parsing the JSON response body
+//   - Throwing a descriptive error on failure
+//
+// args:
+//   endpoint - the path after the base URL, e.g. '/incidents/12'
+//   options  - optional fetch() options (method, headers, body, etc.)
 async function apiRequest(endpoint, options = {}) {
-    /*
-    Makes an HTTP request to the API
-    
-    Args:
-        endpoint: The API path (e.g., '/incidents')
-        options: Fetch options (method, body, headers, etc.)
-    
-    Returns:
-        Promise that resolves to response data (JSON)
-    
-    Throws:
-        Error if request fails or returns non-2xx status code
-    */
-    
-    // Build full URL by combining base URL and endpoint
-    // Example: 'http://localhost:8000' + '/incidents'
-    const url = `${API_BASE_URL}${endpoint}`;
-    
-    // Log request for debugging
-    console.log(`[API] ${options.method || 'GET'} ${url}`);
-    
+  // Build the complete URL by joining base + endpoint
+  const url = `${API_BASE_URL}${endpoint}`
+
+  // Log every request so we can debug network issues in the browser console
+  console.log(`[API] ${options.method || 'GET'} ${url}`)
+
+  // Make the actual HTTP request
+  // fetch() returns a Promise that resolves to a Response object
+  const response = await fetch(url, options)
+
+  // response.ok is true for 2xx status codes (200, 201, 204, etc.)
+  // If the server returned 4xx or 5xx, we throw an error
+  if (!response.ok) {
+    // Try to parse the error body — FastAPI returns { detail: "..." }
+    let errorMessage = `HTTP ${response.status}`
     try {
-        // Make the HTTP request
-        // fetch() returns a Promise
-        // await waits for the Promise to resolve
-        const response = await fetch(url, options);
-        
-        // Check if request succeeded (status code 200-299)
-        if (!response.ok) {
-            // Request failed (404, 500, etc.)
-            // Throw error with status code
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        // Parse JSON from response body
-        // response.json() also returns a Promise
-        const data = await response.json();
-        
-        // Log success
-        console.log(`[API] Success:`, data);
-        
-        // Return the parsed data
-        return data;
-        
-    } catch (error) {
-        // Log error for debugging
-        console.error(`[API] Error:`, error);
-        
-        // Re-throw error so calling code can handle it
-        throw error;
+      const errorData = await response.json()
+      // FastAPI puts error details in a 'detail' field
+      errorMessage = errorData.detail || errorMessage
+    } catch {
+      // If the body isn't JSON, just use the status code message
     }
+    // Throw so the calling function's catch block handles it
+    throw new Error(errorMessage)
+  }
+
+  // 204 No Content means success but no body — return null
+  if (response.status === 204) return null
+
+  // Parse and return the JSON response body
+  return response.json()
 }
 
-// ========================================
-// FILE UPLOAD OPERATIONS
-// ========================================
-
-// Upload audio file for an incident
-export async function uploadAudio(incidentId, audioFile) {
-    /*
-    Uploads audio file to backend for an existing incident
-    
-    Args:
-        incidentId: ID of the incident to attach audio to
-        audioFile: File object from input[type="file"]
-    
-    Returns:
-        Object with upload confirmation and file path
-    
-    Example usage:
-        const result = await uploadAudio(5, audioFileObject);
-        console.log(result.audio_path);
-    */
-    
-    // Create FormData object to send file
-    // FormData is required for file uploads (can't use JSON)
-    const formData = new FormData();
-    
-    // Append the file to FormData
-    // 'file' is the field name that backend expects
-    // audioFile is the actual File object
-    formData.append('file', audioFile);
-    
-    // Build endpoint URL
-    const url = `${API_BASE_URL}/incidents/${incidentId}/audio`;
-    
-    // Log upload attempt
-    console.log(`[API] POST ${url} - Uploading audio file:`, audioFile.name);
-    
-    try {
-        // Make POST request with FormData body
-        // DO NOT set Content-Type header - browser sets it automatically
-        // Browser will set: Content-Type: multipart/form-data; boundary=...
-        const response = await fetch(url, {
-            method: 'POST',
-            body: formData  // Send FormData (not JSON!)
-            // No headers! Browser auto-sets correct Content-Type
-        });
-        
-        // Check if upload succeeded
-        if (!response.ok) {
-            throw new Error(`Upload failed! status: ${response.status}`);
-        }
-        
-        // Parse response
-        const data = await response.json();
-        
-        // Log success
-        console.log('[API] Audio upload successful:', data);
-        
-        return data;
-        
-    } catch (error) {
-        console.error('[API] Audio upload error:', error);
-        throw error;
-    }
-}
-
-
-// Upload image file for an incident
-export async function uploadImage(incidentId, imageFile) {
-    /*
-    Uploads image file to backend for an existing incident
-    
-    Args:
-        incidentId: ID of the incident to attach image to
-        imageFile: File object from input[type="file"]
-    
-    Returns:
-        Object with upload confirmation and file path
-    
-    Example usage:
-        const result = await uploadImage(5, imageFileObject);
-        console.log(result.image_path);
-    */
-    
-    // Create FormData object
-    const formData = new FormData();
-    
-    // Append the image file
-    formData.append('file', imageFile);
-    
-    // Build endpoint URL
-    const url = `${API_BASE_URL}/incidents/${incidentId}/image`;
-    
-    // Log upload attempt
-    console.log(`[API] POST ${url} - Uploading image file:`, imageFile.name);
-    
-    try {
-        // Make POST request
-        const response = await fetch(url, {
-            method: 'POST',
-            body: formData
-        });
-        
-        // Check response
-        if (!response.ok) {
-            throw new Error(`Upload failed! status: ${response.status}`);
-        }
-        
-        // Parse response
-        const data = await response.json();
-        
-        // Log success
-        console.log('[API] Image upload successful:', data);
-        
-        return data;
-        
-    } catch (error) {
-        console.error('[API] Image upload error:', error);
-        throw error;
-    }
-}
-
-// ========================================
-// HEALTH CHECK
-// ========================================
-
-// Check if API is running
+// ============================================================
+// CHECK HEALTH
+// ============================================================
+// Calls GET /health to verify the backend is running.
+// Used by HealthCheck.jsx to show the green/red indicator.
 export async function checkHealth() {
-    /*
-    Calls GET /health endpoint
-    
-    Returns:
-        Object like { status: "ok", service: "...", version: "..." }
-    
-    Example usage:
-        const health = await checkHealth();
-        console.log(health.status);  // "ok"
-    */
-    return apiRequest('/health');
+  return apiRequest('/health')
 }
 
-
-// ========================================
-// INCIDENT OPERATIONS
-// ========================================
-
-// Get all incidents (with optional filters)
+// ============================================================
+// GET INCIDENTS
+// ============================================================
+// Fetches the list of all incidents.
+// Optional filters object: { incident_type: 'fire', status: 'pending' }
+// These become URL query parameters: /incidents?incident_type=fire
 export async function getIncidents(filters = {}) {
-    /*
-    Calls GET /incidents endpoint
-    
-    Args:
-        filters: Optional object with query parameters
-            Example: { severity: 'high', limit: 10 }
-    
-    Returns:
-        Array of incident objects
-    
-    Example usage:
-        const incidents = await getIncidents();
-        const highSeverity = await getIncidents({ severity: 'high' });
-    */
-    
-    // Build query string from filters object
-    // Example: { severity: 'high', limit: 10 }
-    // Becomes: '?severity=high&limit=10'
-    const queryParams = new URLSearchParams(filters).toString();
-    
-    // Add query string to endpoint if it exists
-    const endpoint = queryParams ? `/incidents?${queryParams}` : '/incidents';
-    
-    return apiRequest(endpoint);
+  // Build query string from filters object
+  // Object.keys returns ['incident_type', 'status'] etc.
+  const params = Object.keys(filters)
+    // Remove keys with empty/null values — don't send empty params
+    .filter(key => filters[key] !== '' && filters[key] !== null && filters[key] !== undefined)
+    // Convert each key/value to "key=value" string
+    .map(key => `${key}=${encodeURIComponent(filters[key])}`)
+    // Join with & to form the full query string
+    .join('&')
+
+  // Build the endpoint with or without query string
+  const endpoint = params ? `/incidents?${params}` : '/incidents'
+  return apiRequest(endpoint)
 }
 
-
-// Get a single incident by ID
+// ============================================================
+// GET SINGLE INCIDENT
+// ============================================================
+// Fetches one incident by its ID.
+// Used when we need fresh data after an update.
 export async function getIncident(id) {
-    /*
-    Calls GET /incidents/{id} endpoint
-    
-    Args:
-        id: Incident ID number
-    
-    Returns:
-        Single incident object
-    
-    Example usage:
-        const incident = await getIncident(5);
-        console.log(incident.description);
-    */
-    return apiRequest(`/incidents/${id}`);
+  return apiRequest(`/incidents/${id}`)
 }
 
-
-// Create a new incident
+// ============================================================
+// CREATE INCIDENT
+// ============================================================
+// Sends a POST request to create a new incident.
+// incidentData: object with description, location, source, etc.
 export async function createIncident(incidentData) {
-    /*
-    Calls POST /incidents endpoint
-    
-    Args:
-        incidentData: Object with incident fields
-            Example: {
-                source: "citizen",
-                description: "Fire on Main St",
-                location: "123 Main St"
-            }
-    
-    Returns:
-        Created incident object (includes auto-generated ID)
-    
-    Example usage:
-        const newIncident = await createIncident({
-            source: "citizen",
-            description: "Emergency",
-            location: "123 St"
-        });
-        console.log(newIncident.id);  // Auto-generated ID
-    */
-    return apiRequest('/incidents', {
-        method: 'POST',  // HTTP POST method
-        headers: { 'Content-Type': 'application/json' }, // Tell server we're sending JSON
-        body: JSON.stringify(incidentData),  // Convert object to JSON string
-    });
+  return apiRequest('/incidents', {
+    method: 'POST',
+    headers: {
+      // Tell the server we're sending JSON
+      'Content-Type': 'application/json',
+    },
+    // JSON.stringify converts the JS object to a JSON string for the request body
+    body: JSON.stringify(incidentData),
+  })
 }
 
-
-// Update an existing incident
-export async function updateIncident(id, updateData) {
-    /*
-    Calls PATCH /incidents/{id} endpoint
-    
-    Args:
-        id: Incident ID to update
-        updateData: Object with fields to update
-    
-    Returns:
-        Updated incident object
-    
-    Example usage:
-        const updated = await updateIncident(5, { severity: 'high' });
-    */
-    return apiRequest(`/incidents/${id}`, {
-        method: 'PATCH',  // HTTP PATCH method (partial update)
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updateData),
-    });
+// ============================================================
+// UPDATE INCIDENT STATUS  ← NEW IN DAY 37
+// ============================================================
+// Sends a PATCH request to update just the status field of an incident.
+// Uses PATCH (not PUT) because we're changing one field, not replacing everything.
+//
+// Parameters:
+//   id        - the incident's database ID (e.g., 12)
+//   newStatus - one of: 'pending' | 'active' | 'resolved'
+//
+// Example usage:
+//   await updateIncidentStatus(12, 'active')
+//   → PATCH /incidents/12  with body { "status": "active" }
+export async function updateIncidentStatus(id, newStatus) {
+  return apiRequest(`/incidents/${id}`, {
+    // PATCH = partial update (only the fields in the body are changed)
+    method: 'PATCH',
+    headers: {
+      // Required so FastAPI parses the body as JSON, not raw text
+      'Content-Type': 'application/json',
+    },
+    // Only send the status field — all other incident fields stay unchanged
+    body: JSON.stringify({ status: newStatus }),
+  })
 }
 
+// ============================================================
+// UPLOAD AUDIO
+// ============================================================
+// Sends an audio file to POST /incidents/{id}/audio
+// Uses FormData (multipart/form-data) — not JSON — because it's a file
+export async function uploadAudio(incidentId, audioFile) {
+  // FormData is a browser API for sending files
+  const formData = new FormData()
+  // 'file' must match the parameter name expected by the FastAPI endpoint
+  formData.append('file', audioFile)
 
-// Delete an incident
-export async function deleteIncident(id) {
-    /*
-    Calls DELETE /incidents/{id} endpoint
-    
-    Args:
-        id: Incident ID to delete
-    
-    Returns:
-        Success message object
-    
-    Example usage:
-        await deleteIncident(5);
-    */
-    return apiRequest(`/incidents/${id}`, {
-        method: 'DELETE',  // HTTP DELETE method
-    });
+  // Note: Do NOT set Content-Type header manually for FormData
+  // The browser sets it automatically with the correct multipart boundary
+  const response = await fetch(`${API_BASE_URL}/incidents/${incidentId}/audio`, {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Audio upload failed: HTTP ${response.status}`)
+  }
+
+  return response.json()
 }
 
+// ============================================================
+// UPLOAD IMAGE
+// ============================================================
+// Sends an image file to POST /incidents/{id}/image
+// Same pattern as uploadAudio above
+export async function uploadImage(incidentId, imageFile) {
+  const formData = new FormData()
+  formData.append('file', imageFile)
 
-// ========================================
-// EXPORT ALL FUNCTIONS
-// ========================================
+  const response = await fetch(`${API_BASE_URL}/incidents/${incidentId}/image`, {
+    method: 'POST',
+    body: formData,
+  })
 
-// All functions are already exported individually above with 'export'
-// This allows importing like:
-// import { getIncidents, createIncident } from './api/client'
+  if (!response.ok) {
+    throw new Error(`Image upload failed: HTTP ${response.status}`)
+  }
+
+  return response.json()
+}

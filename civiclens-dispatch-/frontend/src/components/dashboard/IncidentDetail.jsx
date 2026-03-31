@@ -1,144 +1,141 @@
 // frontend/src/components/dashboard/IncidentDetail.jsx
-// This is the RIGHT SIDE PANEL in the dispatcher dashboard.
-// When a dispatcher clicks a row in the incidents table,
-// this panel slides open and shows full details of that incident.
+// The right-side detail panel in the dispatcher dashboard.
+// Shows all fields of the selected incident and lets the
+// dispatcher change its status (pending → active → resolved).
 //
-// Day 35 changes:
-//   - Added AIBadge component to mark AI-generated fields
-//   - Added a dedicated transcript panel with 3 states:
-//       1. No audio uploaded → show nothing
-//       2. Audio uploaded but not yet transcribed → show "Processing..."
-//       3. Transcript ready → show transcript text in a scrollable card
-//   - Added AI badges next to Incident Type, Severity, Risk Score labels
+// Day 37 additions:
+//   - Status action buttons in the footer (Mark Active / Resolve / Reopen)
+//   - isUpdating state to disable buttons while request is in flight
+//   - handleStatusChange: calls PATCH API, then notifies parent via onStatusChange
+//   - Optimistic UI: parent updates selectedIncident immediately
+//
+// Props received from App.jsx:
+//   incident       - the currently selected incident object (or null)
+//   onClose        - called when dispatcher clicks Close or presses ESC
+//   onStatusChange - called after a status update: onStatusChange(id, newStatus)
 
-// Import React (required for JSX to work)
-import React from 'react'
+import React, { useState } from 'react'
 
-// Import the CSS file that styles this component
-// IncidentDetail.css handles layout, colors, and spacing for this panel
+// CSS for this panel
 import './IncidentDetail.css'
 
+// API function that sends PATCH /incidents/{id} with { status: newStatus }
+import { updateIncidentStatus } from '../../api/client'
+
 // ============================================================
-// AI BADGE - Small inline component
+// AI BADGE — small inline sub-component
 // ============================================================
-// This is a tiny "sub-component" defined inside this file
-// because it's only used here and is very simple.
-//
-// It renders a small pill label that says "🤖 AI" so dispatchers
-// can instantly see which fields were filled in by artificial
-// intelligence versus typed by a human.
-//
-// Usage example:
-//   <label>Risk Score <AIBadge /></label>
-//   Renders as: "Risk Score  🤖 AI"
-//
-// No props needed — it always looks the same.
+// Renders a "🤖 AI" pill label next to field names that were
+// filled in by AI, so dispatchers know which data to verify.
 const AIBadge = () => (
-  // The span gets the class "ai-badge" which is styled in the CSS
-  // to look like a small rounded pill with a purple/indigo color
   <span className="ai-badge">🤖 AI</span>
 )
 
 // ============================================================
-// TRANSCRIPT PANEL - Medium inline component
+// TRANSCRIPT PANEL — handles 3 states for audio transcripts
 // ============================================================
-// This component handles ALL transcript display logic.
-// It receives the full incident object and decides what to show
-// based on whether audio and transcript fields exist.
-//
-// Three possible states:
-//   State 1: incident.audio_path is null/empty
-//            → Return null (render nothing at all)
-//   State 2: incident.audio_path exists BUT incident.transcript is null
-//            → Show a "Processing..." spinner message
-//   State 3: Both audio_path and transcript exist
-//            → Show the transcript text in a styled scrollable card
-//
-// Why a separate component?
-//   The logic has three branches with JSX for each. Keeping it
-//   separate makes IncidentDetail's main return statement cleaner
-//   and easier to read.
+// State 1: No audio uploaded → render nothing
+// State 2: Audio exists, transcript not ready → show "Processing..."
+// State 3: Both audio and transcript exist → show transcript card
 const TranscriptPanel = ({ incident }) => {
+  // If no audio was uploaded, there's nothing to show
+  if (!incident.audio_path) return null
 
-  // STATE 1: No audio was uploaded for this incident
-  // If there's no audio_path, there's nothing to transcribe.
-  // Return null tells React "render nothing here" — no empty box,
-  // no placeholder, just nothing at all.
-  if (!incident.audio_path) {
-    return null
-  }
-
-  // STATE 2: Audio exists but transcript hasn't been generated yet.
-  // The background job (incident_processor.py) runs after upload.
-  // There's a short delay before the transcript appears.
-  // We show a friendly "Processing..." message so the dispatcher
-  // doesn't think something is broken.
+  // Audio exists but transcript hasn't been generated yet
   if (!incident.transcript) {
     return (
-      // The outer div gets the "transcript-panel" class for the card styling
       <div className="transcript-panel transcript-panel--processing">
-
-        {/* Header row with icon, title, and AI badge */}
         <div className="transcript-panel__header">
-          {/* Microphone icon to signal this is audio-related */}
           <span className="transcript-panel__icon">🎤</span>
-          {/* Section title */}
           <h4 className="transcript-panel__title">Audio Transcript</h4>
-          {/* AIBadge tells dispatcher this is AI-generated content */}
           <AIBadge />
         </div>
-
-        {/* Processing state body */}
         <div className="transcript-panel__body">
-          {/* Spinning clock emoji gives a visual sense of "waiting" */}
-          {/* The CSS animation makes this pulse gently */}
-          <p className="transcript-processing-text">
-            🔄 Transcription in progress...
-          </p>
-          {/* Helper text so dispatcher knows what to do */}
+          <p className="transcript-processing-text">🔄 Transcription in progress...</p>
           <p className="transcript-processing-hint">
-            The AI is converting the audio recording to text.
             Refresh in a few seconds to see the result.
           </p>
         </div>
-
       </div>
     )
   }
 
-  // STATE 3: Transcript is ready — show it!
-  // We reach this line only if BOTH audio_path AND transcript exist.
+  // Both audio and transcript exist — show the transcript text
   return (
-    // The outer div is the styled card container
     <div className="transcript-panel">
-
-      {/* Header row with icon, title, and AI badge */}
       <div className="transcript-panel__header">
-        {/* Microphone icon */}
         <span className="transcript-panel__icon">🎤</span>
-        {/* Section title */}
         <h4 className="transcript-panel__title">Audio Transcript</h4>
-        {/* Mark this as AI-generated */}
         <AIBadge />
       </div>
-
-      {/* The actual transcript text in a scrollable box */}
-      {/* overflow-y: auto in CSS means it scrolls if text is long */}
       <div className="transcript-panel__body">
-        {/* blockquote is semantically correct for quoted/transcribed speech */}
-        <blockquote className="transcript-text">
-          {/* incident.transcript is the text string from the database */}
-          {incident.transcript}
-        </blockquote>
+        <blockquote className="transcript-text">{incident.transcript}</blockquote>
       </div>
-
-      {/* Footer note clarifying this is AI-generated */}
       <div className="transcript-panel__footer">
         <p className="transcript-footer-note">
-          ℹ️ Automatically transcribed from audio recording using AI speech recognition.
-          Verify accuracy before taking action.
+          ℹ️ Auto-transcribed by AI — verify before acting.
         </p>
       </div>
+    </div>
+  )
+}
+
+// ============================================================
+// STATUS ACTION BUTTONS — inline sub-component
+// ============================================================
+// Renders the correct set of action buttons based on current status.
+// Rules:
+//   pending  → show "Mark Active" + "Mark Resolved"
+//   active   → show "Mark Resolved"
+//   resolved → show "Reopen" (sets back to pending)
+//
+// Props:
+//   currentStatus - the incident's current status string
+//   isUpdating    - true while a PATCH request is in flight (disables buttons)
+//   onUpdate      - function(newStatus) called when a button is clicked
+const StatusActions = ({ currentStatus, isUpdating, onUpdate }) => {
+  return (
+    // Wrapper for the action buttons — sits before the Close button in the footer
+    <div className="status-actions">
+
+      {/* "Mark Active" button — only shown when status is pending */}
+      {currentStatus === 'pending' && (
+        <button
+          className="btn btn--status btn--active"
+          // Disabled while another request is already in flight
+          disabled={isUpdating}
+          onClick={() => onUpdate('active')}
+          // Tooltip on hover
+          title="Mark this incident as actively being handled"
+        >
+          {/* Show spinner emoji while updating, otherwise the label */}
+          {isUpdating ? '⏳' : '⚡ Mark Active'}
+        </button>
+      )}
+
+      {/* "Mark Resolved" button — shown when status is pending or active */}
+      {(currentStatus === 'pending' || currentStatus === 'active') && (
+        <button
+          className="btn btn--status btn--resolve"
+          disabled={isUpdating}
+          onClick={() => onUpdate('resolved')}
+          title="Mark this incident as resolved and closed"
+        >
+          {isUpdating ? '⏳' : '✅ Resolve'}
+        </button>
+      )}
+
+      {/* "Reopen" button — only shown when status is resolved */}
+      {currentStatus === 'resolved' && (
+        <button
+          className="btn btn--status btn--reopen"
+          disabled={isUpdating}
+          onClick={() => onUpdate('pending')}
+          title="Reopen this incident and set it back to pending"
+        >
+          {isUpdating ? '⏳' : '↩ Reopen'}
+        </button>
+      )}
 
     </div>
   )
@@ -147,257 +144,221 @@ const TranscriptPanel = ({ incident }) => {
 // ============================================================
 // MAIN COMPONENT: IncidentDetail
 // ============================================================
-// Props this component receives:
-//   incident  - The full incident object (or null if nothing selected)
-//   onClose   - A function to call when dispatcher clicks "Close"
-//
-// If incident is null (no row selected yet), we show an empty state.
-// If incident exists, we show all its fields in organized sections.
-const IncidentDetail = ({ incident, onClose }) => {
+const IncidentDetail = ({ incident, onClose, onStatusChange }) => {
 
-  // ── EMPTY STATE ───────────────────────────────────────────
-  // If no incident has been selected yet, show a placeholder
-  // so the panel doesn't just appear blank.
+  // isUpdating: true while the PATCH request is in flight
+  // Used to disable all status buttons to prevent double-clicking
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  // updateError: stores an error message if the PATCH request fails
+  // Displayed as a small error banner in the footer area
+  const [updateError, setUpdateError] = useState(null)
+
+  // ── STATUS CHANGE HANDLER ──────────────────────────────
+  // Called when dispatcher clicks one of the status action buttons.
+  // newStatus: 'pending' | 'active' | 'resolved'
+  const handleStatusChange = async (newStatus) => {
+    // Clear any previous error message
+    setUpdateError(null)
+
+    // Disable buttons immediately — prevents double-click
+    setIsUpdating(true)
+
+    // Remember the old status in case we need to revert
+    const previousStatus = incident.status
+
+    // OPTIMISTIC UPDATE:
+    // Tell the parent (App.jsx) about the new status right away,
+    // before waiting for the server to confirm.
+    // This makes the UI feel instant.
+    // If the server rejects it, we'll revert below.
+    onStatusChange(incident.id, newStatus)
+
+    try {
+      // Send PATCH /incidents/{id} with { status: newStatus }
+      // This is the actual server call — takes ~100-500ms
+      await updateIncidentStatus(incident.id, newStatus)
+
+      // Success! The optimistic update was correct.
+      // No additional UI changes needed — the parent already updated.
+
+    } catch (err) {
+      // The server rejected the update (e.g., network error, server down).
+      // We need to REVERT the optimistic update.
+
+      // Tell the parent to put the old status back
+      onStatusChange(incident.id, previousStatus)
+
+      // Show an error message to the dispatcher
+      setUpdateError(`Failed to update status: ${err.message}`)
+
+    } finally {
+      // Always re-enable buttons, whether request succeeded or failed
+      // 'finally' runs even if the try or catch threw an error
+      setIsUpdating(false)
+    }
+  }
+
+  // ── HELPERS ───────────────────────────────────────────
+  // Format ISO date string to readable format
+  const formatDate = (str) => {
+    if (!str) return 'Unknown'
+    return new Date(str).toLocaleString()
+  }
+
+  // Returns a CSS class for the severity badge color
+  const getSeverityClass = (severity) => {
+    const map = {
+      critical: 'severity-badge--critical',
+      high:     'severity-badge--high',
+      medium:   'severity-badge--medium',
+      low:      'severity-badge--low',
+    }
+    return map[severity?.toLowerCase()] || 'severity-badge--medium'
+  }
+
+  // Converts 0.87 → "87%" and null → "—"
+  const formatRiskScore = (score) => {
+    if (score === null || score === undefined) return '—'
+    return `${Math.round(score * 100)}%`
+  }
+
+  // ── EMPTY STATE ────────────────────────────────────────
+  // No incident selected yet — show a placeholder
   if (!incident) {
     return (
-      // The outer div always has "detail-panel" for consistent sizing/layout
       <div className="detail-panel">
         <div className="detail-empty">
-          {/* Arrow icon pointing left toward the table */}
           <p className="empty-icon">👈</p>
-          <p className="empty-message">
-            Select an incident from the table to view details
-          </p>
+          <p className="empty-message">Select an incident from the table to view details</p>
         </div>
       </div>
     )
   }
 
-  // ── HELPER: Format dates nicely ───────────────────────────
-  // The database stores dates as ISO strings like "2025-03-31T14:22:00"
-  // We convert them to readable format like "Mar 31, 2025, 2:22 PM"
-  const formatDate = (dateString) => {
-    // If no date exists, return a fallback string
-    if (!dateString) return 'Unknown'
-    // JavaScript's built-in Date object parses the ISO string
-    // toLocaleString() formats it for the user's locale automatically
-    return new Date(dateString).toLocaleString()
-  }
-
-  // ── HELPER: Get CSS class for severity color ───────────────
-  // Returns a class name based on severity level so we can
-  // color-code the badge: red for critical, orange for high, etc.
-  const getSeverityClass = (severity) => {
-    // Use a lookup object (faster and cleaner than if/else chain)
-    const classes = {
-      critical: 'severity-badge--critical',  // Red
-      high:     'severity-badge--high',       // Orange
-      medium:   'severity-badge--medium',     // Yellow
-      low:      'severity-badge--low',        // Green
-    }
-    // Return the matching class, or the medium class as default
-    // The ?. (optional chaining) prevents errors if severity is null
-    return classes[severity?.toLowerCase()] || 'severity-badge--medium'
-  }
-
-  // ── HELPER: Format risk score as percentage ────────────────
-  // The database stores risk_score as a decimal (0.0 to 1.0)
-  // We convert 0.87 → "87%" for display
-  const formatRiskScore = (score) => {
-    // If score is null or undefined, show a dash
-    if (score === null || score === undefined) return '—'
-    // Multiply by 100, round to nearest integer, add % sign
-    return `${Math.round(score * 100)}%`
-  }
-
-  // ── MAIN RENDER ───────────────────────────────────────────
-  // Now we render the full incident detail panel.
-  // Sections in order:
-  //   1. Panel header (title + close button)
-  //   2. Severity badge (prominent at top)
-  //   3. Core info (type, source, description, location, dates)
-  //   4. AI Analysis section (risk score, incident type, severity)
-  //   5. Transcript panel (THE NEW DAY 35 FEATURE)
-  //   6. AI Summary (if exists)
-  //   7. Attached media (audio/image file paths)
-  //   8. Panel footer (close button)
+  // ── MAIN RENDER ────────────────────────────────────────
   return (
-    // Outer wrapper — "detail-panel" gives the panel its width, height, border
     <div className="detail-panel">
 
-      {/* ── SECTION 1: PANEL HEADER ─────────────────────────── */}
-      {/* Shows the incident ID as a title and an X close button */}
+      {/* ── HEADER ─────────────────────────────────────── */}
       <div className="detail-header">
-        <h2 className="detail-title">
-          {/* Display incident ID so dispatcher knows which record this is */}
-          Incident #{incident.id}
-        </h2>
-        {/* Close button — calls onClose() which hides the panel */}
-        {/* onClose is passed in as a prop from the parent component */}
+        <h2 className="detail-title">Incident #{incident.id}</h2>
         <button
           className="detail-close-btn"
           onClick={onClose}
-          // Accessible label for screen readers
-          aria-label="Close incident detail panel"
+          aria-label="Close detail panel"
         >
           ✕
         </button>
       </div>
 
-      {/* ── SCROLLABLE CONTENT AREA ─────────────────────────── */}
-      {/* This div scrolls independently so the header/footer stay fixed */}
+      {/* ── SCROLLABLE CONTENT ─────────────────────────── */}
       <div className="detail-content">
 
-        {/* ── SECTION 2: SEVERITY BADGE ─────────────────────── */}
-        {/* Big colored badge at the top — first thing dispatcher sees */}
+        {/* Severity + Status badges at the top */}
         <div className="detail-severity-row">
           <span className={`severity-badge ${getSeverityClass(incident.severity)}`}>
-            {/* Show severity in uppercase, default to MEDIUM if missing */}
             {incident.severity ? incident.severity.toUpperCase() : 'MEDIUM'}
           </span>
-          {/* Status badge next to severity */}
+          {/* Status badge — class changes based on current status */}
           <span className={`status-badge status-badge--${incident.status || 'pending'}`}>
             {incident.status ? incident.status.toUpperCase() : 'PENDING'}
           </span>
         </div>
 
-        {/* ── SECTION 3: CORE INFORMATION ──────────────────── */}
-        {/* Fields that were entered by the human submitting the report */}
+        {/* ── CORE INFORMATION ───────────────────────── */}
 
-        {/* Description — the free-text summary of the incident */}
         <div className="detail-field">
-          {/* Label has NO AI badge because humans write descriptions */}
+          {/* No AI badge — humans write descriptions */}
           <label className="detail-label">Description</label>
-          <p className="detail-value description-full">
-            {incident.description}
-          </p>
+          <p className="detail-value description-full">{incident.description}</p>
         </div>
 
-        {/* Location */}
         <div className="detail-field">
           <label className="detail-label">Location</label>
-          <p className="detail-value">
-            📍 {incident.location || 'Not specified'}
-          </p>
+          <p className="detail-value">📍 {incident.location || 'Not specified'}</p>
         </div>
 
-        {/* Reported by (source) */}
         <div className="detail-field">
           <label className="detail-label">Reported By</label>
           <p className="detail-value">
-            {/* Capitalize first letter: "citizen" → "Citizen" */}
             {incident.source
               ? incident.source.charAt(0).toUpperCase() + incident.source.slice(1)
               : 'Unknown'}
           </p>
         </div>
 
-        {/* Timestamps — when the incident was created and last updated */}
         <div className="detail-field">
           <label className="detail-label">Reported At</label>
-          <p className="detail-value">
-            🕐 {formatDate(incident.created_at)}
-          </p>
+          <p className="detail-value">🕐 {formatDate(incident.created_at)}</p>
         </div>
 
-        {/* ── SECTION 4: AI ANALYSIS ───────────────────────── */}
-        {/* Divider heading to visually separate AI fields from human fields */}
+        {/* ── AI ANALYSIS ────────────────────────────── */}
         <div className="section-divider">
           <h3 className="section-divider__title">🤖 AI Analysis</h3>
         </div>
 
-        {/* Incident Type — classified by AI */}
         <div className="detail-field">
-          {/* Label row has both the text AND the AI badge */}
-          <label className="detail-label">
-            Incident Type <AIBadge />
-          </label>
+          <label className="detail-label">Incident Type <AIBadge /></label>
           <p className="detail-value incident-type-value">
-            {/* Show in uppercase, default to OTHER */}
-            {incident.incident_type
-              ? incident.incident_type.toUpperCase()
-              : 'OTHER'}
+            {incident.incident_type ? incident.incident_type.toUpperCase() : 'OTHER'}
           </p>
         </div>
 
-        {/* Severity (AI-assessed) */}
-        {/* Note: severity also appears as a badge at top, but we
-            show it here too with context that it's AI-generated */}
         <div className="detail-field">
-          <label className="detail-label">
-            Severity <AIBadge />
-          </label>
+          <label className="detail-label">Severity <AIBadge /></label>
           <p className="detail-value">
             {incident.severity ? incident.severity.toUpperCase() : 'MEDIUM'}
           </p>
         </div>
 
-        {/* Risk Score — a 0-1 probability score from the AI */}
         <div className="detail-field">
-          <label className="detail-label">
-            Risk Score <AIBadge />
-          </label>
-          {/* Show as a percentage with a color class */}
+          <label className="detail-label">Risk Score <AIBadge /></label>
           <p className={`detail-value risk-score-value ${
-            // Add extra class for high-risk scores so they appear red
-            incident.risk_score > 0.7
-              ? 'risk-score-value--high'
-              : incident.risk_score > 0.4
-                ? 'risk-score-value--medium'
-                : 'risk-score-value--low'
+            incident.risk_score > 0.7  ? 'risk-score-value--high'   :
+            incident.risk_score > 0.4  ? 'risk-score-value--medium' :
+                                         'risk-score-value--low'
           }`}>
             {formatRiskScore(incident.risk_score)}
           </p>
         </div>
 
-        {/* AI Summary — a short paragraph the AI wrote about the incident */}
-        {/* Only render if a summary exists (it might not for older incidents) */}
+        {/* AI Summary — only if one exists */}
         {incident.summary && (
           <div className="detail-field">
-            <label className="detail-label">
-              AI Summary <AIBadge />
-            </label>
-            <p className="detail-value summary-text">
-              {incident.summary}
-            </p>
+            <label className="detail-label">AI Summary <AIBadge /></label>
+            <p className="detail-value summary-text">{incident.summary}</p>
           </div>
         )}
 
-        {/* ── SECTION 5: TRANSCRIPT PANEL (DAY 35 FEATURE) ─── */}
-        {/* This section heading only appears if audio exists */}
+        {/* ── AUDIO SECTION ──────────────────────────── */}
+        {/* Section heading only appears if audio was uploaded */}
         {incident.audio_path && (
           <div className="section-divider">
             <h3 className="section-divider__title">🎤 Audio</h3>
           </div>
         )}
 
-        {/* TranscriptPanel handles all 3 states internally */}
-        {/* We just pass the whole incident and it figures out what to show */}
+        {/* TranscriptPanel handles its own 3-state logic internally */}
         <TranscriptPanel incident={incident} />
 
-        {/* ── SECTION 6: ATTACHED MEDIA ────────────────────── */}
-        {/* Show file paths for any uploaded files */}
-        {/* This section only renders if at least one file exists */}
+        {/* ── ATTACHED FILES ──────────────────────────── */}
         {(incident.audio_path || incident.image_path) && (
           <>
-            {/* Divider for the media section */}
             <div className="section-divider">
               <h3 className="section-divider__title">📎 Attached Files</h3>
             </div>
 
-            {/* Audio file path */}
             {incident.audio_path && (
               <div className="detail-field">
                 <label className="detail-label">Audio File</label>
-                {/* Show the filename, not the full path */}
-                {/* .split('/').pop() extracts just the filename from the path */}
+                {/* Show just the filename, not the full server path */}
                 <p className="detail-value file-path">
                   🎧 {incident.audio_path.split('/').pop()}
                 </p>
               </div>
             )}
 
-            {/* Image file path */}
             {incident.image_path && (
               <div className="detail-field">
                 <label className="detail-label">Photo</label>
@@ -410,26 +371,47 @@ const IncidentDetail = ({ incident, onClose }) => {
         )}
 
       </div>
-      {/* END: detail-content scrollable area */}
+      {/* END scrollable content */}
 
-      {/* ── SECTION 7: PANEL FOOTER ──────────────────────────── */}
-      {/* Fixed at the bottom — contains action buttons */}
+      {/* ── FOOTER ─────────────────────────────────────── */}
+      {/* Contains status action buttons + error message + close button */}
       <div className="detail-footer">
-        {/* Close button at the bottom (mirrors the X button at the top) */}
-        <button
-          className="btn btn--secondary"
-          onClick={onClose}
-        >
-          Close
-        </button>
-        {/* Placeholder for future "Dispatch" or "Acknowledge" buttons */}
-        {/* These will be added in later days when we add status management */}
+
+        {/* Error message banner — only visible when an update fails */}
+        {updateError && (
+          <div className="update-error">
+            {/* ⚠️ icon makes the error easy to spot */}
+            ⚠️ {updateError}
+            {/* X button clears the error message */}
+            <button
+              className="update-error__dismiss"
+              onClick={() => setUpdateError(null)}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Row with status buttons on left, Close button on right */}
+        <div className="detail-footer__actions">
+
+          {/* StatusActions renders the correct button(s) for the current status */}
+          <StatusActions
+            currentStatus={incident.status || 'pending'}
+            isUpdating={isUpdating}
+            onUpdate={handleStatusChange}
+          />
+
+          {/* Close button — always present on the right */}
+          <button className="btn btn--secondary" onClick={onClose}>
+            Close
+          </button>
+
+        </div>
       </div>
 
     </div>
   )
 }
 
-// Export the component so other files can import and use it
-// App.jsx imports this and renders it in the right side of the dashboard
 export default IncidentDetail
