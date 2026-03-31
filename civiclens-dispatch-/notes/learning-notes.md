@@ -2910,3 +2910,73 @@ a TypeError. Essential when rendering data that might not be loaded yet.
 Day 42 will add image upload analysis — when a dispatcher uploads a photo
 with an incident, an AI vision model will analyze it and add a description
 to the incident record.
+
+
+
+
+
+
+
+## Day 42: AI Image Analysis (Computer Vision)
+
+**Backend AI day.** Added the fourth and final AI service to the pipeline:
+image captioning using Salesforce/blip-image-captioning-base.
+
+### What I built
+
+- `backend/app/services/image_analysis.py` — new vision service
+- `backend/scripts/test_image_analysis.py` — test script
+- Updated `incident_processor.py` with Step 3.5 (image analysis)
+- Added `image_description` column to models.py and the database
+- Added `image_description` to the incident schema
+- Updated `IncidentDetail.jsx` to display image descriptions
+
+### The model: Salesforce/blip-image-captioning-base
+
+BLIP = Bootstrapping Language-Image Pre-training.
+Trained on 129 million image-text pairs.
+Task: image captioning — given an image, produce a natural language sentence.
+
+Example output: "two vehicles involved in a collision at an intersection,
+one car has significant front-end damage"
+
+This is more useful than object detection (which gives labels like
+["car", "person"]) because it produces a readable sentence.
+
+### How images are sent to the API
+
+Unlike JSON APIs (which receive text) or audio APIs (which receive audio bytes),
+vision APIs receive raw image bytes with the correct Content-Type header:
+
+```python
+with open("photo.jpg", "rb") as f:
+    image_bytes = f.read()
+
+response = await client.post(
+    url,
+    headers={"Content-Type": "image/jpeg"},
+    content=image_bytes,   # raw bytes, not json=
+)
+```
+
+The "rb" flag means "read binary" — images are not text so we can't
+use regular text reading mode.
+
+### The complete AI pipeline as of Day 42:
+1. ✅ Transcription: Whisper (real) → transcript text
+2. ✅ Classification: BART zero-shot (real) → incident_type, severity
+3. ✅ Image analysis: BLIP (real) → image_description ← TODAY
+4. ✅ Summarization: BART-CNN (real) → summary paragraph
+5. 🔄 Risk scoring: rule-based stub (Day 45+)
+
+### Image description in risk scoring
+The image description now contributes to the risk score:
+if the image shows fire, flames, crash damage, or injuries,
+the risk score gets a +0.05 boost. This is still rule-based
+but uses AI-generated content as input.
+
+### What's next
+
+Day 43 will focus on testing the complete end-to-end pipeline
+with all four AI services running, and polishing the detail panel
+to display image descriptions prominently with the photo filename.

@@ -331,6 +331,13 @@ const IncidentDetail = ({ incident, onClose, onStatusChange }) => {
           </div>
         )}
 
+        {incident.image_description && (
+          <div className="detail-field">
+            <label className="detail-label">Image Description <AIBadge /></label>
+            <p className="detail-value summary-text">📸 {incident.image_description}</p>
+          </div>
+        )}
+
         {/* ── AUDIO SECTION ──────────────────────────── */}
         {/* Section heading only appears if audio was uploaded */}
         {incident.audio_path && (

@@ -450,9 +450,11 @@ async def upload_audio(
 # POST /incidents/{id}/image — Upload image file
 # ============================================================
 
+
 @router.post("/{incident_id}/image")
 async def upload_image(
     incident_id: int,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
 ):
     """
@@ -485,8 +487,20 @@ async def upload_image(
     )
     await database.execute(update_query)
 
+
+
+    background_tasks.add_task(
+        process_incident,
+        incident_id,
+        "Image uploaded — re-processing"
+    )
+
     return {
         "message": "Image uploaded successfully",
         "file_path": file_path,
         "incident_id": incident_id,
     }
+
+
+
+

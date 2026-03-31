@@ -60,6 +60,9 @@ class IncidentUpdate(BaseModel):
     risk_score: Optional[float] = None
     incident_type: Optional[str] = None
     severity: Optional[str] = None
+    status: Optional[str] = None
+    image_description: Optional[str] = None
+    created_at: Optional[str] = None
 
 
 # ========================================
@@ -87,6 +90,11 @@ class IncidentRead(IncidentBase):
     risk_score: Optional[float] = None
     incident_type: Optional[str] = None
     severity: Optional[str] = None
+    status: Optional[str] = None
+    image_description: Optional[str] = None
+    created_at: Optional[str] = None
+    image_description: str | None = None
+
     
     class Config:
         """
@@ -109,11 +117,16 @@ class IncidentFilter(BaseModel):
     # Filter by source
     source: Optional[str] = None
     
+    image_description: str | None = None
+
     # Filter by incident type
     incident_type: Optional[str] = None
     
     # Filter by severity
     severity: Optional[str] = None
+    status: Optional[str] = None
+    image_description: Optional[str] = None
+    created_at: Optional[str] = None
     
     # Minimum risk score (e.g., only show incidents with risk >= 0.5)
     min_risk_score: Optional[float] = None
@@ -129,3 +142,5 @@ class IncidentFilter(BaseModel):
     
     # Sort order: "asc" or "desc"
     order: str = "desc"
+
+    

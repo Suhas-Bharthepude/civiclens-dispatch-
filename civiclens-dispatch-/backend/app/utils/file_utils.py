@@ -29,7 +29,7 @@ def ensure_upload_dirs():
         print(f"✅ Ensured directory exists: {path}")
 
 
-def save_upload_file(file: UploadFile, subfolder: str) -> str:
+async def save_upload_file(file: UploadFile, subfolder: str) -> str:
     """
     Save an uploaded file to disk with a unique filename.
     

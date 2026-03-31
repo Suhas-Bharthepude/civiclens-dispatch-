@@ -93,8 +93,11 @@ incidents = Table(
     # Optional - populated after processing
     Column("severity", String(50), nullable=True),
 
+    Column("image_description", Text, nullable=True),
+
+
     Column("status", String(50), nullable=True, default="pending"),
-    
+
     Column("created_at", DateTime, nullable=True),
 )
 
