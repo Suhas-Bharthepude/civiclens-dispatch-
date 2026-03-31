@@ -4,6 +4,7 @@
 
 # Import SQLAlchemy core components
 from sqlalchemy import (
+    DateTime,
     Table,      # Represents a database table
     Column,     # Represents a column in a table
     Integer,    # Integer data type
@@ -91,6 +92,10 @@ incidents = Table(
     # Examples: "low", "medium", "high", "critical"
     # Optional - populated after processing
     Column("severity", String(50), nullable=True),
+
+    Column("status", String(50), nullable=True, default="pending"),
+    
+    Column("created_at", DateTime, nullable=True),
 )
 
 

@@ -2831,3 +2831,82 @@ is practical and still filters out genuinely uncertain predictions.
 Day 41 will add a statistics/analytics endpoint to the backend —
 giving dispatchers summary counts of incidents by type, severity,
 and time period. This will power a dashboard stats bar.
+
+
+
+
+
+
+
+
+## Day 41: Statistics Endpoint & Dashboard Stats Bar
+
+**Full-stack day** — new backend endpoint + new frontend component.
+
+### What I built
+
+**Backend:**
+- `GET /incidents/stats` route in `incidents.py`
+- Single aggregate SQL query using `func.count()` and `case()` to get all
+  statistics in one database round-trip
+- Response structured into nested dicts: `by_severity`, `by_status`, `by_type`
+
+**Frontend:**
+- `StatsBar.jsx` component with 6 KPI cards
+- `StatsBar.css` with color-coded left border accents and shimmer skeleton
+- Added `getStats()` to `client.js`
+- Wired StatsBar into `App.jsx` above the dashboard layout
+
+### Key concepts learned
+
+**Aggregate SQL queries**
+Instead of fetching all rows and counting in Python, use the database's
+built-in counting functions — they're much faster:
+```sql
+SELECT
+  COUNT(*) as total,
+  COUNT(CASE WHEN severity='high' THEN 1 END) as high_count
+FROM incidents
+```
+One query, all the counts. No Python loops needed.
+
+**SQLAlchemy CASE expression**
+```python
+func.count(
+    case((incidents.c.severity == "high", 1))
+).label("high_count")
+```
+This is the Python equivalent of `COUNT(CASE WHEN severity='high' THEN 1 END)`.
+The `label()` call gives the column an alias in the result.
+
+**Route ordering is critical in FastAPI**
+`GET /incidents/stats` MUST be defined before `GET /incidents/{id}`.
+If the parameterized route comes first, FastAPI matches "stats" as an ID
+and returns a 422 error. Specific routes always before parameterized ones.
+
+**KPI bar pattern**
+A horizontal row of number+label cards at the top of a dashboard.
+Standard in operations tools (Datadog, PagerDuty, dispatch consoles).
+Gives users instant situational awareness without scrolling or filtering.
+
+**Skeleton loading**
+Instead of showing nothing while data loads, show placeholder shapes
+with an animated shimmer. This prevents layout shifts and signals to the
+user that data is coming. Implemented with CSS gradient animation.
+```css
+background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+animation: shimmer 1.5s infinite;
+```
+
+**Optional chaining in React**
+```jsx
+value={stats?.by_severity.high}
+```
+The `?.` safely returns `undefined` if `stats` is null, instead of throwing
+a TypeError. Essential when rendering data that might not be loaded yet.
+
+### What's next
+
+Day 42 will add image upload analysis — when a dispatcher uploads a photo
+with an incident, an AI vision model will analyze it and add a description
+to the incident record.

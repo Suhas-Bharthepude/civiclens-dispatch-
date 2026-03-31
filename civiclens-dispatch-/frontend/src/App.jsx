@@ -8,6 +8,9 @@ import IncidentDetail     from './components/dashboard/IncidentDetail'
 import SubmitIncidentForm from './components/forms/SubmitIncidentForm'
 import DashboardLayout    from './components/layout/DashboardLayout'
 import ToastContainer     from './components/shared/ToastContainer'
+// StatsBar shows KPI counts (total, high priority, pending, fire, resolved)
+// above the incidents table — gives dispatchers instant situational awareness
+import StatsBar           from './components/dashboard/StatsBar'
 
 function App() {
   const [selectedIncident, setSelectedIncident] = useState(null)
@@ -72,6 +75,9 @@ function App() {
 
         {/* LEFT: incidents table + detail panel */}
         <div className="app-dashboard">
+          {/* StatsBar sits above the filter bar and table */}
+          {/* refreshTrigger causes it to re-fetch when incidents change */}
+          <StatsBar refreshTrigger={refreshTrigger} />
           <DashboardLayout>
             <IncidentsList
               onSelectIncident={handleSelect}

@@ -67,10 +67,11 @@ html, body, #root {
   background: #f8fafc;
 }
 
-/* LEFT: dashboard */
+/* LEFT: dashboard — contains StatsBar + DashboardLayout stacked vertically */
 .app-dashboard {
   display: flex;
   flex: 1;
+  flex-direction: column;
   overflow: hidden;
   min-width: 0;
 }
