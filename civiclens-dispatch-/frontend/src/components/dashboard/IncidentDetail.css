@@ -1,530 +1,260 @@
-/* frontend/src/components/dashboard/IncidentDetail.css
-   Styles for the right-side detail panel in the dispatcher dashboard.
-   This file is imported directly by IncidentDetail.jsx.
+/* frontend/src/components/dashboard/IncidentDetail.css */
 
-   Class naming convention used here:
-     .detail-*           → top-level panel elements
-     .transcript-panel*  → the new Day 35 transcript card
-     .ai-badge           → the "🤖 AI" pill label
-     .severity-badge--*  → color variants for severity levels
-     .risk-score-value--*→ color variants for risk score levels
-*/
-
-
-/* ============================================================
-   PANEL SHELL
-   The outer container that holds the entire right panel.
-   It sits to the right of the incidents table in the dashboard.
-   ============================================================ */
 .detail-panel {
-  /* Fill the full height of whatever parent container holds it */
   height: 100%;
-
-  /* Use flexbox so header, content, and footer stack vertically */
   display: flex;
   flex-direction: column;
-
-  /* Light background — slightly different from the page background
-     so the panel visually separates from the table */
-  background-color: #ffffff;
-
-  /* Left border creates a visual divider between table and panel */
-  border-left: 1px solid #e2e8f0;
-
-  /* Minimum width so the panel doesn't collapse too small */
-  min-width: 340px;
-
-  /* Maximum width so it doesn't take over the whole screen */
-  max-width: 480px;
+  background: #ffffff;
 }
 
-
-/* ============================================================
-   EMPTY STATE
-   Shown when no incident has been selected yet.
-   ============================================================ */
+/* Empty state */
 .detail-empty {
-  /* Center content both horizontally and vertically */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-
-  /* Take up all available space so centering works */
   height: 100%;
-
-  /* Comfortable padding around the message */
   padding: 40px 24px;
+  gap: 10px;
 }
 
-.empty-icon {
-  /* Large emoji for visual impact */
-  font-size: 48px;
-  margin-bottom: 16px;
-}
+.empty-icon    { font-size: 32px; opacity: 0.25; }
+.empty-message { font-size: 13px; color: #cbd5e1; text-align: center; }
 
-.empty-message {
-  /* Muted color — this is secondary/hint text, not primary content */
-  color: #94a3b8;
-  text-align: center;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-
-/* ============================================================
-   PANEL HEADER
-   Fixed at the top. Shows "Incident #12" and the close button.
-   ============================================================ */
+/* Header */
 .detail-header {
-  /* Row layout: title on left, close button on right */
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-  /* Generous padding for breathing room */
-  padding: 20px 24px 16px;
-
-  /* Bottom border separates header from scrollable content */
-  border-bottom: 1px solid #e2e8f0;
-
-  /* Don't shrink even when content area is very tall */
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
   flex-shrink: 0;
-
-  /* Slightly darker background to distinguish it from content */
-  background-color: #f8fafc;
+  background: #ffffff;
 }
 
 .detail-title {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
-  color: #1e293b;
-  margin: 0; /* Remove default browser margin on h2 */
+  color: #0f172a;
+  margin: 0;
 }
 
 .detail-close-btn {
-  /* No default button styling — we style it from scratch */
   background: none;
   border: none;
   cursor: pointer;
-
-  /* Slightly muted color, gets darker on hover */
-  color: #64748b;
-  font-size: 18px;
-
-  /* Circular hover area */
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-
-  /* Center the ✕ inside the circle */
+  color: #94a3b8;
+  font-size: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  /* Smooth background transition on hover */
-  transition: background-color 0.15s ease;
+  transition: background 0.15s, color 0.15s;
 }
 
-.detail-close-btn:hover {
-  /* Light gray circle appears on hover — standard close button pattern */
-  background-color: #f1f5f9;
-  color: #1e293b;
-}
+.detail-close-btn:hover { background: #f1f5f9; color: #475569; }
 
-
-/* ============================================================
-   SCROLLABLE CONTENT AREA
-   This middle section scrolls independently.
-   Header and footer stay fixed while this scrolls.
-   ============================================================ */
+/* Scrollable content */
 .detail-content {
-  /* flex: 1 means "take up all remaining space between header and footer" */
   flex: 1;
-
-  /* Enable vertical scrolling when content overflows */
   overflow-y: auto;
-
-  /* Consistent padding inside the scrollable area */
-  padding: 20px 24px;
+  padding: 18px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
 }
 
-
-/* ============================================================
-   SEVERITY + STATUS BADGE ROW
-   The colored badges at the very top of the content area.
-   ============================================================ */
+/* Severity + status row */
 .detail-severity-row {
-  /* Lay badges out in a row */
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
-  flex-wrap: wrap; /* Wrap to next line on very narrow screens */
+  margin-bottom: 18px;
+  flex-wrap: wrap;
 }
 
-/* Base styles shared by all severity badges */
 .severity-badge {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 9999px; /* Fully rounded pill shape */
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em; /* Slight letter spacing for ALL CAPS text */
-  text-transform: uppercase;
-}
-
-/* Color variants for each severity level */
-.severity-badge--critical {
-  background-color: #fee2e2; /* Light red background */
-  color: #991b1b;            /* Dark red text */
-}
-
-.severity-badge--high {
-  background-color: #ffedd5; /* Light orange background */
-  color: #9a3412;            /* Dark orange text */
-}
-
-.severity-badge--medium {
-  background-color: #fef9c3; /* Light yellow background */
-  color: #854d0e;            /* Dark yellow/brown text */
-}
-
-.severity-badge--low {
-  background-color: #dcfce7; /* Light green background */
-  color: #166534;            /* Dark green text */
-}
-
-/* Status badge — separate from severity */
-.status-badge {
-  display: inline-block;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0.05em;
 }
 
-.status-badge--pending {
-  background-color: #f1f5f9;
-  color: #475569;
+.severity-badge--critical { background: #fee2e2; color: #991b1b; }
+.severity-badge--high     { background: #ffedd5; color: #9a3412; }
+.severity-badge--medium   { background: #fef9c3; color: #854d0e; }
+.severity-badge--low      { background: #dcfce7; color: #166534; }
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
-.status-badge--active {
-  background-color: #dbeafe;
-  color: #1d4ed8;
-}
+.status-badge--pending  { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+.status-badge--active   { background: #dbeafe; color: #1d4ed8; }
+.status-badge--resolved { background: #dcfce7; color: #166534; }
 
-.status-badge--resolved {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-
-/* ============================================================
-   INDIVIDUAL FIELD ROWS
-   Each label + value pair in the detail panel.
-   ============================================================ */
+/* Fields */
 .detail-field {
-  /* Stack label above value */
   display: flex;
   flex-direction: column;
   gap: 4px;
-
-  /* Space between each field */
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .detail-label {
-  /* Small, muted label text */
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-
-  /* Labels are inline-flex so the AI badge sits on the same line */
   display: inline-flex;
   align-items: center;
-  gap: 6px; /* Space between label text and AI badge */
+  gap: 6px;
 }
 
 .detail-value {
-  font-size: 14px;
-  color: #1e293b;
+  font-size: 13px;
+  color: #374151;
   line-height: 1.5;
-  margin: 0; /* Remove default <p> margin */
+  margin: 0;
 }
 
-/* Description gets slightly more relaxed line height — it's longer text */
-.description-full {
-  line-height: 1.6;
-}
+.description-full { line-height: 1.6; color: #475569; }
+.summary-text     { font-style: italic; color: #94a3b8; }
+.file-path        { font-family: monospace; font-size: 11px; color: #94a3b8; word-break: break-all; }
+.incident-type-value { font-size: 15px; font-weight: 700; color: #0f172a; }
 
-/* Summary text from AI — same as description but slightly italic */
-.summary-text {
-  font-style: italic;
-  color: #475569; /* Slightly muted — it's AI-generated, not primary info */
-}
+.risk-score-value         { font-size: 24px; font-weight: 800; }
+.risk-score-value--high   { color: #dc2626; }
+.risk-score-value--medium { color: #d97706; }
+.risk-score-value--low    { color: #16a34a; }
 
-/* File path text — monospace font makes paths easier to read */
-.file-path {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 12px;
-  color: #64748b;
-  word-break: break-all; /* Prevent long filenames from overflowing */
-}
-
-/* Incident type value — larger and bolder for quick scanning */
-.incident-type-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-/* Risk score value — changes color based on risk level */
-.risk-score-value {
-  font-size: 20px;
-  font-weight: 700;
-}
-
-/* Color variants for risk score */
-.risk-score-value--high {
-  color: #dc2626; /* Red for high risk (>70%) */
-}
-
-.risk-score-value--medium {
-  color: #d97706; /* Orange for medium risk (40-70%) */
-}
-
-.risk-score-value--low {
-  color: #16a34a; /* Green for low risk (<40%) */
-}
-
-
-/* ============================================================
-   AI BADGE
-   The small "🤖 AI" pill that appears next to label text.
-   ============================================================ */
+/* AI badge */
 .ai-badge {
   display: inline-flex;
   align-items: center;
-
-  /* Small, compact sizing */
-  padding: 2px 7px;
-  border-radius: 9999px; /* Pill shape */
-
-  /* Indigo/purple color scheme — distinct from severity colors */
-  background-color: #ede9fe;
-  color: #5b21b6;
-
-  font-size: 10px;
-  font-weight: 600;
-
-  /* Keep it on one line, don't let it wrap */
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: #ede9fe;
+  color: #6d28d9;
+  font-size: 9px;
+  font-weight: 700;
   white-space: nowrap;
-
-  /* Subtle border for definition */
-  border: 1px solid #c4b5fd;
+  border: 1px solid #ddd6fe;
 }
 
-
-/* ============================================================
-   SECTION DIVIDER
-   The gray heading rows between sections (e.g., "🤖 AI Analysis")
-   ============================================================ */
+/* Section divider */
 .section-divider {
-  /* Extend to edges of the padding — full-width visual separator */
-  margin: 20px -24px 16px;
-  padding: 8px 24px;
-
-  /* Light gray background distinguishes it from field rows */
-  background-color: #f8fafc;
-
-  /* Borders above and below create a band effect */
-  border-top: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
+  margin: 16px -20px 14px;
+  padding: 7px 20px;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .section-divider__title {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
-  color: #64748b;
+  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin: 0;
 }
 
-
-/* ============================================================
-   TRANSCRIPT PANEL  ← THE MAIN DAY 35 FEATURE
-   The styled card that displays the AI-generated transcript.
-   ============================================================ */
+/* Transcript panel */
 .transcript-panel {
-  /* Card-style box with border and rounded corners */
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-
-  /* Space below the card before the next section */
-  margin-bottom: 20px;
-
-  /* Clip children to rounded corners */
+  margin-bottom: 16px;
   overflow: hidden;
 }
 
-/* Processing state gets a slightly different border color */
-.transcript-panel--processing {
-  border-color: #c4b5fd; /* Purple border when processing (matches AI badge) */
-}
+.transcript-panel--processing { border-color: #ddd6fe; }
 
-/* HEADER row inside the transcript card */
 .transcript-panel__header {
-  /* Row layout: icon, title, badge all in a line */
   display: flex;
   align-items: center;
   gap: 8px;
-
-  /* Slightly blue-tinted background for the header */
-  background-color: #f8fafc;
-  padding: 12px 16px;
-
-  /* Border below header separates it from the text body */
-  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-/* When in processing state, give the header a purple tint */
 .transcript-panel--processing .transcript-panel__header {
-  background-color: #faf5ff; /* Very light purple */
+  background: #faf5ff;
   border-bottom-color: #ede9fe;
 }
 
-.transcript-panel__icon {
-  /* Slightly larger than surrounding text */
-  font-size: 18px;
+.transcript-panel__icon  { font-size: 15px; flex-shrink: 0; }
+.transcript-panel__title { font-size: 12px; font-weight: 700; color: #374151; margin: 0; flex: 1; }
 
-  /* Don't let it shrink if space is tight */
-  flex-shrink: 0;
-}
-
-.transcript-panel__title {
-  font-size: 13px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-
-  /* Takes up remaining horizontal space, pushing badge to the right */
-  flex: 1;
-}
-
-/* BODY — the area where transcript text or processing message lives */
 .transcript-panel__body {
-  padding: 16px;
-
-  /* Limit height and scroll if transcript is very long */
-  /* 200px fits about 8-10 lines — enough to read without dominating */
-  max-height: 200px;
+  padding: 14px;
+  max-height: 180px;
   overflow-y: auto;
-
-  /* Custom scrollbar styling for Webkit browsers (Chrome, Safari) */
+  background: #ffffff;
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
 }
 
-/* The blockquote element that wraps transcript text */
 .transcript-text {
   margin: 0;
-  padding: 0;
-
-  /* Slightly larger than normal text — this is primary content */
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.7;
-  color: #334155;
-
-  /* Italic makes it clear this is a quote/transcription */
+  color: #475569;
   font-style: italic;
 }
 
-/* "Transcription in progress..." message */
 .transcript-processing-text {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: #7c3aed; /* Purple to match AI theme */
-  margin: 0 0 8px 0;
-
-  /* Gentle pulse animation — draws attention without being distracting */
+  color: #7c3aed;
+  margin: 0 0 6px;
   animation: pulse 2s ease-in-out infinite;
 }
 
-/* The hint text below the processing message */
-.transcript-processing-hint {
-  font-size: 12px;
-  color: #94a3b8;
-  margin: 0;
-  line-height: 1.5;
-}
+.transcript-processing-hint { font-size: 11px; color: #94a3b8; margin: 0; line-height: 1.5; }
 
-/* Pulse animation — fades from full opacity to 60% and back */
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50%       { opacity: 0.6; }
+  50%       { opacity: 0.5; }
 }
 
-/* FOOTER row at the bottom of the transcript card */
 .transcript-panel__footer {
-  padding: 10px 16px;
-
-  /* Very light background to distinguish from the body */
-  background-color: #fafafa;
+  padding: 8px 14px;
+  background: #fafafa;
   border-top: 1px solid #f1f5f9;
 }
 
-.transcript-footer-note {
-  font-size: 11px;
-  color: #94a3b8;
-  margin: 0;
-  line-height: 1.4;
-}
+.transcript-footer-note { font-size: 10px; color: #cbd5e1; margin: 0; line-height: 1.4; }
 
-
-/* ============================================================
-   PANEL FOOTER
-   Fixed at the bottom. Contains action buttons.
-   ============================================================ */
+/* Footer */
 .detail-footer {
-  /* Space inside the footer */
-  padding: 16px 24px;
-
-  /* Top border separates footer from scrollable content */
-  border-top: 1px solid #e2e8f0;
-
-  /* Row layout for buttons */
+  padding: 12px 20px;
+  border-top: 1px solid #f1f5f9;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-
-  /* Don't shrink even when content area is very tall */
+  gap: 8px;
   flex-shrink: 0;
-
-  /* Very light background to distinguish footer from content */
-  background-color: #f8fafc;
+  background: #fafafa;
 }
 
-/* Shared button base styles */
 .btn {
-  padding: 8px 20px;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 7px 16px;
+  border-radius: 7px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: background-color 0.15s ease;
+  transition: all 0.15s;
+  font-family: inherit;
 }
 
-/* Secondary button — used for Close */
-.btn--secondary {
-  background-color: #f1f5f9;
-  color: #475569;
-}
-
-.btn--secondary:hover {
-  background-color: #e2e8f0;
-}
+.btn--secondary { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+.btn--secondary:hover { background: #e2e8f0; }

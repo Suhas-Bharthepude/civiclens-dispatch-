@@ -2456,3 +2456,89 @@ After Day 35:
 
 Day 36 will begin polishing the incidents TABLE view — sorting,
 filtering by incident type, and highlighting high-risk rows.
+
+
+
+
+
+
+
+
+## Day 36: Table Sorting, Filtering & Risk Highlighting
+
+**Frontend-only day.** Enhanced the incidents table to be useful for a real dispatcher.
+
+### What I built
+
+- Filter bar above the table with a type filter dropdown and sort dropdown
+- Sortable column headers — click any header to sort by that column
+- Sort direction arrows (↑ / ↓) on the active column
+- High-risk row highlighting — rows with risk_score > 0.7 get a red tint
+- Red dot (🔴) indicator before the ID of high-risk incidents
+- Results count ("Showing 4 of 12 incidents") with an orange "Filtered" badge
+- Empty state for filtered results with a "Clear Filter" button
+
+### Key concepts learned
+
+**useMemo for caching computed values**
+When you have a value that's expensive to compute and depends on other state,
+wrap it in useMemo so it only recalculates when its dependencies change.
+Without useMemo, the sort+filter logic would run on every single re-render.
+```javascript
+const result = useMemo(() => compute(), [dependency1, dependency2])
+```
+
+**Spread copy before sorting**
+JavaScript's .sort() mutates the original array.
+In React you must never mutate state directly.
+Always sort a copy: [...incidents].sort(...)
+The spread operator [...arr] creates a shallow copy with the same items.
+
+**Comparator functions in .sort()**
+.sort() takes a function (a, b) that returns:
+  - Negative number → a comes first
+  - Positive number → b comes first
+  - 0 → order doesn't matter
+Subtracting numbers (b - a) gives descending order.
+Using localeCompare() handles string comparison correctly.
+
+**Lifting state up**
+Sort and filter state lives in IncidentsList (the parent), not IncidentTable (the child).
+This is because both the filter bar AND the table need to know the current sort/filter state.
+When multiple components need shared state, move it to their nearest common parent.
+
+**Controlled components**
+The filter dropdowns are "controlled" — React owns their value via useState.
+```javascript
+<select value={filterType} onChange={e => setFilterType(e.target.value)}>
+```
+The select always shows whatever React state says, not its own internal value.
+
+**Conditional CSS classes**
+Row highlighting uses dynamic className strings:
+```javascript
+className={`table-row ${risk > 0.7 ? 'table-row--high-risk' : ''}`}
+```
+The CSS class is computed at render time based on data.
+This is better than inline styles because CSS classes support :hover and transitions.
+
+**CSS: position: sticky for table headers**
+```css
+thead { position: sticky; top: 0; z-index: 1; }
+```
+Keeps the column headers visible while the table body scrolls.
+z-index: 1 is required so rows don't slide on top of the header.
+
+**CSS: max-width: 0 on table cells for truncation**
+Text truncation with ellipsis requires these three properties:
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+But in table cells, you also need max-width: 0 — without it, the cell
+expands to fit the text and ellipsis never triggers.
+
+### What's next
+
+Day 37 will add incident status management — dispatchers will be able to
+mark incidents as "active" or "resolved" directly from the detail panel.
+This will require a PATCH request to the backend and optimistic UI updates.

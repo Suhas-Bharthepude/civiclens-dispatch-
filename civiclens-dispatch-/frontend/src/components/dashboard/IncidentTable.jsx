@@ -1,188 +1,323 @@
-// frontend/src/components/IncidentTable.jsx
-// Professional data table component for displaying incidents
-// Features: Sortable columns, hover effects, color-coded severity
+// frontend/src/components/dashboard/IncidentTable.jsx
+//
+// This is the "dumb" display component for the incidents table.
+// It receives already-sorted and already-filtered data as props.
+// It does NOT fetch data, sort data, or filter data itself.
+//
+// "Dumb" component responsibilities:
+//   - Render a proper HTML table from the incidents array
+//   - Show sortable column headers with direction arrows
+//   - Highlight high-risk rows with a red tint
+//   - Highlight the currently selected row
+//   - Call onSelectIncident() when a row is clicked
+//   - Call onSort() when a header is clicked
+//
+// Day 36 changes:
+//   - Added sortable column headers (click to sort)
+//   - Added sort direction arrows (↑ / ↓)
+//   - Added high-risk row highlighting (risk_score > 0.7)
+//   - Added selected row highlighting
+//   - Receives sortField, sortDirection, onSort as new props
 
-// Import React (needed for JSX)
+// Import React (required for JSX)
 import React from 'react'
 
-// Import CSS for this component
+// CSS styles for the table — colors, spacing, hover effects, row highlights
 import './IncidentTable.css'
 
+// ============================================================
+// SEVERITY ORDER MAP
+// Used to sort severity levels correctly.
+// "critical" should rank higher than "high" which ranks higher than "medium".
+// Without this, alphabetical sort would put "critical" before "high" which
+// happens to be correct, but "low" would come before "medium" (wrong order).
+// Assigning numbers lets us sort numerically.
+// ============================================================
+const SEVERITY_ORDER = {
+  critical: 4,
+  high:     3,
+  medium:   2,
+  low:      1,
+}
 
-
-// ========================================
-// INCIDENT TABLE COMPONENT
-// ========================================
-
-// Component that displays incidents in a table format
+// ============================================================
+// SORTABLE HEADER CELL - Small inline component
+// ============================================================
+// Renders a single <th> (table header cell) that can be clicked to sort.
+//
 // Props:
-//   - incidents: Array of incident objects from API
-function IncidentTable({ incidents, onIncidentClick }) {
-      
-  // ========================================
-  // HELPER FUNCTION - Format Risk Score
-  // ========================================
-  
-  // Formats risk score to 2 decimal places
-  // Example: 0.856789 → "0.86"
-  function formatRiskScore(score) {
-    // If score is null or undefined, show "N/A"
-    if (score === null || score === undefined) {
-      return 'N/A';
-    }
-    
-    // Convert to number and fix to 2 decimal places
-    // .toFixed(2) returns string like "0.86"
-    return Number(score).toFixed(2);
-  }
-  
-  
-  // ========================================
-  // HELPER FUNCTION - Get Severity Class
-  // ========================================
-  
-  // Returns CSS class name based on severity level
-  // This determines the badge color
-  function getSeverityClass(severity) {
-    // If no severity, default to medium
-    if (!severity) return 'severity-badge severity-medium';
-    
-    // Convert to lowercase for consistent comparison
-    const sev = severity.toLowerCase();
-    
-    // Return appropriate CSS class
-    // These classes are defined in IncidentTable.css
-    return `severity-badge severity-${sev}`;
-  }
-  
-  
-  // ========================================
-  // HANDLE ROW CLICK
-  // ========================================
-  
-  // Called when user clicks a table row
-  // For now, just shows alert (Day 26 will show detail panel)
-  function handleRowClick(incident) {
-    // Call the function passed from parent
-    // Parent will handle showing the detail panel
-    onIncidentClick(incident);
-  }
-  
-  
-  // ========================================
-  // RENDER TABLE
-  // ========================================
-  
+//   field         - The data field this header sorts by (e.g., 'risk_score')
+//   label         - The display text shown to the user (e.g., 'Risk Score')
+//   currentField  - Which field is currently being sorted (from parent state)
+//   direction     - Current sort direction: 'asc' or 'desc'
+//   onSort        - Function to call when this header is clicked
+//   className     - Optional extra CSS class for width/alignment
+const SortableHeader = ({ field, label, currentField, direction, onSort, className }) => {
+  // Is THIS header the one currently being sorted?
+  // We use this to decide whether to show the sort arrow
+  const isActive = currentField === field
+
   return (
-    // Main table container
-    <div className="incident-table-container">
-      
-      {/* The HTML table element */}
-      {/* className for styling from CSS */}
-      <table className="incident-table">
-        
-        {/* ========================================
-            TABLE HEADER (Column Names)
-            ======================================== */}
-        <thead>
-          {/* Table row for headers */}
+    <th
+      // Combine base class, optional className, and 'active' if this column is sorted
+      className={`table-th table-th--sortable ${className || ''} ${isActive ? 'table-th--active' : ''}`}
+      // When clicked, call onSort with this column's field name
+      onClick={() => onSort(field)}
+      // Role and aria attributes make the header accessible to screen readers
+      role="columnheader"
+      aria-sort={isActive ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      {/* Label text (e.g., "Risk Score") */}
+      <span className="th-label">{label}</span>
+
+      {/* Sort direction arrow — only visible when this column is active */}
+      <span className={`sort-arrow ${isActive ? 'sort-arrow--visible' : ''}`}>
+        {/* Show up arrow for ascending, down arrow for descending */}
+        {direction === 'asc' ? '↑' : '↓'}
+      </span>
+    </th>
+  )
+}
+
+// ============================================================
+// MAIN COMPONENT: IncidentTable
+// ============================================================
+// Props this component receives from IncidentsList.jsx:
+//   incidents          - Array of already-filtered and already-sorted incident objects
+//   selectedIncidentId - ID of the currently open incident (to highlight its row)
+//   onSelectIncident   - Function to call when a row is clicked
+//   sortField          - Which field is currently sorted (to show arrow on correct header)
+//   sortDirection      - 'asc' or 'desc' (to show correct arrow direction)
+//   onSort             - Function to call when a header is clicked
+const IncidentTable = ({
+  incidents,
+  selectedIncidentId,
+  onSelectIncident,
+  sortField,
+  sortDirection,
+  onSort,
+}) => {
+
+  // ── HELPER: Format risk score as percentage ───────────────
+  // Converts 0.87 → "87%" and null → "—"
+  const formatRisk = (score) => {
+    if (score === null || score === undefined) return '—'
+    return `${Math.round(score * 100)}%`
+  }
+
+  // ── HELPER: Format a date string to short readable format ─
+  // Converts "2025-03-31T14:22:00" → "Mar 31, 2:22 PM"
+  const formatDate = (dateString) => {
+    if (!dateString) return '—'
+    // Create a Date object from the ISO string
+    const date = new Date(dateString)
+    // Format with abbreviated month, day, hour, and minute
+    return date.toLocaleString('en-US', {
+      month: 'short', // "Mar"
+      day:   'numeric', // "31"
+      hour:  'numeric', // "2"
+      minute: '2-digit', // "22"
+    })
+  }
+
+  // ── HELPER: Get CSS class for severity badge color ────────
+  const getSeverityClass = (severity) => {
+    const map = {
+      critical: 'badge--critical',
+      high:     'badge--high',
+      medium:   'badge--medium',
+      low:      'badge--low',
+    }
+    return map[severity?.toLowerCase()] || 'badge--medium'
+  }
+
+  // ── HELPER: Determine row highlight class ─────────────────
+  // Returns CSS classes for a table row based on:
+  //   1. Whether this row is the currently selected incident
+  //   2. Whether this row has a high risk score (> 0.7 = above 70%)
+  const getRowClass = (incident) => {
+    // Start with the base row class
+    let classes = 'table-row'
+
+    // If this row is selected, add the selected class
+    if (incident.id === selectedIncidentId) {
+      classes += ' table-row--selected'
+    }
+
+    // If risk score is above 70%, add high-risk highlight
+    // This is independent of selection — a row can be both selected AND high-risk
+    if (incident.risk_score > 0.7) {
+      classes += ' table-row--high-risk'
+    }
+
+    return classes
+  }
+
+  // ── RENDER ────────────────────────────────────────────────
+  return (
+    // Wrapper div enables horizontal scrolling on small screens
+    // without the table breaking the page layout
+    <div className="table-wrapper">
+
+      {/* The actual HTML table element */}
+      <table className="incidents-table">
+
+        {/* ── TABLE HEADER ─────────────────────────────────── */}
+        {/* thead stays sticky at the top when the table body scrolls */}
+        <thead className="table-head">
           <tr>
-            {/* Table header cells - one for each column */}
-            <th>ID</th>
-            <th>Type</th>
-            <th>Source</th>
-            <th>Description</th>
-            <th>Location</th>
-            <th>Severity</th>
-            <th>Risk Score</th>
+
+            {/* ID column — not sortable, it's always unique */}
+            <th className="table-th table-th--id">#</th>
+
+            {/* Type column — sortable alphabetically */}
+            <SortableHeader
+              field="incident_type"
+              label="Type"
+              currentField={sortField}
+              direction={sortDirection}
+              onSort={onSort}
+              className="table-th--type"
+            />
+
+            {/* Description column — not sortable (free text, not meaningful to sort) */}
+            <th className="table-th table-th--description">Description</th>
+
+            {/* Location column — not sortable */}
+            <th className="table-th table-th--location">Location</th>
+
+            {/* Severity column — sortable by the SEVERITY_ORDER numeric mapping */}
+            <SortableHeader
+              field="severity"
+              label="Severity"
+              currentField={sortField}
+              direction={sortDirection}
+              onSort={onSort}
+              className="table-th--severity"
+            />
+
+            {/* Risk Score column — sortable numerically — MAIN SORT COLUMN */}
+            <SortableHeader
+              field="risk_score"
+              label="Risk"
+              currentField={sortField}
+              direction={sortDirection}
+              onSort={onSort}
+              className="table-th--risk"
+            />
+
+            {/* Created At column — sortable by date */}
+            <SortableHeader
+              field="created_at"
+              label="Time"
+              currentField={sortField}
+              direction={sortDirection}
+              onSort={onSort}
+              className="table-th--time"
+            />
+
           </tr>
         </thead>
-        
-        {/* ========================================
-            TABLE BODY (Actual Data Rows)
-            ======================================== */}
+
+        {/* ── TABLE BODY ───────────────────────────────────── */}
+        {/* Each incident in the array becomes one table row */}
         <tbody>
-          {/* Map over incidents array */}
-          {/* For each incident, create a table row */}
-          {incidents.map((incident) => (
-            // Table row for this incident
-            // key prop is REQUIRED when mapping
-            // Use unique ID from database
-            // onClick makes entire row clickable
-            <tr 
+          {incidents.map(incident => (
+            // key is required by React for list items — use the unique database ID
+            // The className is dynamically computed by getRowClass() above
+            <tr
               key={incident.id}
-              onClick={() => handleRowClick(incident)}
-              className="incident-row"
+              className={getRowClass(incident)}
+              // When clicked, tell the parent which incident was selected
+              onClick={() => onSelectIncident(incident)}
+              // Pointer cursor makes it obvious the row is clickable
+              style={{ cursor: 'pointer' }}
             >
-              
-              {/* ID column */}
-              <td className="incident-id">
-                #{incident.id}
+
+              {/* ID cell */}
+              <td className="table-td table-td--id">
+                {/* Show risk indicator dot before ID for very high risk incidents */}
+                {incident.risk_score > 0.7 && (
+                  <span
+                    className="risk-dot"
+                    // Accessible label for screen readers
+                    aria-label="High risk"
+                    title="High risk incident"
+                  >
+                    🔴
+                  </span>
+                )}
+                {incident.id}
               </td>
-              
-              {/* Type column */}
-              <td className="incident-type">
-                {/* Show incident type in uppercase */}
-                {/* Use || to provide default if type is null */}
-                {incident.incident_type ? incident.incident_type.toUpperCase() : 'OTHER'}
+
+              {/* Type cell — shows the incident type as an uppercase badge */}
+              <td className="table-td table-td--type">
+                {incident.incident_type
+                  ? (
+                    <span className="type-badge">
+                      {incident.incident_type.toUpperCase()}
+                    </span>
+                  )
+                  : <span className="text-muted">—</span>
+                }
               </td>
-              
-              {/* Source column */}
-              <td>
-                {/* Capitalize first letter of source */}
-                {/* charAt(0) gets first character */}
-                {/* toUpperCase() makes it capital */}
-                {/* slice(1) gets rest of string */}
-                {incident.source.charAt(0).toUpperCase() + incident.source.slice(1)}
-              </td>
-              
-              {/* Description column */}
-              <td className="incident-description">
-                {/* Show description */}
-                {/* Truncate if too long (CSS handles this with text-overflow) */}
-                {incident.description}
-              </td>
-              
-              {/* Location column */}
-              <td className="incident-location">
-                {incident.location}
-              </td>
-              
-              {/* Severity column */}
-              <td>
-                {/* Colored badge based on severity */}
-                {/* getSeverityClass() returns the correct CSS class */}
-                <span className={getSeverityClass(incident.severity)}>
-                  {/* Display severity in uppercase */}
-                  {/* || 'MEDIUM' provides default if severity is null */}
-                  {incident.severity ? incident.severity.toUpperCase() : 'MEDIUM'}
+
+              {/* Description cell — truncated with ellipsis if too long */}
+              <td className="table-td table-td--description">
+                {/* The CSS class 'truncate' applies text-overflow: ellipsis */}
+                <span className="truncate" title={incident.description}>
+                  {incident.description}
                 </span>
               </td>
-              
-              {/* Risk Score column */}
-              <td className="risk-score">
-                {/* Format risk score to 2 decimals */}
-                {formatRiskScore(incident.risk_score)}
+
+              {/* Location cell — also truncated */}
+              <td className="table-td table-td--location">
+                <span className="truncate" title={incident.location}>
+                  {incident.location || '—'}
+                </span>
               </td>
-              
+
+              {/* Severity cell — colored badge */}
+              <td className="table-td table-td--severity">
+                {incident.severity
+                  ? (
+                    <span className={`badge ${getSeverityClass(incident.severity)}`}>
+                      {incident.severity.toUpperCase()}
+                    </span>
+                  )
+                  : <span className="text-muted">—</span>
+                }
+              </td>
+
+              {/* Risk Score cell — number with conditional color class */}
+              <td className="table-td table-td--risk">
+                <span className={`risk-score ${
+                  // Color the risk score based on its value
+                  incident.risk_score > 0.7
+                    ? 'risk-score--high'    // Red for > 70%
+                    : incident.risk_score > 0.4
+                      ? 'risk-score--medium'  // Orange for > 40%
+                      : 'risk-score--low'     // Green for everything else
+                }`}>
+                  {formatRisk(incident.risk_score)}
+                </span>
+              </td>
+
+              {/* Created At cell — formatted date/time */}
+              <td className="table-td table-td--time">
+                <span className="time-text">
+                  {formatDate(incident.created_at)}
+                </span>
+              </td>
+
             </tr>
           ))}
         </tbody>
-        
+
       </table>
-      
-      {/* ========================================
-          FOOTER - Show Total Count
-          ======================================== */}
-      <div className="table-footer">
-        {/* Show total number of incidents */}
-        <p>
-          Showing <strong>{incidents.length}</strong> incidents from database
-        </p>
-      </div>
-      
     </div>
   )
 }
 
+// Export so IncidentsList.jsx can import it
 export default IncidentTable
