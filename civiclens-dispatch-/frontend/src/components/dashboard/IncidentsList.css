@@ -1,12 +1,12 @@
 /* frontend/src/components/dashboard/IncidentsList.css
-   Day 38 additions:
-     - .filter-bar__right (replaces __count — now holds count AND refresh indicator)
-     - .refresh-indicator (wrapper for the live status display)
-     - .refresh-status (base for the three states)
-     - .refresh-dot (the colored dot indicator)
-     - .refresh-text (the label text)
-     - .refresh-now-btn (manual refresh button)
-     - .refresh-retry-btn (retry on error button)
+   Day 44 additions:
+     - .search-group       (wrapper for the search input group)
+     - .search-input-wrapper (positions icon + input + clear button)
+     - .search-input       (the text input field)
+     - .search-icon        (the 🔍 prefix icon)
+     - .search-clear-btn   (the ✕ clear button inside the input)
+     - .search-active-badge (blue badge showing active search term)
+     - .sr-only            (visually hidden but accessible to screen readers)
 */
 
 .incidents-list {
@@ -37,7 +37,6 @@
   flex-wrap: wrap;
 }
 
-/* Right side of filter bar: count + refresh indicator together */
 .filter-bar__right {
   display: flex;
   align-items: center;
@@ -51,11 +50,31 @@
   gap: 6px;
 }
 
+/* The search group is wider than the other filter groups */
+.search-group {
+  /* Allow the search input to be as wide as needed */
+  flex: 1;
+  /* Minimum width so it doesn't collapse too small */
+  min-width: 180px;
+}
+
 .filter-label {
   font-size: 12px;
   font-weight: 600;
   color: #94a3b8;
   white-space: nowrap;
+}
+
+/* Visually hidden but accessible to screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 
 .filter-select {
@@ -76,12 +95,96 @@
   box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
 }
 
+/* ── SEARCH INPUT ────────────────────────────────────── */
+/* Wrapper positions the icon and clear button inside the input */
+.search-input-wrapper {
+  position: relative; /* Needed for absolute-positioned children */
+  display: flex;
+  align-items: center;
+  /* Grow to fill available space in the search group */
+  flex: 1;
+}
+
+/* The 🔍 icon sits inside the input on the left */
+.search-icon {
+  position: absolute; /* Take it out of normal flow */
+  left: 9px;          /* Distance from left edge of wrapper */
+  font-size: 12px;    /* Small icon */
+  /* Pointer events none means clicks pass through to the input */
+  pointer-events: none;
+  /* zIndex ensures icon appears above the input */
+  z-index: 1;
+  line-height: 1;
+}
+
+/* The text input itself */
+.search-input {
+  /* Fill the full width of the wrapper */
+  width: 100%;
+  /* Left padding makes room for the 🔍 icon */
+  padding: 6px 28px 6px 26px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #374151;
+  background: #f8fafc;
+  /* Smooth border transition on focus */
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.search-input::placeholder {
+  /* Muted placeholder text */
+  color: #cbd5e1;
+}
+
+/* Highlight the search box when the dispatcher is typing */
+.search-input:focus {
+  outline: none;
+  border-color: #6366f1; /* Indigo focus ring */
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+  background: #ffffff;
+}
+
+/* When there's text in the search box, give it a subtle blue tint */
+.search-input:not(:placeholder-shown) {
+  border-color: #a5b4fc; /* Light indigo */
+  background: #fafafe;
+}
+
+/* The ✕ clear button inside the input on the right */
+.search-clear-btn {
+  position: absolute; /* Float it to the right inside the wrapper */
+  right: 7px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 12px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%; /* Circular hover area */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+
+.search-clear-btn:hover {
+  color: #6366f1;
+  background: #ede9fe; /* Light purple background on hover */
+}
+
+/* ── RESULTS COUNT ───────────────────────────────────── */
 .results-count {
   font-size: 12px;
   color: #94a3b8;
   white-space: nowrap;
 }
 
+/* Orange "Filtered" badge — type filter active */
 .filter-active-badge {
   display: inline-block;
   padding: 2px 8px;
@@ -93,22 +196,37 @@
   border: 1px solid #fde68a;
 }
 
+/* Blue "Searching: X" badge — search active */
+/* Different color from filter badge so dispatcher can see both at once */
+.search-active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #ede9fe; /* Light purple/indigo background */
+  color: #5b21b6;       /* Dark purple text */
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid #c4b5fd;
+  max-width: 160px;     /* Prevent very long search terms from overflowing */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── REFRESH INDICATOR ───────────────────────────────── */
-/* Wraps the dot + text + button */
 .refresh-indicator {
   display: flex;
   align-items: center;
 }
 
-/* Base row layout for each status variant */
 .refresh-status {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-/* ── COLORED DOTS ────────────────────────────────────── */
-/* Base dot style */
 .refresh-dot {
   width: 7px;
   height: 7px;
@@ -116,69 +234,44 @@
   flex-shrink: 0;
 }
 
-/* Green dot — system healthy, polling normally */
 .refresh-dot--live {
   background-color: #22c55e;
-  /* Subtle pulse animation to show it's "live" */
   box-shadow: 0 0 0 2px rgba(34,197,94,0.2);
   animation: livePulse 2.5s ease-in-out infinite;
 }
 
-/* Spinning dot — background refresh in progress */
 .refresh-dot--spinning {
   background-color: transparent;
-  /* Use a border instead of background to create spinner look */
   border: 2px solid #6366f1;
   border-top-color: transparent;
-  /* Spin animation */
   animation: spin 0.8s linear infinite;
 }
 
-/* Red dot — last refresh failed */
 .refresh-dot--error {
   background-color: #ef4444;
 }
 
-/* Live pulse animation — the green dot gently pulses */
 @keyframes livePulse {
   0%, 100% { box-shadow: 0 0 0 2px rgba(34,197,94,0.2); }
   50%       { box-shadow: 0 0 0 4px rgba(34,197,94,0.1); }
 }
 
-/* Spin animation for the refreshing dot */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
 
-/* ── STATUS TEXT ─────────────────────────────────────── */
 .refresh-text {
   font-size: 11px;
   color: #94a3b8;
   white-space: nowrap;
-  /* Don't let the text be too wide */
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-/* The "· 14s ago" part inside refresh-text */
-.refresh-time {
-  color: #cbd5e1;
-}
+.refresh-time { color: #cbd5e1; }
 
-/* Override text color for error state */
-.refresh-status--error .refresh-text {
-  color: #ef4444;
-}
+.refresh-status--error .refresh-text   { color: #ef4444; }
+.refresh-status--updating .refresh-text { color: #6366f1; }
 
-/* Override text color for updating state */
-.refresh-status--updating .refresh-text {
-  color: #6366f1;
-}
-
-/* ── BUTTONS ─────────────────────────────────────────── */
-/* Manual "↻" refresh button — tiny, unobtrusive */
 .refresh-now-btn {
   background: none;
   border: none;
@@ -201,7 +294,6 @@
   background: #f5f3ff;
 }
 
-/* "Retry" link-style button shown on error */
 .refresh-retry-btn {
   background: none;
   border: none;
@@ -247,7 +339,7 @@
 .error-message { font-size: 14px; font-weight: 600; color: #ef4444; }
 .error-detail  { font-size: 12px; color: #94a3b8; margin-bottom: 16px; text-align: center; }
 
-/* ── SHARED BUTTONS ──────────────────────────────────── */
+/* ── BUTTONS ─────────────────────────────────────────── */
 .btn {
   padding: 7px 16px;
   border-radius: 7px;

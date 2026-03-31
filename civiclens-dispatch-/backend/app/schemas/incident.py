@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 # Import Optional type for fields that may be None
 from typing import Optional
+from datetime import datetime
 
 
 # ========================================
@@ -62,7 +63,7 @@ class IncidentUpdate(BaseModel):
     severity: Optional[str] = None
     status: Optional[str] = None
     image_description: Optional[str] = None
-    created_at: Optional[str] = None
+    created_at: Optional[datetime] = None
 
 
 # ========================================
@@ -92,7 +93,7 @@ class IncidentRead(IncidentBase):
     severity: Optional[str] = None
     status: Optional[str] = None
     image_description: Optional[str] = None
-    created_at: Optional[str] = None
+    created_at: Optional[datetime] = None
     image_description: str | None = None
 
     
@@ -126,7 +127,7 @@ class IncidentFilter(BaseModel):
     severity: Optional[str] = None
     status: Optional[str] = None
     image_description: Optional[str] = None
-    created_at: Optional[str] = None
+    created_at: Optional[datetime] = None
     
     # Minimum risk score (e.g., only show incidents with risk >= 0.5)
     min_risk_score: Optional[float] = None

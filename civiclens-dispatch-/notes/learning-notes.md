@@ -3049,3 +3049,84 @@ tests catch bugs that unit tests miss.
 Day 44 will begin the **deployment preparation phase** — setting up
 Docker containerization so the app can run consistently on any machine
 and be deployed to the cloud.
+
+
+
+
+
+
+
+
+
+
+
+
+## Day 44: Incident Search & Advanced Filtering
+
+**Full-stack day.** Added keyword search across multiple fields,
+debounced search input, and search state indicators.
+
+### What I built
+
+**Backend:**
+- Added `search` query parameter to `GET /incidents`
+- SQLAlchemy `or_()` + `ilike()` searches description, location, transcript, summary
+- Case-insensitive partial matching: "oak" matches "789 Oak Street"
+- Search combines with existing filters: `?incident_type=fire&search=oak`
+- Fixed `create_incident` to set `created_at=datetime.utcnow()` and `status="pending"`
+
+**Frontend:**
+- `useDebounce.js` custom hook — delays value update by 400ms
+- Search input in the filter bar with 🔍 icon and ✕ clear button
+- "Searching: X" badge shows active search term
+- Empty state specific to "no search results found"
+- Backend search (not client-side filtering) — searches ALL incidents
+
+### Key concepts learned
+
+**SQL LIKE vs ilike**
+LIKE is case-sensitive: `WHERE description LIKE '%fire%'` misses "Fire".
+ilike is case-insensitive: handles this automatically.
+SQLAlchemy's `.ilike()` method maps to the right SQL for each database.
+The `%` wildcard means "any characters" — `%fire%` matches anything containing "fire".
+
+**SQL injection prevention**
+Never concatenate user input into SQL strings:
+```python
+# DANGEROUS — SQL injection vulnerability:
+query = f"WHERE description LIKE '%{search}%'"
+
+# SAFE — parameterized query via SQLAlchemy:
+incidents.c.description.ilike(f"%{search_term}%")
+```
+SQLAlchemy's query builder escapes dangerous characters automatically.
+
+**Debouncing**
+Without debouncing, typing "fire" sends 4 API requests (f, fi, fir, fire).
+With 400ms debouncing, it sends 1 request after the user stops typing.
+```javascript
+const timerId = setTimeout(() => setDebouncedValue(value), delayMs)
+return () => clearTimeout(timerId)  // Cancel on each new keystroke
+```
+
+**Backend search vs client-side filtering**
+Client-side: filter the array already in memory. Only searches loaded data.
+Backend search: send query to server. Searches ALL records in the database.
+Always do search on the backend — client-side only works if all data is loaded.
+
+**`or_()` in SQLAlchemy**
+Combines multiple WHERE conditions with OR:
+```python
+from sqlalchemy import or_
+query.where(or_(
+    table.c.col1.ilike(pattern),
+    table.c.col2.ilike(pattern),
+))
+```
+This generates: WHERE col1 LIKE pattern OR col2 LIKE pattern
+
+### What's next
+
+Day 45 will add a real ML-based risk scoring model — replacing the
+rule-based stub with a model that considers multiple factors to
+produce more accurate urgency scores.
