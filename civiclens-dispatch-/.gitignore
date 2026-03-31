@@ -50,3 +50,5 @@ yarn-error.log*
 Thumbs.db*.wav
 *.mp3
 backend/backend/
+*.wav
+*.mp3
