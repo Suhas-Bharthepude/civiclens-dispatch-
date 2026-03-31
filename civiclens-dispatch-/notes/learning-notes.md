@@ -2610,3 +2610,154 @@ Hiding impossible actions reduces confusion.
 Day 38 will add auto-refresh — the table will poll the backend every
 30 seconds so new incidents appear automatically without manual refresh.
 This mimics how real dispatch consoles work.
+
+
+
+
+
+## Day 38: Auto-Refresh & Live Dashboard
+
+**Frontend-only day.** Made the dashboard feel alive with automatic 30-second polling.
+
+### What I built
+
+- `useAutoRefresh` custom hook: manages setInterval, cleanup, lastUpdated, refreshError
+- IncidentsList now polls every 30 seconds silently (no spinner flash)
+- "Last updated X seconds ago" counter in the filter bar that counts up live
+- Green pulsing dot (🟢) when healthy, spinner dot when refreshing, red dot on error
+- "↻" manual refresh button for immediate refresh
+- "Retry" button when a background refresh fails
+- Separate loading states: full spinner on first load, silent indicator on background polls
+
+### Key concepts learned
+
+**Polling vs WebSockets**
+Polling = ask the server "anything new?" on a timer. Simple. Good enough for 30s latency.
+WebSockets = server pushes updates instantly. Complex. Overkill for this use case.
+Chose polling because the backend doesn't need any changes and the latency is acceptable.
+
+**setInterval cleanup is non-negotiable**
+Every setInterval MUST have a corresponding clearInterval in the useEffect cleanup:
+```javascript
+useEffect(() => {
+  const id = setInterval(fn, 30000)
+  return () => clearInterval(id)  // ← MUST have this
+}, [])
+```
+Without cleanup: each re-render creates another interval. After 10 renders = 10 parallel
+requests every 30 seconds. This is called a "memory leak" and causes bugs.
+
+**useRef for stable callback references**
+The callback function (fetchIncidents) needs to be passed to setInterval.
+But if we put callback in the useEffect dependency array, the interval restarts
+every time the callback reference changes (every render). Solution: store the
+latest callback in a useRef and always call callbackRef.current instead.
+
+**Silent refresh pattern**
+First load: show full loading spinner (blocking — user is waiting for data)
+Background refresh: show small indicator only (non-blocking — user is already working)
+The key is having TWO separate state variables: `loading` and `isRefreshing`.
+
+**useCallback for stable function references**
+When a function is passed to a hook or as a prop, wrap it in useCallback
+so React doesn't think it's "new" on every render:
+```javascript
+const fetchIncidents = useCallback(async () => { ... }, [])
+```
+Without useCallback, the function reference changes every render, which can
+cause effects and hooks that depend on it to re-run unnecessarily.
+
+**Formatting "time ago" strings**
+Store timestamps as Date objects, format them at display time:
+```javascript
+const secondsAgo = Math.floor((Date.now() - date.getTime()) / 1000)
+```
+Never store pre-formatted strings like "14 seconds ago" — you can't do math on them.
+
+**Making a counter update live (the tick pattern)**
+To make "14 seconds ago" count up in real time, we set up a 1-second interval
+that increments a dummy counter state. Incrementing state causes a re-render,
+which recalculates the time string with the current time. The counter value itself
+is never used — it just exists to trigger re-renders.
+
+### What's next
+
+Day 39 will add real AI summarization to the backend —
+replacing the stub summary with a real Hugging Face text summarization model.
+This is the next piece of the AI pipeline.
+
+
+
+
+
+
+
+## Day 39: Real AI Text Summarization
+
+**Backend AI day.** Replaced the string-formatting stub summary with a real
+Hugging Face BART model that writes genuine abstractive summaries.
+
+### What I built
+
+- `backend/app/services/summarization.py` — new AI service following the
+  exact same architecture as asr.py
+- `backend/scripts/test_summarization.py` — test script with 5 real scenarios
+- Updated `incident_processor.py` to call `summarize_incident()` in Step 4
+
+### The model: facebook/bart-large-cnn
+
+BART = Bidirectional and Auto-Regressive Transformers.
+Fine-tuned on CNN news articles, which have the same structure as incident reports:
+who/what/where/when/how urgent.
+
+Abstractive summarization: the model writes NEW sentences — doesn't just
+copy existing sentences from the input. Much more useful for dispatchers
+than extractive approaches.
+
+Free on Hugging Face Inference API. Same API key used for Whisper ASR.
+
+### Key concepts learned
+
+**Extractive vs Abstractive summarization**
+Extractive: copies sentences from the original text.
+Abstractive: writes new sentences that capture the meaning.
+We use abstractive because dispatchers need a clean, readable paragraph —
+not a jumble of copied fragments.
+
+**Input construction strategy**
+Feed both description AND transcript to the model when available.
+The transcript often contains the richest detail (the person's own words).
+Combine them: `combined = description + " " + transcript`
+
+**Minimum text threshold**
+BART needs enough text to work with — at least 30 words.
+For very short descriptions (one sentence), skip the API and return
+the description directly. Short text → API → often produces worse output
+than just returning the original.
+
+**The wait_for_model option**
+```python
+"options": {"wait_for_model": True}
+```
+Without this, if the BART model hasn't been used recently, Hugging Face
+returns a 503 "Model is loading" error. With wait_for_model=True, the
+API waits for the model to load before responding (slower first call,
+but no 503 error to handle).
+
+**Graceful degradation**
+Every AI service should have a fallback. If BART fails after all retries,
+summarize_incident() falls back to summarize_incident_mock() instead of
+crashing the whole pipeline. The incident still gets processed.
+This principle — "degrade gracefully" — is fundamental in production systems.
+
+**The complete AI pipeline now:**
+1. ✅ Transcription: Whisper (real) → transcript text
+2. ✅ Summarization: BART (real) → summary paragraph  ← TODAY
+3. 🔄 Classification: keyword rules (stub) → incident_type, severity
+4. 🔄 Risk scoring: rule-based (stub) → risk_score 0.0-1.0
+
+### What's next
+
+Day 40 will add real NLP text classification — replacing the keyword
+matching stub with a zero-shot classification model that can correctly
+identify incident types even when keywords don't match exactly.

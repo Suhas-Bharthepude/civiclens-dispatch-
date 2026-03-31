@@ -1,212 +1,255 @@
 // frontend/src/components/dashboard/IncidentsList.jsx
 //
-// This is the "smart" container component for the left side of the dashboard.
-// It is responsible for:
-//   1. Fetching incidents from the backend API
-//   2. Owning ALL state: incidents data, loading, error, sort, filter, selected incident
-//   3. Rendering the filter bar (dropdowns to sort and filter)
-//   4. Passing sorted/filtered data down to IncidentTable
-//   5. Passing the selected incident up to the parent (App.jsx) so the detail panel opens
+// The "smart" container component for the incidents table.
+// Fetches incidents from the backend, owns sort/filter state,
+// and now auto-refreshes every 30 seconds using useAutoRefresh.
 //
-// "Smart" vs "Dumb" components:
-//   Smart (this file)  = fetches data, owns state, has logic
-//   Dumb (IncidentTable) = receives data as props, just renders it
-//
-// Day 36 changes:
-//   - Added sortField, sortDirection, filterType state
-//   - Added useMemo to compute sorted+filtered list efficiently
-//   - Added filter bar UI above the table
-//   - Added results count display
+// Day 38 changes:
+//   - Integrated useAutoRefresh hook for 30-second polling
+//   - Split loading into 'loading' (first load) and 'isRefreshing' (background)
+//   - Added "last updated" timestamp display in the filter bar
+//   - Added "Refresh Now" button for manual immediate refresh
+//   - Added live status indicator (green dot when healthy, red when error)
+//   - refreshTrigger from App.jsx still works alongside the interval
 
-// React core: useState for state, useEffect for side effects, useMemo for caching
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 
 // getIncidents fetches all incidents from the backend API
-// It lives in api/client.js which handles the fetch() calls
 import { getIncidents } from '../../api/client'
 
-// IncidentTable renders the actual HTML table rows
-// It receives sorted/filtered incidents as a prop
+// IncidentTable renders the HTML table rows
 import IncidentTable from './IncidentTable'
 
-// LoadingState shows a spinner or skeleton while data is loading
+// LoadingState shows a spinner on first load
 import LoadingState from '../shared/LoadingState'
 
-// CSS styles for the filter bar and layout of this component
+// Our new custom hook that handles polling and last-updated tracking
+import useAutoRefresh from '../../hooks/useAutoRefresh'
+
+// CSS for the filter bar, empty state, and refresh indicator
 import './IncidentsList.css'
 
 // ============================================================
-// COMPONENT DEFINITION
+// HELPER: formatTimeAgo
 // ============================================================
-// Props this component receives from App.jsx:
-//   onSelectIncident(incident) - called when dispatcher clicks a row
-//                                App.jsx uses this to open the detail panel
-//   selectedIncidentId         - the ID of the currently open incident
-//                                used to highlight the selected row
-const IncidentsList = ({ onSelectIncident, selectedIncidentId }) => {
+// Converts a Date object into a human-readable "X ago" string.
+// Used to display "Last updated 14 seconds ago" in the filter bar.
+//
+// Examples:
+//   formatTimeAgo(new Date())           → "just now"
+//   formatTimeAgo(dateFrom14SecsAgo)    → "14 seconds ago"
+//   formatTimeAgo(dateFrom3MinsAgo)     → "3 minutes ago"
+function formatTimeAgo(date) {
+  // If no date provided, return a placeholder
+  if (!date) return 'never'
 
-  // ── DATA STATE ───────────────────────────────────────────
-  // incidents: the raw array fetched from the API (never modified directly)
+  // Calculate the difference in seconds between now and the given date
+  const secondsAgo = Math.floor((Date.now() - date.getTime()) / 1000)
+
+  // "just now" for very recent updates (within 5 seconds)
+  if (secondsAgo < 5) return 'just now'
+
+  // "X seconds ago" for updates within the last minute
+  if (secondsAgo < 60) return `${secondsAgo}s ago`
+
+  // "X minutes ago" for updates within the last hour
+  const minutesAgo = Math.floor(secondsAgo / 60)
+  if (minutesAgo < 60) return `${minutesAgo}m ago`
+
+  // "X hours ago" for very stale data
+  const hoursAgo = Math.floor(minutesAgo / 60)
+  return `${hoursAgo}h ago`
+}
+
+// ============================================================
+// COMPONENT
+// ============================================================
+// Props from App.jsx:
+//   onSelectIncident(incident) - tells App.jsx which row was clicked
+//   selectedIncidentId         - ID of currently open incident (for row highlight)
+//   refreshTrigger             - number that App.jsx increments to force a refresh
+//                                (used after form submit or status change)
+const IncidentsList = ({ onSelectIncident, selectedIncidentId, refreshTrigger }) => {
+
+  // ── DATA STATE ───────────────────────────────────────
+  // The raw array of incidents from the API — never sorted/filtered in place
   const [incidents, setIncidents] = useState([])
 
-  // loading: true while the API call is in flight
+  // loading: true only during the FIRST fetch (shows full spinner)
+  // After the first load, background refreshes use isRefreshing instead
   const [loading, setLoading] = useState(true)
 
-  // error: null normally, set to an error message string if fetch fails
+  // error: null normally, set to an error message if the FIRST fetch fails
   const [error, setError] = useState(null)
 
-  // ── SORT STATE ───────────────────────────────────────────
-  // sortField: which column to sort by
-  // Options: 'created_at' | 'risk_score' | 'severity' | 'incident_type'
-  // Default is 'created_at' so newest incidents appear first
-  const [sortField, setSortField] = useState('created_at')
-
-  // sortDirection: whether to sort ascending (low→high) or descending (high→low)
-  // 'desc' default means newest first (most recent date at top)
+  // ── SORT STATE ───────────────────────────────────────
+  // Which field to sort by and in which direction
+  const [sortField,     setSortField]     = useState('created_at')
   const [sortDirection, setSortDirection] = useState('desc')
 
-  // ── FILTER STATE ─────────────────────────────────────────
-  // filterType: which incident type to show
-  // 'all' means show every incident regardless of type
-  // Other values: 'fire' | 'medical' | 'police' | 'other'
+  // ── FILTER STATE ─────────────────────────────────────
+  // Which incident type to show ('all' = no filter)
   const [filterType, setFilterType] = useState('all')
 
-  // ── DATA FETCHING ─────────────────────────────────────────
-  // useEffect runs code AFTER the component renders
-  // The empty array [] means "run this only once, when the component first mounts"
-  // "Mounts" means when the component appears on the page for the first time
-  useEffect(() => {
-    // Define an async function inside useEffect
-    // We can't make useEffect itself async, so we define a function and call it
-    const fetchIncidents = async () => {
-      try {
-        // Set loading to true so the spinner appears
+  // ── DISPLAY TIMER STATE ──────────────────────────────
+  // This counter increments every second to make the "14 seconds ago"
+  // text update live. It doesn't hold any real data — just triggers re-renders.
+  const [, setSecondsTick] = useState(0)
+
+  // ── FETCH FUNCTION ───────────────────────────────────
+  // We wrap fetchIncidents in useCallback so it has a stable identity.
+  // This is important because we pass it to useAutoRefresh — if the function
+  // was recreated on every render, the hook would restart the interval constantly.
+  //
+  // isFirstLoad: if true, show the full spinner; if false, it's a background poll
+  const fetchIncidents = useCallback(async (isFirstLoad = false) => {
+    try {
+      // On first load, show the full loading spinner
+      if (isFirstLoad) {
         setLoading(true)
-
-        // Clear any previous error so stale error messages don't persist
         setError(null)
-
-        // Call the API — this is an async operation that waits for the backend
-        // getIncidents() is defined in api/client.js and uses fetch()
-        const data = await getIncidents()
-
-        // Store the fetched array in state
-        // This triggers a re-render so the table shows the new data
-        setIncidents(data)
-
-      } catch (err) {
-        // If anything goes wrong (network error, server error), set the error message
-        // err.message is a human-readable description of what went wrong
-        setError(err.message || 'Failed to fetch incidents')
-
-      } finally {
-        // 'finally' runs whether the try succeeded or the catch ran
-        // Always set loading to false so the spinner disappears
-        setLoading(false)
       }
+
+      // Fetch all incidents from the backend API
+      const data = await getIncidents()
+
+      // Update the incidents array in state
+      setIncidents(data)
+
+      // Clear any first-load error (we got data successfully)
+      setError(null)
+
+    } catch (err) {
+      // Only show the big error UI on first load failures
+      // Background refresh failures are handled by useAutoRefresh's refreshError
+      if (isFirstLoad) {
+        setError(err.message || 'Failed to fetch incidents')
+      }
+      // Re-throw so useAutoRefresh can catch it and set refreshError
+      throw err
+
+    } finally {
+      // Always clear the full loading spinner
+      setLoading(false)
     }
+  }, []) // No dependencies — this function doesn't use any component state
 
-    // Call the function we just defined
-    fetchIncidents()
+  // ── FIRST LOAD ────────────────────────────────────────
+  // Run once when the component mounts to do the initial data fetch
+  useEffect(() => {
+    fetchIncidents(true) // true = first load = show full spinner
+  }, [fetchIncidents])
 
-  }, []) // Empty dependency array = run only on mount
+  // ── REFRESH TRIGGER ───────────────────────────────────
+  // When App.jsx increments refreshTrigger (after form submit or status change),
+  // re-fetch the data. Skip the very first render (refreshTrigger starts at 0).
+  useEffect(() => {
+    // refreshTrigger === 0 is the initial value — don't fetch on mount
+    // (the first load useEffect above handles that)
+    if (refreshTrigger > 0) {
+      fetchIncidents(false) // false = not first load = no full spinner
+    }
+  }, [refreshTrigger, fetchIncidents])
 
-  // ── SORT HANDLER ─────────────────────────────────────────
+  // ── AUTO REFRESH ──────────────────────────────────────
+  // Connect our fetchIncidents function to the polling hook.
+  // The hook will call fetchIncidents every 30 seconds automatically.
+  // It also gives us isRefreshing, lastUpdated, and triggerRefresh.
+  const {
+    isRefreshing,    // true while a background poll is in progress
+    lastUpdated,     // Date of last successful refresh
+    refreshError,    // error message if last background refresh failed
+    triggerRefresh,  // function to call for immediate manual refresh
+  } = useAutoRefresh(
+    fetchIncidents,  // the function to call on each poll
+    30000,           // poll every 30 seconds (30,000 milliseconds)
+    !loading         // only start polling AFTER the first load is complete
+    // This prevents the interval from firing while we're still on the loading screen
+  )
+
+  // ── LIVE TIMESTAMP UPDATER ────────────────────────────
+  // This effect sets up a 1-second interval that just increments a counter.
+  // The counter itself isn't used for anything — incrementing it just causes
+  // a re-render, which recalculates formatTimeAgo(lastUpdated) with the
+  // current time, making the "14 seconds ago" text count up live.
+  useEffect(() => {
+    const tickId = setInterval(() => {
+      // Increment the counter — this triggers a re-render
+      setSecondsTick(n => n + 1)
+    }, 1000) // every 1 second
+
+    // Clean up this interval too when the component unmounts
+    return () => clearInterval(tickId)
+  }, []) // Empty array = set up once on mount
+
+  // ── SORT HANDLER ─────────────────────────────────────
   // Called by IncidentTable when a column header is clicked
-  // field: the column that was clicked ('risk_score', 'severity', etc.)
   const handleSort = (field) => {
     if (sortField === field) {
-      // User clicked the SAME column that's already sorted
-      // Flip the direction: 'asc' → 'desc', 'desc' → 'asc'
+      // Same column — flip direction
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
     } else {
-      // User clicked a DIFFERENT column
-      // Switch to that column and start with descending (high→low is usually more useful)
+      // New column — sort descending by default
       setSortField(field)
       setSortDirection('desc')
     }
   }
 
-  // ── COMPUTED: SORTED + FILTERED INCIDENTS ────────────────
-  // useMemo caches the result of this computation.
-  // It only recalculates when incidents, sortField, sortDirection, or filterType changes.
-  // Without useMemo, this would run on EVERY re-render (even unrelated ones).
+  // ── COMPUTED: SORTED + FILTERED LIST ─────────────────
+  // useMemo caches this result and only recalculates when its
+  // dependencies change (not on every render)
   const displayedIncidents = useMemo(() => {
 
-    // STEP 1: Filter
-    // Start with a copy of the full incidents array
-    // We use .filter() to keep only incidents matching the selected type
+    // Step 1: Filter by incident type
     let result = incidents.filter(incident => {
-      // If filterType is 'all', keep every incident (no filtering)
       if (filterType === 'all') return true
-
-      // Otherwise, keep only incidents whose type matches filterType
-      // We use optional chaining (?.) in case incident_type is null
-      // toLowerCase() makes the comparison case-insensitive
       return incident.incident_type?.toLowerCase() === filterType
     })
 
-    // STEP 2: Sort
-    // .sort() takes a comparator function that compares two items (a and b)
-    // We spread [...result] to sort a copy — never mutate the array directly in React
+    // Step 2: Sort a copy (never mutate state directly)
     result = [...result].sort((a, b) => {
+      let valA = a[sortField]
+      let valB = b[sortField]
 
-      // Get the values we're comparing from each incident
-      let valueA = a[sortField]
-      let valueB = b[sortField]
+      // Push null values to the bottom regardless of sort direction
+      if (valA == null) return 1
+      if (valB == null) return -1
 
-      // Handle null/undefined values — push them to the bottom regardless of direction
-      // This prevents errors when risk_score or incident_type is null
-      if (valueA === null || valueA === undefined) return 1   // a goes after b
-      if (valueB === null || valueB === undefined) return -1  // b goes after a
-
-      // For string fields (incident_type, severity), use localeCompare
-      // localeCompare handles alphabetical order correctly across languages
-      if (typeof valueA === 'string') {
-        // If ascending: a before b alphabetically
-        // If descending: b before a alphabetically
-        const comparison = valueA.localeCompare(valueB)
-        return sortDirection === 'asc' ? comparison : -comparison
+      // String comparison uses localeCompare for correct alphabetical order
+      if (typeof valA === 'string') {
+        const cmp = valA.localeCompare(valB)
+        return sortDirection === 'asc' ? cmp : -cmp
       }
 
-      // For number/date fields (risk_score, created_at), subtract
-      // Subtracting numbers gives the sign we need: negative (a first), positive (b first)
-      // For dates: JavaScript can compare ISO date strings directly as numbers
-      const comparison = valueA > valueB ? 1 : valueA < valueB ? -1 : 0
-      return sortDirection === 'asc' ? comparison : -comparison
+      // Number/date comparison
+      const cmp = valA > valB ? 1 : valA < valB ? -1 : 0
+      return sortDirection === 'asc' ? cmp : -cmp
     })
 
-    // Return the filtered and sorted array
     return result
 
   }, [incidents, sortField, sortDirection, filterType])
-  // ↑ These are the dependencies — useMemo recalculates when any of these change
 
-  // ── RENDER: LOADING STATE ────────────────────────────────
-  // While the API call is in progress, show a loading indicator
+  // ── RENDER: FIRST LOAD SPINNER ────────────────────────
   if (loading) {
     return (
       <div className="incidents-list">
-        {/* LoadingState is a shared component that shows a spinner */}
         <LoadingState message="Loading incidents..." />
       </div>
     )
   }
 
-  // ── RENDER: ERROR STATE ───────────────────────────────────
-  // If the fetch failed, show the error and a retry button
+  // ── RENDER: FIRST LOAD ERROR ──────────────────────────
   if (error) {
     return (
       <div className="incidents-list">
         <div className="incidents-error">
-          {/* Error icon and message */}
           <p className="error-icon">⚠️</p>
           <p className="error-message">Failed to load incidents</p>
           <p className="error-detail">{error}</p>
-          {/* Retry button reloads the page to trigger another fetch */}
           <button
             className="btn btn--primary"
-            onClick={() => window.location.reload()}
+            onClick={() => fetchIncidents(true)}
           >
             Retry
           </button>
@@ -215,65 +258,48 @@ const IncidentsList = ({ onSelectIncident, selectedIncidentId }) => {
     )
   }
 
-  // ── RENDER: MAIN VIEW ─────────────────────────────────────
-  // We have data — render the filter bar and table
+  // ── RENDER: MAIN VIEW ─────────────────────────────────
   return (
-    // Outer wrapper for the entire left panel
     <div className="incidents-list">
 
-      {/* ── FILTER BAR ─────────────────────────────────────── */}
-      {/* The row of controls sitting above the table */}
+      {/* ── FILTER BAR ───────────────────────────────── */}
       <div className="filter-bar">
 
-        {/* LEFT SIDE: Filter and Sort dropdowns */}
+        {/* LEFT: filter and sort dropdowns */}
         <div className="filter-bar__controls">
 
-          {/* TYPE FILTER DROPDOWN */}
-          {/* Lets dispatcher show only one type of incident */}
+          {/* Type filter */}
           <div className="filter-group">
-            {/* Label is visually hidden but present for screen readers */}
-            <label className="filter-label" htmlFor="type-filter">
-              Type
-            </label>
-            {/* <select> is a native HTML dropdown */}
-            {/* value={filterType} makes it a controlled component (React owns the value) */}
-            {/* onChange updates filterType state when dispatcher picks an option */}
+            <label className="filter-label" htmlFor="type-filter">Type</label>
             <select
               id="type-filter"
               className="filter-select"
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
+              onChange={e => setFilterType(e.target.value)}
             >
-              {/* Each <option> value must match what incident_type contains in the database */}
               <option value="all">All Types</option>
               <option value="fire">🔥 Fire</option>
               <option value="medical">🚑 Medical</option>
               <option value="police">🚔 Police</option>
+              <option value="crime">🚨 Crime</option>
+              <option value="infrastructure">🏗️ Infrastructure</option>
               <option value="other">📋 Other</option>
             </select>
           </div>
 
-          {/* SORT DROPDOWN */}
-          {/* A convenience dropdown for common sort presets */}
-          {/* This complements the clickable column headers */}
+          {/* Sort dropdown */}
           <div className="filter-group">
-            <label className="filter-label" htmlFor="sort-select">
-              Sort By
-            </label>
+            <label className="filter-label" htmlFor="sort-select">Sort By</label>
             <select
               id="sort-select"
               className="filter-select"
-              // The value combines field and direction so one dropdown controls both
-              // e.g., "risk_score_desc" means sort by risk_score descending
               value={`${sortField}_${sortDirection}`}
-              onChange={(e) => {
-                // Split the combined value back into field and direction
-                // e.g., "risk_score_desc" → field="risk_score", direction="desc"
-                // The last segment is always the direction (asc/desc)
-                // Everything before it is the field name (handles underscores in field names)
+              onChange={e => {
+                // The value is "fieldName_direction" e.g. "risk_score_desc"
+                // Split from the right to handle field names with underscores
                 const parts = e.target.value.split('_')
-                const direction = parts.pop()         // Remove and get the last part
-                const field = parts.join('_')         // Rejoin the rest as the field name
+                const direction = parts.pop()       // last part = direction
+                const field = parts.join('_')       // rest = field name
                 setSortField(field)
                 setSortDirection(direction)
               }}
@@ -289,86 +315,119 @@ const IncidentsList = ({ onSelectIncident, selectedIncidentId }) => {
 
         </div>
 
-        {/* RIGHT SIDE: Results count */}
-        {/* Tells dispatcher how many incidents match the current filter */}
-        <div className="filter-bar__count">
-          {/* Show filtered count vs total count */}
-          {/* e.g., "Showing 4 of 12 incidents" */}
+        {/* RIGHT: results count + live refresh indicator */}
+        <div className="filter-bar__right">
+
+          {/* Results count */}
           <span className="results-count">
             {filterType !== 'all'
-              // If a filter is active, show "X of Y"
-              ? `Showing ${displayedIncidents.length} of ${incidents.length} incidents`
-              // If no filter, just show the total
+              ? `Showing ${displayedIncidents.length} of ${incidents.length}`
               : `${incidents.length} incident${incidents.length !== 1 ? 's' : ''}`
             }
           </span>
 
-          {/* Show a "Filtered" badge when a filter is active */}
+          {/* Filtered badge */}
           {filterType !== 'all' && (
             <span className="filter-active-badge">Filtered</span>
           )}
+
+          {/* ── LIVE REFRESH INDICATOR ─────────────── */}
+          {/* Shows current refresh status and last update time */}
+          <div className="refresh-indicator">
+
+            {/* Background refresh error — show red dot and retry */}
+            {refreshError && !isRefreshing && (
+              <div className="refresh-status refresh-status--error">
+                {/* Red dot */}
+                <span className="refresh-dot refresh-dot--error" />
+                <span className="refresh-text">Refresh failed</span>
+                {/* Retry button triggers an immediate manual refresh */}
+                <button
+                  className="refresh-retry-btn"
+                  onClick={triggerRefresh}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {/* Currently refreshing in background */}
+            {isRefreshing && (
+              <div className="refresh-status refresh-status--updating">
+                {/* Spinning dot */}
+                <span className="refresh-dot refresh-dot--spinning" />
+                <span className="refresh-text">Updating...</span>
+              </div>
+            )}
+
+            {/* Idle — show last updated time */}
+            {!isRefreshing && !refreshError && (
+              <div className="refresh-status refresh-status--idle">
+                {/* Green dot — system is healthy */}
+                <span className="refresh-dot refresh-dot--live" />
+                <span className="refresh-text">
+                  {/* Show "Live" label and last updated time */}
+                  Live
+                  {lastUpdated && (
+                    // Separator dot + time ago string
+                    <span className="refresh-time">
+                      {' · '}{formatTimeAgo(lastUpdated)}
+                    </span>
+                  )}
+                </span>
+                {/* Manual refresh button */}
+                <button
+                  className="refresh-now-btn"
+                  onClick={triggerRefresh}
+                  title="Refresh now"
+                >
+                  {/* Refresh icon — a simple circular arrow */}
+                  ↻
+                </button>
+              </div>
+            )}
+
+          </div>
+          {/* END: refresh-indicator */}
+
         </div>
+        {/* END: filter-bar__right */}
 
       </div>
       {/* END: filter-bar */}
 
-      {/* ── EMPTY STATE ────────────────────────────────────── */}
-      {/* Show a helpful message when the filter returns no results */}
-      {displayedIncidents.length === 0 && !loading && (
+      {/* ── EMPTY STATE ──────────────────────────────── */}
+      {displayedIncidents.length === 0 && (
         <div className="incidents-empty">
-          {filterType !== 'all'
-            // If filtering is active and got nothing, offer to clear the filter
-            ? (
-              <>
-                <p className="empty-icon">🔍</p>
-                <p className="empty-message">
-                  No {filterType} incidents found
-                </p>
-                {/* Clear filter button resets filterType to 'all' */}
-                <button
-                  className="btn btn--secondary btn--small"
-                  onClick={() => setFilterType('all')}
-                >
-                  Clear Filter
-                </button>
-              </>
-            )
-            // If no filter active and still empty, the database is empty
-            : (
-              <>
-                <p className="empty-icon">📋</p>
-                <p className="empty-message">No incidents yet</p>
-                <p className="empty-hint">
-                  Submit an incident using the form below
-                </p>
-              </>
-            )
-          }
+          {filterType !== 'all' ? (
+            <>
+              <p className="empty-icon">🔍</p>
+              <p className="empty-message">No {filterType} incidents found</p>
+              <button
+                className="btn btn--secondary btn--small"
+                onClick={() => setFilterType('all')}
+              >
+                Clear Filter
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="empty-icon">📋</p>
+              <p className="empty-message">No incidents yet</p>
+              <p className="empty-hint">Submit an incident using the form</p>
+            </>
+          )}
         </div>
       )}
 
-      {/* ── INCIDENT TABLE ─────────────────────────────────── */}
-      {/* Only render the table if there's something to show */}
+      {/* ── INCIDENT TABLE ───────────────────────────── */}
       {displayedIncidents.length > 0 && (
         <IncidentTable
-          // The sorted and filtered array — NOT the raw incidents
           incidents={displayedIncidents}
-
-          // The currently selected incident ID (to highlight that row)
           selectedIncidentId={selectedIncidentId}
-
-          // Called when dispatcher clicks a row
-          // We pass it straight through from our own props
           onSelectIncident={onSelectIncident}
-
-          // Current sort field — table uses this to show the sort arrow icon
           sortField={sortField}
-
-          // Current sort direction — table uses this to show ↑ or ↓
           sortDirection={sortDirection}
-
-          // Called when dispatcher clicks a column header
-          // Table reports WHAT was clicked, parent decides HOW to sort
           onSort={handleSort}
         />
       )}
@@ -377,5 +436,4 @@ const IncidentsList = ({ onSelectIncident, selectedIncidentId }) => {
   )
 }
 
-// Export so App.jsx can import and render this component
 export default IncidentsList

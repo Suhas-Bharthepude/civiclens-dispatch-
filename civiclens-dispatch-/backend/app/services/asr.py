@@ -24,7 +24,8 @@ from app.config import settings
 
 # Hugging Face API endpoint for Whisper model
 # Using whisper-small as it's more stable than whisper-base
-HF_API_URL = "https://api-inference.huggingface.co/models/openai/whisper-small"
+HF_API_URL = "https://router.huggingface.co/hf-inference/models/openai/whisper-small"
+
 
 # Maximum number of retry attempts if API fails
 # API can fail due to: model loading, rate limits, network issues
