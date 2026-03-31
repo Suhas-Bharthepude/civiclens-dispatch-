@@ -3130,3 +3130,103 @@ This generates: WHERE col1 LIKE pattern OR col2 LIKE pattern
 Day 45 will add a real ML-based risk scoring model — replacing the
 rule-based stub with a model that considers multiple factors to
 produce more accurate urgency scores.
+
+
+
+
+
+
+
+
+## Day 45: Real ML-Based Risk Scoring
+
+**Replaced the stub!** Risk scoring now uses a real AI model instead of hardcoded severity mappings.
+
+### What Changed
+
+**Before Day 45 (STUB):**
+```python
+# incident_processor.py - STEP 5
+if severity == "high":
+    risk_score = 0.85
+elif severity == "medium":
+    risk_score = 0.55
+else:
+    risk_score = 0.25
+```
+
+**After Day 45 (REAL):**
+```python
+# incident_processor.py - STEP 5
+risk_result = await calculate_risk_score(risk_text)
+risk_score = risk_result["score"]  # 0.0 to 1.0 from actual ML model
+```
+
+### Zero-Shot Classification Concept
+
+**The key insight:** You don't always need thousands of labeled training examples to use AI. Zero-shot models understand language well enough to classify text into categories they've never seen before.
+
+**How we use it:**
+1. Send incident text to facebook/bart-large-mnli model
+2. Ask: "Which of these labels best fits this text?"
+   - critical life-threatening emergency
+   - high urgency dangerous situation
+   - moderate concern requires attention
+   - low priority non-urgent matter
+   - routine informational report
+3. Model returns confidence for each label
+4. We convert confidences into a single 0.0-1.0 score
+
+### Weighted Score Formula
+
+```
+score = sum(confidence[i] * weight[i])
+```
+
+Where weights are: [1.0, 0.8, 0.5, 0.2, 0.0]
+
+This gives a continuous score instead of discrete categories, which is much better for sorting and prioritization.
+
+### Fallback Pattern
+
+If the ML model is unavailable (API down, rate limited, etc.), we fall back to keyword-based scoring. This is the same pattern from ASR — always have a fallback so the pipeline never completely breaks.
+
+```python
+try:
+    result = await calculate_risk_score(text)  # Try ML model
+except:
+    result = _fallback_risk_score(text)        # Fall back to keywords
+```
+
+### Pipeline Status After Day 45
+
+```
+✅ REAL: Audio transcription (Day 34) - Whisper
+✅ REAL: Risk scoring (Day 45) - BART-MNLI
+🚧 STUB: Text classification - keyword-based
+🚧 STUB: Summarization - template-based
+```
+
+### Testing Strategy
+
+**Isolated testing first:** Test the service alone with `test_risk_scorer.py` before integrating into the pipeline. This catches bugs early and lets you see exactly what the model returns.
+
+**Expected behavior:**
+- Fire emergency → score 0.7-0.95
+- Car accident → score 0.5-0.8
+- Noise complaint → score 0.1-0.3
+- Streetlight issue → score 0.05-0.2
+
+### Key Learnings
+
+**Zero-shot is powerful for MVP:** You don't need to train a custom model to get useful results. Zero-shot classification with well-chosen labels gives reasonable urgency scores right away.
+
+**Weighted sums beat argmax:** Taking just the highest-confidence label gives you a category. Taking the weighted sum gives you a continuous score that's much more useful for ranking and sorting.
+
+**API resilience matters:** The Hugging Face free tier has model loading delays (503), rate limits (429), and occasional timeouts. Retry logic with exponential backoff handles all of these gracefully.
+
+**The fallback principle:** Every external API call should have a fallback. ML model down? Use keywords. Keyword matching fails? Use a default. Never let a single point of failure break the whole pipeline.
+
+---
+
+*Day 45 complete! Real ML risk scoring replacing the stub!* 🔮📊

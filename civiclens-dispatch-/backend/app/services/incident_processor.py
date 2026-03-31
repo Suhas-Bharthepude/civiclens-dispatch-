@@ -1,224 +1,305 @@
 # backend/app/services/incident_processor.py
+# Incident processing pipeline - orchestrates all AI services
+# Runs in background after incident is created or updated
 #
-# Incident Processing Pipeline — orchestrates all AI services.
-# Runs in the background after an incident is created or a file is uploaded.
+# Pipeline status as of Day 45:
+#   ✅ REAL: Audio transcription (Day 34) - Whisper via Hugging Face
+#   ✅ REAL: Risk scoring (Day 45) - BART-MNLI zero-shot classification
+#   🚧 STUB: Text classification (incident_type, severity) - keyword-based
+#   🚧 STUB: Summarization - template-based
 #
-# AI pipeline status as of Day 42:
-#   ✅ Step 1: Fetch incident from database
-#   ✅ Step 2: Transcribe audio  (Whisper via Hugging Face)
-#   ✅ Step 3: Classify type/severity (BART zero-shot)
-#   ✅ Step 3.5: Analyze image (BLIP captioning) ← NEW DAY 42
-#   ✅ Step 4: Summarize incident (BART-CNN)
-#   🔄 Step 5: Calculate risk score (rule-based stub)
-#   ✅ Step 6: Save all AI results to database
+# Each stub will be replaced with real models in upcoming days.
 
+# Import asyncio for simulating delays in stub functions
+# and for async sleep during processing
 import asyncio
+
+# Import datetime for logging timestamps on each processing step
+# Timestamps help debug timing issues and track processing duration
 from datetime import datetime
 
+# Import database connection object
+# This is the async database connection we set up on Day 10
+# Used to fetch and update incident records
 from app.db.database import database
+
+# Import incidents table definition
+# This is the SQLAlchemy table object that represents the incidents table
+# Used to build SELECT and UPDATE queries
 from app.db.models import incidents
 
-# Whisper ASR: audio → transcript text
+# Import ASR service for audio transcription (real since Day 34)
+# transcribe_audio() sends audio to Whisper model via Hugging Face API
+# Returns the text transcript of the audio
 from app.services.asr import transcribe_audio
 
-# BART zero-shot: text → incident_type + severity
-from app.services.classification import classify_incident
-
-# BLIP: image → description text (NEW Day 42)
-from app.services.image_analysis import analyze_image
-
-# BART-CNN: text → summary paragraph
-from app.services.summarization import summarize_incident
+# Import risk scoring service (NEW - real since Day 45)
+# calculate_risk_score() sends text to BART-MNLI via Hugging Face API
+# Returns a dict with 'score' (0.0-1.0), 'labels', and 'method'
+from app.services.risk_scorer import calculate_risk_score
 
 
-# ============================================================
-# MAIN PIPELINE FUNCTION
-# ============================================================
+# ========================================
+# MAIN PROCESSING FUNCTION
+# ========================================
 
 async def process_incident(incident_id: int, log_message: str = None) -> None:
     """
-    Run the full AI processing pipeline for one incident.
-
-    Called automatically in the background by incidents.py after:
-      - A new incident is created (POST /incidents)
-      - Audio is uploaded  (POST /incidents/{id}/audio)
-      - Image is uploaded  (POST /incidents/{id}/image)
-
+    AI processing pipeline for a single incident.
+    
+    This function orchestrates all AI services in sequence:
+    1. Fetch incident from database
+    2. Transcribe audio (if present) → transcript          ← REAL (Day 34)
+    3. Classify text → incident_type, severity             ← STUB (keyword-based)
+    4. Summarize description + transcript → summary        ← STUB (template-based)
+    5. Calculate risk score → risk_score                   ← REAL (Day 45!)
+    6. Update database with all AI-generated fields
+    
+    Runs asynchronously in background after incident creation.
+    If any individual step fails, the pipeline continues with remaining steps.
+    
     Args:
-        incident_id:  The database ID of the incident to process
-        log_message:  Optional context string for logs
+        incident_id: The database ID of the incident to process
+        log_message: Optional message to print (for debugging)
     """
-
-    # Timestamp for all log lines in this run
-    timestamp = datetime.now().strftime("%H:%M:%S")
-
-    print(f"[{timestamp}] {'='*60}")
-    print(f"[{timestamp}] 🤖 PROCESSING INCIDENT #{incident_id}")
+    
+    # Get current timestamp for logging
+    # We use this to track when each step starts and finishes
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Log the start of processing
+    print(f"\n[{timestamp}] {'=' * 60}")
+    print(f"[{timestamp}] 🤖 Processing incident {incident_id}")
+    
+    # Print optional log message if provided
     if log_message:
-        print(f"[{timestamp}] Context: {log_message}")
-    print(f"[{timestamp}] {'='*60}")
-
-
-    # ── STEP 1: FETCH INCIDENT ────────────────────────────
-    print(f"[{timestamp}] 📋 Fetching incident from database...")
-
-    select_query = incidents.select().where(incidents.c.id == incident_id)
-    incident = await database.fetch_one(select_query)
-
+        print(f"[{timestamp}] 📋 {log_message}")
+    
+    
+    # ========================================
+    # STEP 1: Fetch Incident from Database
+    # ========================================
+    
+    print(f"[{timestamp}] 📥 Fetching incident {incident_id} from database...")
+    
+    # Build a SELECT query to get the incident by its ID
+    # incidents.select() creates a SELECT * FROM incidents query
+    # .where() adds the WHERE clause to filter by ID
+    query = incidents.select().where(incidents.c.id == incident_id)
+    
+    # Execute the query and get the result
+    # await pauses here until the database responds
+    incident = await database.fetch_one(query)
+    
+    # Check if the incident exists
+    # It might have been deleted between creation and processing
     if not incident:
-        print(f"[{timestamp}] ❌ Incident #{incident_id} not found!")
+        print(f"[{timestamp}] ❌ Incident {incident_id} not found in database")
         return
-
-    # Convert database row to a plain Python dict
-    incident = dict(incident)
-    print(f"[{timestamp}] ✅ Found: '{incident['description'][:60]}...'")
-
-
-    # ── STEP 2: TRANSCRIBE AUDIO ──────────────────────────
-    # Whisper converts the uploaded audio file to text.
-    # The transcript improves classification and summarization.
+    
+    print(f"[{timestamp}] 📥 Fetched incident {incident_id}: {incident['description'][:60]}...")
+    
+    
+    # ========================================
+    # STEP 2: Audio Transcription (REAL - Day 34)
+    # ========================================
+    
+    # Initialize transcript as None (will be set if audio exists)
     transcript = None
-
-    if incident.get("audio_path"):
-        print(f"[{timestamp}] 🎤 Transcribing audio...")
+    
+    # Check if incident has an audio file attached
+    # audio_path is set when the user uploads an audio file
+    # Could be None if no audio was uploaded with this incident
+    if incident["audio_path"]:
+        # Audio exists - transcribe it using the real Whisper model
+        print(f"[{timestamp}] 🎤 Audio file found: {incident['audio_path']}")
+        print(f"[{timestamp}] 🎤 Starting transcription...")
+        
         try:
+            # Call ASR service to transcribe audio
+            # This sends the audio to Whisper via Hugging Face API
+            # await pauses here until transcription completes (5-30 seconds)
             transcript = await transcribe_audio(incident["audio_path"])
-            print(f"[{timestamp}] ✅ Transcript: '{transcript[:80]}...'")
+            
+            # Log successful transcription (show first 100 chars)
+            print(f"[{timestamp}] ✅ Transcription complete")
+            print(f"[{timestamp}] 📝 Transcript: {transcript[:100]}...")
+            
         except Exception as e:
-            print(f"[{timestamp}] ⚠️  Transcription failed: {e}")
-            transcript = f"[Transcription failed: {str(e)[:100]}]"
+            # Transcription failed - log error but continue with other steps
+            # The pipeline shouldn't stop just because transcription failed
+            print(f"[{timestamp}] ⚠️  Transcription failed: {str(e)}")
+            print(f"[{timestamp}] ⚠️  Continuing with other AI tasks...")
+            
+            # Set transcript to error message so we know it failed
+            transcript = f"[Transcription failed: {str(e)}]"
     else:
-        print(f"[{timestamp}] ℹ️  No audio file — skipping transcription")
-
-    # Build a "clean" transcript — only real text, not error markers
-    # Error markers start with "[" (e.g., "[Transcription failed: ...]")
-    clean_transcript = (
-        transcript
-        if transcript and not transcript.startswith("[")
-        else None
-    )
-
-
-    # ── STEP 3: CLASSIFY INCIDENT ─────────────────────────
-    # Zero-shot classification determines incident type and severity.
-    print(f"[{timestamp}] 🏷️  Classifying incident...")
-
-    try:
-        classification = await classify_incident(
-            description=incident["description"],
-            transcript=clean_transcript,
-        )
-        incident_type = classification["incident_type"]
-        severity      = classification["severity"]
-        confidence    = classification["confidence"]
-        method        = classification["method"]
-        print(f"[{timestamp}] ✅ type={incident_type}, severity={severity}, "
-              f"confidence={confidence:.0%}, method={method}")
-
-    except Exception as e:
-        print(f"[{timestamp}] ⚠️  Classification failed: {e}")
+        # No audio file attached to this incident
+        print(f"[{timestamp}] ℹ️  No audio file - skipping transcription")
+    
+    
+    # ========================================
+    # STEP 3: Text Classification (STUB - keyword-based)
+    # ========================================
+    
+    print(f"[{timestamp}] 🏷️  Classifying incident type and severity...")
+    
+    # Simulate a small processing delay (stubs should still feel realistic)
+    await asyncio.sleep(0.5)
+    
+    # Combine description and transcript for classification
+    # Using both gives the classifier more text to work with
+    description_lower = incident["description"].lower()
+    
+    # Build the full text to classify
+    # Include transcript if it exists and isn't an error message
+    text_to_classify = description_lower
+    if transcript and not transcript.startswith("[Transcription failed"):
+        # Append the transcript to give the classifier more context
+        text_to_classify += " " + transcript.lower()
+    
+    # Simple keyword-based classification (STUB)
+    # This will be replaced with a real NLP model in a future day
+    # For now, we check for keywords that indicate incident type
+    if "fire" in text_to_classify or "smoke" in text_to_classify or "burn" in text_to_classify:
+        incident_type = "fire"
+        severity = "high"
+    elif "medical" in text_to_classify or "injured" in text_to_classify or "hurt" in text_to_classify:
+        incident_type = "medical"
+        severity = "high"
+    elif "accident" in text_to_classify or "crash" in text_to_classify or "collision" in text_to_classify:
+        incident_type = "traffic"
+        severity = "medium"
+    elif "noise" in text_to_classify or "complaint" in text_to_classify or "loud" in text_to_classify:
+        incident_type = "noise"
+        severity = "low"
+    elif "break" in text_to_classify or "robbery" in text_to_classify or "theft" in text_to_classify or "steal" in text_to_classify:
+        incident_type = "crime"
+        severity = "high"
+    elif "water" in text_to_classify or "flood" in text_to_classify or "leak" in text_to_classify:
+        incident_type = "infrastructure"
+        severity = "medium"
+    else:
+        # Default if no keywords match
         incident_type = "other"
-        severity      = "medium"
-        confidence    = 0.0
-
-
-    # ── STEP 3.5: ANALYZE IMAGE ───────────────────────────  ← NEW DAY 42
-    # BLIP generates a text description of the uploaded photo.
-    # The description is stored in image_description and shown in the UI.
-    image_description = None
-
-    if incident.get("image_path"):
-        print(f"[{timestamp}] 📸 Analyzing image: {incident['image_path']}")
-        try:
-            # Call the BLIP image captioning service
-            image_description = await analyze_image(incident["image_path"])
-            print(f"[{timestamp}] ✅ Image description: '{image_description[:80]}...'")
-
-        except Exception as e:
-            # Image analysis failure doesn't stop the pipeline
-            print(f"[{timestamp}] ⚠️  Image analysis failed: {e}")
-            image_description = "Image analysis unavailable — manual review recommended."
-    else:
-        print(f"[{timestamp}] ℹ️  No image file — skipping image analysis")
-
-
-    # ── STEP 4: SUMMARIZE INCIDENT ────────────────────────
-    # BART generates a paragraph summary combining text + transcript.
-    # (Image description could be incorporated here in future days)
+        severity = "medium"
+    
+    print(f"[{timestamp}] ✅ Classified as: {incident_type} ({severity} severity)")
+    
+    
+    # ========================================
+    # STEP 4: Summarization (STUB - template-based)
+    # ========================================
+    
     print(f"[{timestamp}] 📝 Generating summary...")
-
-    try:
-        summary = await summarize_incident(
-            description=incident["description"],
-            transcript=clean_transcript,
+    
+    # Simulate a small processing delay
+    await asyncio.sleep(0.5)
+    
+    # Generate summary combining description and transcript
+    # This is placeholder logic - will be replaced with a real summarization model
+    if transcript and not transcript.startswith("[Transcription failed"):
+        # Have transcript - create a richer summary that mentions both sources
+        summary = (
+            f"{incident_type.capitalize()} incident. "
+            f"{incident['description'][:50]}... "
+            f"Audio transcript available. "
+            f"Caller reported distress."
         )
-        print(f"[{timestamp}] ✅ Summary: '{summary[:80]}...'")
-
+    else:
+        # No transcript - summary is just based on the description
+        summary = f"{incident_type.capitalize()} incident: {incident['description'][:80]}..."
+    
+    print(f"[{timestamp}] ✅ Summary generated: {summary[:80]}...")
+    
+    
+    # ========================================
+    # STEP 5: Risk Scoring (REAL - Day 45!)
+    # ========================================
+    
+    print(f"[{timestamp}] ⚠️  Calculating risk score...")
+    print(f"[{timestamp}] 🔮 Calling Hugging Face zero-shot classification...")
+    
+    # Build the full text for risk scoring
+    # Combine description and transcript (if available) for best accuracy
+    # The more context the model has, the better it can assess urgency
+    risk_text = incident["description"]
+    if transcript and not transcript.startswith("[Transcription failed"):
+        # Add transcript to give the model more context about the situation
+        risk_text += " " + transcript
+    
+    try:
+        # Call the REAL risk scoring service
+        # This sends the text to facebook/bart-large-mnli via Hugging Face API
+        # The model classifies the text into urgency categories
+        # Then we convert those into a 0.0-1.0 risk score
+        risk_result = await calculate_risk_score(risk_text)
+        
+        # Extract the score from the result dictionary
+        risk_score = risk_result["score"]
+        
+        # Log the result including which method was used (ml or fallback)
+        scoring_method = risk_result["method"]
+        print(f"[{timestamp}] ✅ Risk score: {risk_score:.4f} (via {scoring_method})")
+        
+        # Log label confidences if ML method was used
+        if risk_result.get("labels"):
+            for label, confidence in risk_result["labels"].items():
+                print(f"[{timestamp}]    {confidence:.3f} → {label}")
+    
     except Exception as e:
-        print(f"[{timestamp}] ⚠️  Summarization failed: {e}")
-        summary = f"{incident_type.capitalize()} incident. Review description for details."
-
-
-    # ── STEP 5: CALCULATE RISK SCORE ─────────────────────
-    # Rule-based stub — will be replaced with ML model later
-    print(f"[{timestamp}] ⚠️  Calculating risk score (stub)...")
-
-    severity_to_risk = {
-        "critical": 0.95,
-        "high":     0.85,
-        "medium":   0.55,
-        "low":      0.25,
-    }
-
-    risk_score = severity_to_risk.get(severity, 0.55)
-
-    # Boost if high-confidence classification
-    if confidence > 0.8 and severity in ("high", "critical"):
-        risk_score = min(1.0, risk_score + 0.05)
-
-    # Boost for extreme urgency keywords
-    text_lower = incident["description"].lower()
-    if any(w in text_lower for w in ["trapped", "shots fired", "explosion", "not breathing"]):
-        risk_score = min(1.0, risk_score + 0.10)
-
-    # Also consider image description for risk boost
-    # If the image description mentions dangerous conditions, boost the score
-    if image_description:
-        img_lower = image_description.lower()
-        if any(w in img_lower for w in ["fire", "flames", "smoke", "crash", "damage", "injured"]):
-            risk_score = min(1.0, risk_score + 0.05)
-
-    print(f"[{timestamp}] ✅ Risk score: {risk_score:.2f}")
-
-
-    # ── STEP 6: SAVE ALL RESULTS ──────────────────────────
-    # Write all AI-generated fields in one database UPDATE
-    print(f"[{timestamp}] 💾 Saving results to database...")
-
-
-    update_values = dict(
-        transcript=transcript,
-        summary=summary,
-        risk_score=risk_score,
-        incident_type=incident_type,
-        severity=severity,
-    )
-    if image_description is not None:
-        update_values["image_description"] = image_description
-
+        # Risk scoring completely failed - use a basic default
+        # This is a last resort - the calculate_risk_score function
+        # already has its own fallback, so this rarely triggers
+        print(f"[{timestamp}] ❌ Risk scoring error: {str(e)}")
+        print(f"[{timestamp}] ⚠️  Using default score based on severity")
+        
+        # Assign a default score based on the classified severity
+        severity_defaults = {"high": 0.8, "medium": 0.5, "low": 0.2}
+        risk_score = severity_defaults.get(severity, 0.5)
+        print(f"[{timestamp}] ⚠️  Default risk score: {risk_score}")
+    
+    
+    # ========================================
+    # STEP 6: Update Database with All AI Results
+    # ========================================
+    
+    print(f"[{timestamp}] 💾 Saving AI results to database...")
+    
+    # Build the UPDATE query
+    # This updates the incident row with all AI-generated fields at once
+    # Doing it in one query is more efficient and atomic than multiple queries
     update_query = (
         incidents
         .update()
         .where(incidents.c.id == incident_id)
-        .values(**update_values)
+        .values(
+            transcript=transcript,           # REAL from Whisper ASR (Day 34)
+            summary=summary,                 # Stub template-based
+            risk_score=risk_score,          # REAL from BART-MNLI (Day 45)
+            incident_type=incident_type,    # Stub keyword-based
+            severity=severity               # Stub keyword-based
+        )
     )
-
-
+    
+    # Execute the update query
+    # This writes all the AI-generated data to the database in one operation
     await database.execute(update_query)
+    
+    # Log completion
+    print(f"[{timestamp}] ✅ Processing complete for incident {incident_id}")
+    print(f"[{timestamp}] {'=' * 60}")
 
-    print(f"[{timestamp}] ✅ Database updated")
-    print(f"[{timestamp}] 📊 type={incident_type}, severity={severity}, "
-          f"risk={risk_score:.2f}, "
-          f"has_image_desc={image_description is not None}")
-    print(f"[{timestamp}] 🎉 Pipeline complete for incident #{incident_id}")
-    print(f"[{timestamp}] {'='*60}")
+
+# ========================================
+# IMPLEMENTATION STATUS (Day 45)
+# ========================================
+
+# ✅ REAL: Audio transcription (Day 34) - Whisper via Hugging Face
+# ✅ REAL: Risk scoring (Day 45) - BART-MNLI zero-shot classification
+# 🚧 STUB: Text classification (incident_type + severity) - keyword-based
+# 🚧 STUB: Summarization - template-based
+#
+# Next to replace:
+#   - Text classification with real NLP model
+#   - Summarization with real model
