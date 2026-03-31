@@ -2980,3 +2980,72 @@ but uses AI-generated content as input.
 Day 43 will focus on testing the complete end-to-end pipeline
 with all four AI services running, and polishing the detail panel
 to display image descriptions prominently with the photo filename.
+
+
+
+
+
+
+## Day 43: Pipeline Audit, Health Check & Cleanup
+
+**Consolidation day.** No new AI models — verify, fix, and document everything.
+
+### What I built
+
+- `GET /health/pipeline` endpoint — reports status of all 4 AI services + DB
+- `backend/scripts/test_pipeline.py` — single script to test entire pipeline
+- `backend/scripts/migrate_day43.py` — backfills NULL status and created_at fields
+- Fixed `incidents.py` to set `created_at` on new incidents
+- Added `image_description` and `status` to `IncidentRead` schema
+- Health route now lives in `app/routes/health.py`
+
+### Key concepts learned
+
+**Consolidation sprints**
+After building many features quickly, take one day to verify, test, and clean up.
+The best time to do this is before adding the next major feature.
+Skipping consolidation causes fragile codebases where every new feature breaks old ones.
+
+**Three-way schema consistency**
+Three things must always agree:
+1. `models.py` — what SQLAlchemy thinks the table looks like
+2. `schemas/incident.py` — what FastAPI includes in API responses
+3. The actual database file — what's really in SQLite
+
+If any one of these has a column the others don't, you get bugs.
+We fixed this by auditing all three and making sure image_description,
+status, and created_at appear in all of them.
+
+**Health check design principles**
+A health check should:
+- Respond in < 200ms (no AI API calls)
+- Report each service's status (ok / mock / error)
+- Check DB connectivity with a simple COUNT query
+- Be callable without authentication
+
+Don't make health checks call real AI models — 10-second health checks
+defeat the purpose.
+
+**Data migrations**
+When you add a column to a running database, existing rows have NULL for that column.
+A migration script fixes existing data to match the new requirements.
+Always make migrations idempotent (safe to run multiple times) — only update
+rows where the column IS NULL.
+
+**Pipeline test scripts**
+A comprehensive test script that exercises all services together is more valuable
+than individual service tests. When a system has interdependencies, end-to-end
+tests catch bugs that unit tests miss.
+
+### Complete AI pipeline status after Day 43:
+1. ✅ Transcription: Whisper (mock, real API verified working)
+2. ✅ Classification: BART zero-shot (real, 8/9 accuracy)
+3. ✅ Image analysis: BLIP (mock, real API returns 404 — investigate later)
+4. ✅ Summarization: BART-CNN (real, tested end-to-end)
+5. 🔄 Risk scoring: rule-based stub (Day 45)
+
+### What's next
+
+Day 44 will begin the **deployment preparation phase** — setting up
+Docker containerization so the app can run consistently on any machine
+and be deployed to the cloud.

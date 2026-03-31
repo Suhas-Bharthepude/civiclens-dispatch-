@@ -126,6 +126,28 @@ async def health_check():
         "version": settings.VERSION
     }
 
+@app.get("/health/pipeline")
+async def pipeline_health():
+    from app.services.asr import USE_MOCK_TRANSCRIPTION
+    from app.services.summarization import USE_MOCK_SUMMARIZATION
+    from app.services.classification import USE_MOCK_CLASSIFICATION
+    from app.services.image_analysis import USE_MOCK_IMAGE_ANALYSIS
+    from datetime import datetime
+    from sqlalchemy import func, select as sa_select
+    services = {
+        "asr":            {"status": "mock" if USE_MOCK_TRANSCRIPTION else "ok",  "model": "openai/whisper-small"},
+        "classification": {"status": "mock" if USE_MOCK_CLASSIFICATION else "ok", "model": "facebook/bart-large-mnli"},
+        "summarization":  {"status": "mock" if USE_MOCK_SUMMARIZATION else "ok",  "model": "facebook/bart-large-cnn"},
+        "image_analysis": {"status": "mock" if USE_MOCK_IMAGE_ANALYSIS else "ok", "model": "Salesforce/blip-image-captioning-base"},
+    }
+    try:
+        count = await database.fetch_val(sa_select(func.count()).select_from(incidents))
+        db = {"status": "ok", "incident_count": count}
+    except Exception as e:
+        db = {"status": "error", "incident_count": None}
+    statuses = [s["status"] for s in services.values()]
+    overall = "error" if "error" in statuses else "degraded" if "mock" in statuses else "healthy"
+    return {"status": overall, "checked_at": datetime.utcnow().isoformat(), "services": services, "database": db}
 
 @app.get("/echo/{name}")
 async def echo_name(name: str):

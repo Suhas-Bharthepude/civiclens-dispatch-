@@ -39,6 +39,9 @@ from app.schemas.incident import IncidentCreate, IncidentUpdate, IncidentRead
 # The background AI processing pipeline that runs after each new incident
 from app.services.incident_processor import process_incident
 
+from datetime import datetime
+
+
 # File utility functions for saving uploads to disk
 from app.utils.file_utils import save_upload_file
 
@@ -81,6 +84,8 @@ async def create_incident(
         severity=None,          # Will be filled by AI pipeline
         audio_path=None,        # Will be set when audio is uploaded
         image_path=None,        # Will be set when image is uploaded
+        created_at=datetime.utcnow(),
+        status="pending",
     )
 
     # Execute the INSERT and get the new row's ID
