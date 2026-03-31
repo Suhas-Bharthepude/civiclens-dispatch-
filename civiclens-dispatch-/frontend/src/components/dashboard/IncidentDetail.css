@@ -1,485 +1,530 @@
-/* frontend/src/components/IncidentDetail.css
-   Styles for the incident detail panel
-   Creates a sliding side panel with overlay
+/* frontend/src/components/dashboard/IncidentDetail.css
+   Styles for the right-side detail panel in the dispatcher dashboard.
+   This file is imported directly by IncidentDetail.jsx.
+
+   Class naming convention used here:
+     .detail-*           → top-level panel elements
+     .transcript-panel*  → the new Day 35 transcript card
+     .ai-badge           → the "🤖 AI" pill label
+     .severity-badge--*  → color variants for severity levels
+     .risk-score-value--*→ color variants for risk score levels
 */
-/* ========================================
-   OVERLAY (Dark Background)
-   ======================================== */
-
-.detail-overlay {
-  /* Fixed position - stays in place when scrolling */
-  position: fixed;
-  
-  /* Cover entire viewport */
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  
-  /* Semi-transparent black background */
-  background-color: rgba(0, 0, 0, 0.5);
-  
-  /* Stack on top of everything else */
-  z-index: 1000;
-  
-  /* Fade in animation */
-  animation: fadeIn 0.3s ease;
-  
-  /* IMPORTANT: Allow clicks to pass through to table */
-  /* This lets you click other rows while panel is open */
-  pointer-events: none;
-}
 
 
-
-
-/* ========================================
-   DETAIL PANEL (Slides in from right)
-   ======================================== */
-
-
-
-   
+/* ============================================================
+   PANEL SHELL
+   The outer container that holds the entire right panel.
+   It sits to the right of the incidents table in the dashboard.
+   ============================================================ */
 .detail-panel {
-  /* Fixed position on right side */
-  position: fixed;
-  top: 0;
-  right: 0;
-  
-  /* Full height */
-  height: 100vh;
-  
-  /* Width of panel */
-  width: 500px;
-  
-  /* White background */
-  background-color: white;
-  
-  /* Shadow for depth */
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
-  
-  /* Flexbox layout for header/content/footer */
+  /* Fill the full height of whatever parent container holds it */
+  height: 100%;
+
+  /* Use flexbox so header, content, and footer stack vertically */
   display: flex;
   flex-direction: column;
-  
-  /* Slide in animation */
-  animation: slideIn 0.3s ease;
-  
-  /* Stack above overlay */
-  z-index: 1001;
-  
-  /* IMPORTANT: Re-enable clicks for panel */
-  pointer-events: auto;
+
+  /* Light background — slightly different from the page background
+     so the panel visually separates from the table */
+  background-color: #ffffff;
+
+  /* Left border creates a visual divider between table and panel */
+  border-left: 1px solid #e2e8f0;
+
+  /* Minimum width so the panel doesn't collapse too small */
+  min-width: 340px;
+
+  /* Maximum width so it doesn't take over the whole screen */
+  max-width: 480px;
 }
 
 
-
-/* Slide in animation from right */
-@keyframes slideIn {
-  from {
-    /* Start off-screen to the right */
-    transform: translateX(100%);
-  }
-  to {
-    /* End in normal position */
-    transform: translateX(0);
-  }
-}
-
-/* Responsive - full width on small screens */
-@media (max-width: 768px) {
-  .detail-panel {
-    /* Take full width on mobile */
-    width: 100%;
-  }
-}
-
-
-/* ========================================
-   PANEL HEADER
-   ======================================== */
-
-.detail-header {
-  /* Flexbox for title and close button */
+/* ============================================================
+   EMPTY STATE
+   Shown when no incident has been selected yet.
+   ============================================================ */
+.detail-empty {
+  /* Center content both horizontally and vertically */
   display: flex;
-  
-  /* Space between title and button */
-  justify-content: space-between;
-  
-  /* Vertically center items */
+  flex-direction: column;
   align-items: center;
-  
-  /* Space inside */
-  padding: 20px 24px;
-  
-  /* Border below header */
-  border-bottom: 1px solid #e0e0e0;
-  
-  /* Prevent shrinking when content grows */
+  justify-content: center;
+
+  /* Take up all available space so centering works */
+  height: 100%;
+
+  /* Comfortable padding around the message */
+  padding: 40px 24px;
+}
+
+.empty-icon {
+  /* Large emoji for visual impact */
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-message {
+  /* Muted color — this is secondary/hint text, not primary content */
+  color: #94a3b8;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+/* ============================================================
+   PANEL HEADER
+   Fixed at the top. Shows "Incident #12" and the close button.
+   ============================================================ */
+.detail-header {
+  /* Row layout: title on left, close button on right */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  /* Generous padding for breathing room */
+  padding: 20px 24px 16px;
+
+  /* Bottom border separates header from scrollable content */
+  border-bottom: 1px solid #e2e8f0;
+
+  /* Don't shrink even when content area is very tall */
   flex-shrink: 0;
+
+  /* Slightly darker background to distinguish it from content */
+  background-color: #f8fafc;
 }
 
-.detail-header h2 {
-  /* Remove default margin */
-  margin: 0;
-  
-  /* Blue color */
-  color: #2c3e50;
-  
-  /* Font size */
-  font-size: 1.5rem;
+.detail-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0; /* Remove default browser margin on h2 */
 }
 
-.close-button {
-  /* Size of close button */
-  width: 36px;
-  height: 36px;
-  
-  /* No border */
+.detail-close-btn {
+  /* No default button styling — we style it from scratch */
+  background: none;
   border: none;
-  
-  /* Light gray background */
-  background-color: #f0f0f0;
-  
-  /* Circular button */
-  border-radius: 50%;
-  
-  /* Font size for X */
-  font-size: 20px;
-  
-  /* Gray text */
-  color: #666;
-  
-  /* Pointer cursor */
   cursor: pointer;
-  
-  /* Smooth transition */
-  transition: all 0.2s ease;
-  
-  /* Center the X */
+
+  /* Slightly muted color, gets darker on hover */
+  color: #64748b;
+  font-size: 18px;
+
+  /* Circular hover area */
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+
+  /* Center the ✕ inside the circle */
   display: flex;
   align-items: center;
   justify-content: center;
+
+  /* Smooth background transition on hover */
+  transition: background-color 0.15s ease;
 }
 
-.close-button:hover {
-  /* Darker background on hover */
-  background-color: #e74c3c;
-  
-  /* White text on hover */
-  color: white;
+.detail-close-btn:hover {
+  /* Light gray circle appears on hover — standard close button pattern */
+  background-color: #f1f5f9;
+  color: #1e293b;
 }
 
 
-/* ========================================
-   PANEL CONTENT (Scrollable)
-   ======================================== */
-
+/* ============================================================
+   SCROLLABLE CONTENT AREA
+   This middle section scrolls independently.
+   Header and footer stay fixed while this scrolls.
+   ============================================================ */
 .detail-content {
-  /* Take remaining vertical space */
+  /* flex: 1 means "take up all remaining space between header and footer" */
   flex: 1;
-  
-  /* Allow scrolling if content is tall */
+
+  /* Enable vertical scrolling when content overflows */
   overflow-y: auto;
-  
-  /* Space inside */
-  padding: 24px;
+
+  /* Consistent padding inside the scrollable area */
+  padding: 20px 24px;
 }
 
 
-/* ========================================
-   SEVERITY BADGE (Large)
-   ======================================== */
-
-.detail-severity {
-  /* Center the badge */
-  text-align: center;
-  
-  /* Space below */
-  margin-bottom: 24px;
-}
-
-.severity-badge-large {
-  /* Inline-block for sizing */
-  display: inline-block;
-  
-  /* Space inside */
-  padding: 10px 24px;
-  
-  /* Rounded corners */
-  border-radius: 8px;
-  
-  /* White text */
-  color: white;
-  
-  /* Large, bold text */
-  font-size: 1rem;
-  font-weight: 700;
-  
-  /* Uppercase */
-  text-transform: uppercase;
-  
-  /* Letter spacing */
-  letter-spacing: 1px;
-}
-
-
-/* ========================================
-   DETAIL FIELDS
-   ======================================== */
-
-.detail-field {
-  /* Space below each field */
+/* ============================================================
+   SEVERITY + STATUS BADGE ROW
+   The colored badges at the very top of the content area.
+   ============================================================ */
+.detail-severity-row {
+  /* Lay badges out in a row */
+  display: flex;
+  gap: 8px;
   margin-bottom: 20px;
-  
-  /* Border below for separation */
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  flex-wrap: wrap; /* Wrap to next line on very narrow screens */
 }
 
-.detail-field:last-child {
-  /* Remove border from last field */
-  border-bottom: none;
-}
-
-.detail-field label {
-  /* Display as block (takes full width) */
-  display: block;
-  
-  /* Small, uppercase label */
-  font-size: 0.75rem;
+/* Base styles shared by all severity badges */
+.severity-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 9999px; /* Fully rounded pill shape */
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em; /* Slight letter spacing for ALL CAPS text */
   text-transform: uppercase;
-  
-  /* Gray text */
-  color: #999;
-  
-  /* Letter spacing */
-  letter-spacing: 0.5px;
-  
-  /* Space below label */
-  margin-bottom: 6px;
-  
-  /* Bold text */
-  font-weight: 600;
 }
 
-.field-value {
-  /* Remove default margin */
-  margin: 0;
-  
-  /* Font size */
-  font-size: 1rem;
-  
-  /* Dark text */
-  color: #333;
-  
-  /* Line height for readability */
+/* Color variants for each severity level */
+.severity-badge--critical {
+  background-color: #fee2e2; /* Light red background */
+  color: #991b1b;            /* Dark red text */
+}
+
+.severity-badge--high {
+  background-color: #ffedd5; /* Light orange background */
+  color: #9a3412;            /* Dark orange text */
+}
+
+.severity-badge--medium {
+  background-color: #fef9c3; /* Light yellow background */
+  color: #854d0e;            /* Dark yellow/brown text */
+}
+
+.severity-badge--low {
+  background-color: #dcfce7; /* Light green background */
+  color: #166534;            /* Dark green text */
+}
+
+/* Status badge — separate from severity */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.status-badge--pending {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.status-badge--active {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-badge--resolved {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+
+/* ============================================================
+   INDIVIDUAL FIELD ROWS
+   Each label + value pair in the detail panel.
+   ============================================================ */
+.detail-field {
+  /* Stack label above value */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  /* Space between each field */
+  margin-bottom: 16px;
+}
+
+.detail-label {
+  /* Small, muted label text */
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+
+  /* Labels are inline-flex so the AI badge sits on the same line */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px; /* Space between label text and AI badge */
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #1e293b;
+  line-height: 1.5;
+  margin: 0; /* Remove default <p> margin */
+}
+
+/* Description gets slightly more relaxed line height — it's longer text */
+.description-full {
   line-height: 1.6;
 }
 
-/* Special styling for incident type */
-.incident-type-value {
-  /* Blue color */
-  color: #3498db;
-  
-  /* Bold text */
-  font-weight: 600;
-  
-  /* Larger text */
-  font-size: 1.1rem;
-}
-
-/* Full description - allow wrapping */
-.description-full {
-  /* Allow text to wrap */
-  white-space: normal;
-  
-  /* Background for emphasis */
-  background-color: #f8f9fa;
-  
-  /* Space inside */
-  padding: 12px;
-  
-  /* Rounded corners */
-  border-radius: 4px;
-  
-  /* Border */
-  border-left: 3px solid #3498db;
-}
-
-/* Risk score - large and prominent */
-.risk-score-value {
-  /* Very large text */
-  font-size: 2rem;
-  
-  /* Bold */
-  font-weight: 700;
-  
-  /* Blue color */
-  color: #3498db;
-}
-
-/* Transcript text styling */
-.transcript-text {
-  /* Italic for transcript */
-  font-style: italic;
-  
-  /* Light background */
-  background-color: #f0f8ff;
-  
-  /* Space inside */
-  padding: 12px;
-  
-  /* Rounded corners */
-  border-radius: 4px;
-  
-  /* Border */
-  border-left: 3px solid #3498db;
-}
-
-/* Summary text styling */
+/* Summary text from AI — same as description but slightly italic */
 .summary-text {
-  /* Light yellow background */
-  background-color: #fffbf0;
-  
-  /* Space inside */
-  padding: 12px;
-  
-  /* Rounded corners */
-  border-radius: 4px;
-  
-  /* Border */
-  border-left: 3px solid #f39c12;
-}
-
-/* Field notes (smaller helper text) */
-.field-note {
-  /* Small text */
-  font-size: 0.8rem;
-  
-  /* Gray color */
-  color: #999;
-  
-  /* Italic */
   font-style: italic;
-  
-  /* Space above */
-  margin-top: 6px;
+  color: #475569; /* Slightly muted — it's AI-generated, not primary info */
+}
+
+/* File path text — monospace font makes paths easier to read */
+.file-path {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  color: #64748b;
+  word-break: break-all; /* Prevent long filenames from overflowing */
+}
+
+/* Incident type value — larger and bolder for quick scanning */
+.incident-type-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* Risk score value — changes color based on risk level */
+.risk-score-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Color variants for risk score */
+.risk-score-value--high {
+  color: #dc2626; /* Red for high risk (>70%) */
+}
+
+.risk-score-value--medium {
+  color: #d97706; /* Orange for medium risk (40-70%) */
+}
+
+.risk-score-value--low {
+  color: #16a34a; /* Green for low risk (<40%) */
 }
 
 
-/* ========================================
-   SECTION DIVIDERS
-   ======================================== */
+/* ============================================================
+   AI BADGE
+   The small "🤖 AI" pill that appears next to label text.
+   ============================================================ */
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
 
+  /* Small, compact sizing */
+  padding: 2px 7px;
+  border-radius: 9999px; /* Pill shape */
+
+  /* Indigo/purple color scheme — distinct from severity colors */
+  background-color: #ede9fe;
+  color: #5b21b6;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  /* Keep it on one line, don't let it wrap */
+  white-space: nowrap;
+
+  /* Subtle border for definition */
+  border: 1px solid #c4b5fd;
+}
+
+
+/* ============================================================
+   SECTION DIVIDER
+   The gray heading rows between sections (e.g., "🤖 AI Analysis")
+   ============================================================ */
 .section-divider {
-  /* Space above and below */
-  margin: 30px 0 20px 0;
-  
-  /* Border above */
-  border-top: 2px solid #e0e0e0;
-  
-  /* Space above border */
-  padding-top: 20px;
+  /* Extend to edges of the padding — full-width visual separator */
+  margin: 20px -24px 16px;
+  padding: 8px 24px;
+
+  /* Light gray background distinguishes it from field rows */
+  background-color: #f8fafc;
+
+  /* Borders above and below create a band effect */
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.section-divider h3 {
-  /* Dark gray heading */
-  color: #2c3e50;
-  
-  /* Font size */
-  font-size: 1.1rem;
-  
-  /* Uppercase */
+.section-divider__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
   text-transform: uppercase;
-  
-  /* Letter spacing */
-  letter-spacing: 0.5px;
-  
-  /* Remove default margin */
+  letter-spacing: 0.08em;
   margin: 0;
 }
 
 
-/* ========================================
-   PANEL FOOTER (Action Buttons)
-   ======================================== */
+/* ============================================================
+   TRANSCRIPT PANEL  ← THE MAIN DAY 35 FEATURE
+   The styled card that displays the AI-generated transcript.
+   ============================================================ */
+.transcript-panel {
+  /* Card-style box with border and rounded corners */
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
 
-.detail-footer {
-  /* Border above footer */
-  border-top: 1px solid #e0e0e0;
-  
-  /* Space inside */
-  padding: 20px 24px;
-  
-  /* Flexbox for buttons */
+  /* Space below the card before the next section */
+  margin-bottom: 20px;
+
+  /* Clip children to rounded corners */
+  overflow: hidden;
+}
+
+/* Processing state gets a slightly different border color */
+.transcript-panel--processing {
+  border-color: #c4b5fd; /* Purple border when processing (matches AI badge) */
+}
+
+/* HEADER row inside the transcript card */
+.transcript-panel__header {
+  /* Row layout: icon, title, badge all in a line */
   display: flex;
-  
-  /* Space between buttons */
-  gap: 12px;
-  
-  /* Prevent shrinking */
+  align-items: center;
+  gap: 8px;
+
+  /* Slightly blue-tinted background for the header */
+  background-color: #f8fafc;
+  padding: 12px 16px;
+
+  /* Border below header separates it from the text body */
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* When in processing state, give the header a purple tint */
+.transcript-panel--processing .transcript-panel__header {
+  background-color: #faf5ff; /* Very light purple */
+  border-bottom-color: #ede9fe;
+}
+
+.transcript-panel__icon {
+  /* Slightly larger than surrounding text */
+  font-size: 18px;
+
+  /* Don't let it shrink if space is tight */
   flex-shrink: 0;
 }
 
-/* Button styles */
-.btn-primary,
-.btn-secondary {
-  /* Space inside buttons */
-  padding: 10px 20px;
-  
-  /* No border */
-  border: none;
-  
-  /* Rounded corners */
-  border-radius: 4px;
-  
-  /* Font size */
-  font-size: 0.95rem;
-  
-  /* Bold text */
+.transcript-panel__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+
+  /* Takes up remaining horizontal space, pushing badge to the right */
+  flex: 1;
+}
+
+/* BODY — the area where transcript text or processing message lives */
+.transcript-panel__body {
+  padding: 16px;
+
+  /* Limit height and scroll if transcript is very long */
+  /* 200px fits about 8-10 lines — enough to read without dominating */
+  max-height: 200px;
+  overflow-y: auto;
+
+  /* Custom scrollbar styling for Webkit browsers (Chrome, Safari) */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* The blockquote element that wraps transcript text */
+.transcript-text {
+  margin: 0;
+  padding: 0;
+
+  /* Slightly larger than normal text — this is primary content */
+  font-size: 14px;
+  line-height: 1.7;
+  color: #334155;
+
+  /* Italic makes it clear this is a quote/transcription */
+  font-style: italic;
+}
+
+/* "Transcription in progress..." message */
+.transcript-processing-text {
+  font-size: 14px;
   font-weight: 600;
-  
-  /* Pointer cursor */
+  color: #7c3aed; /* Purple to match AI theme */
+  margin: 0 0 8px 0;
+
+  /* Gentle pulse animation — draws attention without being distracting */
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* The hint text below the processing message */
+.transcript-processing-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Pulse animation — fades from full opacity to 60% and back */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+/* FOOTER row at the bottom of the transcript card */
+.transcript-panel__footer {
+  padding: 10px 16px;
+
+  /* Very light background to distinguish from the body */
+  background-color: #fafafa;
+  border-top: 1px solid #f1f5f9;
+}
+
+.transcript-footer-note {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+
+/* ============================================================
+   PANEL FOOTER
+   Fixed at the bottom. Contains action buttons.
+   ============================================================ */
+.detail-footer {
+  /* Space inside the footer */
+  padding: 16px 24px;
+
+  /* Top border separates footer from scrollable content */
+  border-top: 1px solid #e2e8f0;
+
+  /* Row layout for buttons */
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  /* Don't shrink even when content area is very tall */
+  flex-shrink: 0;
+
+  /* Very light background to distinguish footer from content */
+  background-color: #f8fafc;
+}
+
+/* Shared button base styles */
+.btn {
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  
-  /* Smooth transition */
-  transition: all 0.2s ease;
+  border: none;
+  transition: background-color 0.15s ease;
 }
 
-.btn-primary {
-  /* Blue background */
-  background-color: #3498db;
-  
-  /* White text */
-  color: white;
+/* Secondary button — used for Close */
+.btn--secondary {
+  background-color: #f1f5f9;
+  color: #475569;
 }
 
-.btn-primary:hover:not(:disabled) {
-  /* Darker blue on hover */
-  background-color: #2980b9;
-}
-
-.btn-primary:disabled {
-  /* Gray when disabled */
-  background-color: #bdc3c7;
-  
-  /* Not allowed cursor */
-  cursor: not-allowed;
-  
-  /* Slightly transparent */
-  opacity: 0.6;
-}
-
-.btn-secondary {
-  /* Light gray background */
-  background-color: #ecf0f1;
-  
-  /* Dark text */
-  color: #2c3e50;
-}
-
-.btn-secondary:hover {
-  /* Darker gray on hover */
-  background-color: #bdc3c7;
+.btn--secondary:hover {
+  background-color: #e2e8f0;
 }

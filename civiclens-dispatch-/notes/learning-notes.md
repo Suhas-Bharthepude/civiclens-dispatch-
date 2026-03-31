@@ -2384,3 +2384,75 @@ await database.execute(
 ---
 
 *Day 34 complete! Auto-transcription working!* 🎙️➡️📝
+
+
+
+
+
+## Day 35: Display Transcripts in the UI
+
+**Frontend-only day!** No backend changes — just making AI data visible and meaningful.
+
+### What I built
+
+Enhanced `IncidentDetail.jsx` and `IncidentDetail.css` to:
+- Display the AI-generated transcript in a dedicated styled card
+- Handle 3 transcript states: no audio / processing / ready
+- Add "🤖 AI" badge labels next to AI-generated fields
+- Color-code risk scores (red/orange/green)
+- Show only the filename (not full path) for attached files
+
+### Key concepts learned
+
+**Inline sub-components in React**
+You can define small components inside the same file if they're only used there.
+`AIBadge` and `TranscriptPanel` are defined above `IncidentDetail` in the same file.
+They don't need their own files because they have no logic outside this context.
+
+**The 3-state pattern**
+Any async/AI data needs 3 UI states, not just 1:
+  - No data expected → render nothing
+  - Data expected but not ready → show loading/processing state
+  - Data ready → show the data
+Skipping state 2 makes your UI look broken during the delay.
+
+**CSS: overflow-y: auto vs hidden**
+  - `overflow: hidden` cuts off content silently — user can't scroll to see it
+  - `overflow-y: auto` adds a scrollbar only when content overflows
+  Always use `auto` for content that might be longer than its container.
+
+**CSS: flex: 1 on the content area**
+The scrollable middle section uses `flex: 1` which means
+"take up all remaining space after the header and footer have their sizes."
+This is how you create fixed header/footer with scrolling middle — a very common layout.
+
+**CSS animations: @keyframes pulse**
+```css
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+```
+This fades the "Processing..." text in and out every 2 seconds.
+Subtle animation communicates "the system is working" without being distracting.
+
+**Optional chaining (?.) in JavaScript**
+```javascript
+incident.severity?.toLowerCase()
+```
+The `?.` means "if severity is null/undefined, stop here and return undefined
+instead of throwing a TypeError." Use it whenever a value might not exist.
+
+### What the dispatcher sees now
+
+Before Day 35: transcript was plain text or invisible
+After Day 35:
+  - Clear "🤖 AI Analysis" section with badges
+  - Transcript in a scrollable card with a header and disclaimer footer
+  - "🔄 Transcription in progress..." for incidents still being processed
+  - Risk scores color-coded red/orange/green
+
+### What's next
+
+Day 36 will begin polishing the incidents TABLE view — sorting,
+filtering by incident type, and highlighting high-risk rows.
