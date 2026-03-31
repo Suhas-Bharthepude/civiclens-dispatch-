@@ -2761,3 +2761,73 @@ This principle — "degrade gracefully" — is fundamental in production systems
 Day 40 will add real NLP text classification — replacing the keyword
 matching stub with a zero-shot classification model that can correctly
 identify incident types even when keywords don't match exactly.
+
+
+
+
+
+
+
+
+
+
+
+## Day 40: Real AI Text Classification (Zero-Shot)
+
+**Backend AI day.** Replaced keyword-matching stub with real zero-shot
+NLP classification using facebook/bart-large-mnli.
+
+### What I built
+
+- `backend/app/services/classification.py` — new classification service
+- `backend/scripts/test_classification.py` — test script with 9 cases
+  including ones specifically designed to fail keyword matching
+- Updated `incident_processor.py` to call `classify_incident()` in Step 3
+
+### The model: facebook/bart-large-mnli
+
+bart-large-mnli is fine-tuned on Multi-Genre Natural Language Inference (MNLI).
+MNLI trains models to understand whether one sentence "entails" another.
+
+Zero-shot classification hijacks this:
+- "Does 'the building is engulfed' entail 'this is a fire emergency'?" → YES (0.94)
+- "Does 'the building is engulfed' entail 'this is a medical emergency'?" → NO (0.02)
+
+The entailment scores become classification probabilities.
+
+### Zero-shot vs keyword matching
+
+Keyword matching: brittle. "The structure is burning" → OTHER (no keyword "fire")
+Zero-shot AI: understands meaning. "The structure is burning" → FIRE (94% confident)
+
+Zero-shot doesn't require training data — you give it labels at inference time.
+This is extremely powerful: change the INCIDENT_LABELS list and the model
+automatically classifies into the new categories with no retraining.
+
+### Descriptive labels beat single words
+
+Sending "fire emergency" as a label works better than just "fire".
+The model uses the label text to understand what it's looking for.
+More descriptive = better discrimination between similar categories.
+
+### The confidence threshold pattern
+```python
+if confidence >= CONFIDENCE_THRESHOLD:
+    use_ai_result()
+else:
+    use_keyword_fallback()  # graceful degradation
+```
+Zero-shot on short text rarely scores above 0.90 — a 0.35 threshold
+is practical and still filters out genuinely uncertain predictions.
+
+### The full AI pipeline as of Day 40:
+1. ✅ Transcription: Whisper (real)
+2. ✅ Classification: BART zero-shot (real) ← TODAY
+3. ✅ Summarization: BART-CNN (real)
+4. 🔄 Risk scoring: rule-based stub (Day 45+)
+
+### What's next
+
+Day 41 will add a statistics/analytics endpoint to the backend —
+giving dispatchers summary counts of incidents by type, severity,
+and time period. This will power a dashboard stats bar.
