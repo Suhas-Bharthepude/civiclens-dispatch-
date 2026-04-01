@@ -3515,3 +3515,108 @@ Vision: Salesforce/blip-image-captioning  → image caption
 ---
 
 *Day 48 complete! CivicLens is now truly multimodal: audio + text + images!* 🖼️🎤📝
+
+
+
+
+
+
+
+
+## Day 49: Pipeline Optimization — Parallel Processing & Timing
+
+**Nearly halved the pipeline processing time** by running independent AI services simultaneously.
+
+### What Changed
+
+**Before Day 49 (Sequential):**
+```python
+transcript = await transcribe_audio(path)        # Wait 10s
+caption = await analyze_image(path)              # Wait 5s
+classification = await classify_incident(text)    # Wait 8s
+summary = await summarize_text(text)             # Wait 6s
+risk = await calculate_risk_score(text)          # Wait 4s
+# Total: 33 seconds
+```
+
+**After Day 49 (Parallel):**
+```python
+# Phase 1: ASR + Image run at the same time
+transcript, caption = await asyncio.gather(
+    transcribe_audio(path),
+    analyze_image(path)
+)
+# Phase 1 time: 10s (slowest of the two)
+
+# Phase 2: Classification + Summarization + Risk run at the same time
+classification, summary, risk = await asyncio.gather(
+    classify_incident(text),
+    summarize_text(text),
+    calculate_risk_score(text)
+)
+# Phase 2 time: 8s (slowest of the three)
+# Total: ~18 seconds (nearly half!)
+```
+
+### asyncio.gather() Explained
+
+`asyncio.gather()` takes multiple async functions and starts them all at once. It waits until ALL of them finish, then returns all results in order.
+
+The key insight: the total time equals the SLOWEST task, not the sum. If you run a 10-second task and a 5-second task in parallel, total time is 10 seconds, not 15.
+
+### Why Two Phases, Not One?
+
+Phase 2 tasks need the transcript from Phase 1. You can't classify text that includes a transcript if the transcript hasn't been generated yet. So Phase 1 (media processing) must finish before Phase 2 (text analysis) starts.
+
+But WITHIN each phase, everything is independent:
+- ASR reads audio → doesn't need image
+- Image analysis reads image → doesn't need audio
+- Classification reads text → doesn't need summary
+- Summarization reads text → doesn't need risk score
+- Risk scoring reads text → doesn't need classification
+
+### Timing Wrapper Pattern
+
+```python
+async def _timed_task(name, coro):
+    start = time.perf_counter()
+    result = await coro
+    elapsed = time.perf_counter() - start
+    print(f"  {name}: {elapsed:.1f}s")
+    return result, elapsed
+```
+
+This pattern wraps any async call with timing. It's reusable — you can time any function without modifying it.
+
+### Error Handling with gather()
+
+By default, if one task in `asyncio.gather()` raises an exception, ALL other tasks are cancelled. That's bad for our pipeline — if summarization fails, we still want classification and risk scoring.
+
+We handle this by wrapping each task in `_timed_task()` which catches exceptions and returns them as values instead of raising them. Then we check `isinstance(result, Exception)` after gather returns.
+
+### Pipeline Timing Summary
+
+The logs now show a complete timing breakdown:
+```
+TIMING SUMMARY:
+    DB fetch:  0.0s
+    Phase 1:   12.3s (ASR + Image — parallel)
+    Phase 2:   8.7s (Classify + Summarize + Risk — parallel)
+    DB save:   0.0s
+    ─────────────────
+    TOTAL:     21.1s
+```
+
+This makes it easy to spot bottlenecks: if Phase 1 takes 30 seconds but Phase 2 takes 5 seconds, you know ASR or image analysis is the bottleneck.
+
+### Key Learnings
+
+**Parallel processing is not always faster:** If tasks share a bottleneck (like the same API rate limit), running them in parallel might not help. In our case, classification and risk scoring use the same BART-MNLI model on Hugging Face — they might queue behind each other on the server side. Still faster than sequential because summarization (different model) runs truly in parallel.
+
+**Timing everything is essential:** Without measurements, optimization is guesswork. The timing data tells you exactly where to focus improvement efforts.
+
+**Error isolation matters:** The `_timed_task` wrapper ensures one failure doesn't cascade. A dispatch system must be resilient — partial results are better than no results.
+
+---
+
+*Day 49 complete! Pipeline optimized with parallel processing!* ⚡🔀

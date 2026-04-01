@@ -2,42 +2,91 @@
 # Incident processing pipeline - orchestrates all AI services
 # Runs in background after incident is created or updated
 #
-# Pipeline status as of Day 48 — FULLY MULTIMODAL!
-#   ✅ REAL: Audio transcription (Day 34) - Whisper via Hugging Face
-#   ✅ REAL: Text classification (Day 46) - BART-MNLI zero-shot (type + severity)
-#   ✅ REAL: Summarization (Day 47) - BART-Large-CNN abstractive summarization
-#   ✅ REAL: Risk scoring (Day 45) - BART-MNLI zero-shot (urgency score)
-#   ✅ REAL: Image analysis (Day 48) - BLIP image captioning  ← NEW!
+# Day 49: OPTIMIZED with parallel processing and timing!
 #
-# Three modalities: Audio + Text + Images
+# Pipeline structure:
+#   Phase 1 (parallel): ASR transcription + Image analysis
+#   Phase 2 (parallel): Classification + Summarization + Risk scoring
+#   These phases run their tasks simultaneously using asyncio.gather()
+#
+# Why two phases?
+#   Phase 2 needs the transcript from Phase 1 (can't start until ASR is done)
+#   But within each phase, tasks are independent and run at the same time
+#
+# Models used:
+#   - openai/whisper-base (ASR)
+#   - facebook/detr-resnet-50 (image analysis)
+#   - facebook/bart-large-mnli (classification + risk scoring)
+#   - facebook/bart-large-cnn (summarization)
 
-# Import asyncio for async operations
+# Import asyncio for parallel processing with gather() and timing
 import asyncio
 
-# Import datetime for logging timestamps
+# Import time for measuring how long each step takes
+# time.perf_counter() gives high-precision timestamps for benchmarking
+import time
+
+# Import datetime for human-readable log timestamps
 from datetime import datetime
 
-# Import database connection
+# Import database connection for fetching and updating incidents
 from app.db.database import database
 
-# Import incidents table definition
+# Import incidents table definition for building SQL queries
 from app.db.models import incidents
 
-# Import ASR service (real since Day 34)
+# Import all AI services
 from app.services.asr import transcribe_audio
-
-# Import text classification service (real since Day 46)
+from app.services.image_analyzer import analyze_image
 from app.services.text_classifier import classify_incident
-
-# Import summarization service (real since Day 47)
 from app.services.summarizer import summarize_text
-
-# Import risk scoring service (real since Day 45)
 from app.services.risk_scorer import calculate_risk_score
 
-# Import image analysis service (NEW — real since Day 48!)
-# analyze_image() sends image bytes to BLIP and returns a text caption
-from app.services.image_analyzer import analyze_image
+
+# ========================================
+# HELPER: TIMED TASK WRAPPER
+# ========================================
+
+async def _timed_task(name: str, coro):
+    """
+    Run an async task and measure how long it takes.
+    
+    This wraps any async function call with a timer so we can see
+    exactly how many seconds each AI service takes to complete.
+    
+    Args:
+        name: Human-readable name for the task (for logging)
+        coro: The coroutine (async function call) to run and time
+    
+    Returns:
+        tuple of (result, elapsed_seconds)
+        If the task fails, result will be an Exception object
+    """
+    
+    # Record the start time using perf_counter (most precise timer available)
+    start = time.perf_counter()
+    
+    try:
+        # Await the actual async task (e.g., transcribe_audio, analyze_image)
+        result = await coro
+        
+        # Calculate how long it took
+        elapsed = time.perf_counter() - start
+        
+        # Log the timing
+        print(f"    ⏱️  {name}: {elapsed:.1f}s")
+        
+        # Return both the result and the elapsed time
+        return result, elapsed
+    
+    except Exception as e:
+        # If the task failed, still record the timing
+        elapsed = time.perf_counter() - start
+        print(f"    ⏱️  {name}: {elapsed:.1f}s (FAILED: {str(e)[:80]})")
+        
+        # Return the exception as the result (not raising it)
+        # This lets the pipeline continue even if one task fails
+        return e, elapsed
 
 
 # ========================================
@@ -48,24 +97,30 @@ async def process_incident(incident_id: int, log_message: str = None) -> None:
     """
     AI processing pipeline for a single incident.
     
-    FULLY MULTIMODAL — processes audio, text, AND images!
+    OPTIMIZED with parallel processing (Day 49):
     
-    1. Fetch incident from database
-    2. Transcribe audio (if present) → transcript          ← REAL (Day 34)
-    3. Analyze image (if present) → image_caption          ← REAL (Day 48!) NEW
-    4. Classify text → incident_type, severity             ← REAL (Day 46)
-    5. Summarize description + transcript → summary        ← REAL (Day 47)
-    6. Calculate risk score → risk_score                   ← REAL (Day 45)
-    7. Update database with all AI-generated fields
+    Phase 1 (parallel):
+        - ASR transcription (if audio exists)
+        - Image analysis (if image exists)
     
-    If any individual step fails, the pipeline continues with remaining steps.
+    Phase 2 (parallel — needs Phase 1 results):
+        - Text classification → incident_type, severity
+        - Summarization → summary
+        - Risk scoring → risk_score
+    
+    All steps are timed and logged for performance monitoring.
+    If any individual task fails, the others still complete.
     """
     
-    # Get current timestamp for logging
+    # Record the start time of the entire pipeline
+    pipeline_start = time.perf_counter()
+    
+    # Get current timestamp for log messages
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
+    # Log the start of processing
     print(f"\n[{timestamp}] {'=' * 60}")
-    print(f"[{timestamp}] 🤖 Processing incident {incident_id}")
+    print(f"[{timestamp}] 🤖 Processing incident {incident_id} (OPTIMIZED)")
     
     if log_message:
         print(f"[{timestamp}] 📋 {log_message}")
@@ -75,148 +130,189 @@ async def process_incident(incident_id: int, log_message: str = None) -> None:
     # STEP 1: Fetch Incident from Database
     # ========================================
     
+    step1_start = time.perf_counter()
     print(f"[{timestamp}] 📥 Fetching incident {incident_id} from database...")
     
+    # Build and execute SELECT query
     query = incidents.select().where(incidents.c.id == incident_id)
     incident = await database.fetch_one(query)
     
+    # Check if incident exists
     if not incident:
         print(f"[{timestamp}] ❌ Incident {incident_id} not found in database")
         return
     
+    step1_time = time.perf_counter() - step1_start
     print(f"[{timestamp}] 📥 Fetched: {incident['description'][:60]}...")
+    print(f"    ⏱️  DB fetch: {step1_time:.1f}s")
     
     
     # ========================================
-    # STEP 2: Audio Transcription (REAL — Day 34)
+    # PHASE 1: Media Processing (PARALLEL)
+    # ASR + Image Analysis run at the same time
     # ========================================
     
-    transcript = None
+    print(f"\n[{timestamp}] 🔀 PHASE 1: Media processing (parallel)...")
+    phase1_start = time.perf_counter()
     
-    if incident["audio_path"]:
-        print(f"[{timestamp}] 🎤 Audio file found: {incident['audio_path']}")
-        print(f"[{timestamp}] 🎤 Starting transcription...")
-        
-        try:
-            transcript = await transcribe_audio(incident["audio_path"])
-            print(f"[{timestamp}] ✅ Transcription complete")
-            print(f"[{timestamp}] 📝 Transcript: {transcript[:100]}...")
-        except Exception as e:
-            print(f"[{timestamp}] ⚠️  Transcription failed: {str(e)}")
-            transcript = f"[Transcription failed: {str(e)}]"
+    # Build the list of Phase 1 tasks to run in parallel
+    # We only add tasks that have something to process
+    phase1_tasks = []
+    phase1_names = []
+    
+    # Check if audio exists — add ASR task
+    has_audio = bool(incident["audio_path"])
+    if has_audio:
+        print(f"[{timestamp}]   🎤 Audio found: {incident['audio_path']}")
+        phase1_tasks.append(
+            _timed_task("ASR transcription", transcribe_audio(incident["audio_path"]))
+        )
+        phase1_names.append("asr")
     else:
-        print(f"[{timestamp}] ℹ️  No audio file — skipping transcription")
+        print(f"[{timestamp}]   ℹ️  No audio file — skipping ASR")
     
+    # Check if image exists — add image analysis task
+    has_image = bool(incident["image_path"])
+    if has_image:
+        print(f"[{timestamp}]   🖼️  Image found: {incident['image_path']}")
+        phase1_tasks.append(
+            _timed_task("Image analysis", analyze_image(incident["image_path"]))
+        )
+        phase1_names.append("image")
+    else:
+        print(f"[{timestamp}]   ℹ️  No image file — skipping image analysis")
     
-    # ========================================
-    # STEP 3: Image Analysis (REAL — Day 48!) NEW
-    # ========================================
-    
+    # Run Phase 1 tasks in parallel using asyncio.gather()
+    # asyncio.gather() starts all tasks at the same time and waits for ALL to finish
+    # The total time is the time of the SLOWEST task, not the sum of all tasks
+    transcript = None
     image_caption = None
     
-    # Check if incident has an image file attached
-    if incident["image_path"]:
-        print(f"[{timestamp}] 🖼️  Image file found: {incident['image_path']}")
-        print(f"[{timestamp}] 🖼️  Analyzing image with BLIP model...")
+    if phase1_tasks:
+        # gather() returns results in the same order as the input tasks
+        phase1_results = await asyncio.gather(*phase1_tasks)
         
-        try:
-            # Call the BLIP image captioning model
-            # This sends the image bytes to Hugging Face and gets a text description
-            image_result = await analyze_image(incident["image_path"])
-            
-            image_caption = image_result["caption"]
-            image_method = image_result["method"]
-            
-            print(f"[{timestamp}] ✅ Image caption (via {image_method}): {image_caption}")
+        # Extract results based on which tasks we added
+        result_index = 0
         
-        except Exception as e:
-            print(f"[{timestamp}] ⚠️  Image analysis failed: {str(e)}")
-            image_caption = f"[Image analysis failed: {str(e)}]"
-    else:
-        print(f"[{timestamp}] ℹ️  No image file — skipping image analysis")
+        if has_audio:
+            # Get ASR result — it's a tuple of (result, elapsed_time)
+            asr_result, asr_time = phase1_results[result_index]
+            result_index += 1
+            
+            # Check if ASR succeeded or failed
+            if isinstance(asr_result, Exception):
+                # ASR failed — store error message but continue
+                print(f"[{timestamp}]   ⚠️  ASR failed: {str(asr_result)[:80]}")
+                transcript = f"[Transcription failed: {str(asr_result)}]"
+            else:
+                # ASR succeeded — store the transcript
+                transcript = asr_result
+                print(f"[{timestamp}]   ✅ Transcript: {transcript[:80]}...")
+        
+        if has_image:
+            # Get image analysis result
+            image_result, image_time = phase1_results[result_index]
+            result_index += 1
+            
+            # Check if image analysis succeeded or failed
+            if isinstance(image_result, Exception):
+                print(f"[{timestamp}]   ⚠️  Image analysis failed: {str(image_result)[:80]}")
+                image_caption = f"[Image analysis failed: {str(image_result)}]"
+            elif isinstance(image_result, dict):
+                # image_result is a dict with 'caption', 'method', etc.
+                image_caption = image_result.get("caption", "[No caption]")
+                print(f"[{timestamp}]   ✅ Image: {image_caption[:80]}")
+            else:
+                image_caption = str(image_result)
+    
+    phase1_time = time.perf_counter() - phase1_start
+    print(f"[{timestamp}]   ⏱️  Phase 1 total: {phase1_time:.1f}s")
     
     
     # ========================================
-    # STEP 4: Text Classification (REAL — Day 46)
+    # PHASE 2: Text Analysis (PARALLEL)
+    # Classification + Summarization + Risk Scoring run at the same time
+    # These all need the text from Phase 1, so they run AFTER Phase 1
     # ========================================
     
-    print(f"[{timestamp}] 🏷️  Classifying incident type and severity...")
+    print(f"\n[{timestamp}] 🔀 PHASE 2: Text analysis (parallel)...")
+    phase2_start = time.perf_counter()
     
-    # Combine description, transcript, and image caption for classification
-    # More context = better classification
-    classify_text = incident["description"]
+    # Build the combined text that all Phase 2 services will analyze
+    # Start with the description (always available)
+    combined_text = incident["description"]
+    
+    # Add transcript if available and valid
     if transcript and not transcript.startswith("[Transcription failed"):
-        classify_text += " " + transcript
-    if image_caption and not image_caption.startswith("["):
-        # Include the image caption in classification for additional context
-        # e.g., if image shows "a burning building" that helps classify as fire
-        classify_text += " Image shows: " + image_caption
+        combined_text += " " + transcript
     
-    try:
-        classification = await classify_incident(classify_text)
-        incident_type = classification["incident_type"]
-        severity = classification["severity"]
-        classify_method = classification["method"]
-        
-        print(f"[{timestamp}] ✅ Classified as: {incident_type} ({severity} severity) [via {classify_method}]")
-    except Exception as e:
-        print(f"[{timestamp}] ❌ Classification error: {str(e)}")
+    # Add image caption if available and valid
+    if image_caption and not image_caption.startswith("["):
+        combined_text += " Image shows: " + image_caption
+    
+    # Build the text inputs for each service
+    # Classification gets everything (description + transcript + image caption)
+    classify_text = combined_text
+    
+    # Summarization gets everything
+    summary_text = combined_text
+    
+    # Risk scoring gets everything
+    risk_text = combined_text
+    
+    # Run all three Phase 2 tasks in parallel
+    # These are independent — classification doesn't need to wait for summarization
+    phase2_results = await asyncio.gather(
+        _timed_task("Classification", classify_incident(classify_text)),
+        _timed_task("Summarization", summarize_text(summary_text)),
+        _timed_task("Risk scoring", calculate_risk_score(risk_text)),
+    )
+    
+    # Extract classification result
+    classify_result, classify_time = phase2_results[0]
+    if isinstance(classify_result, Exception):
+        print(f"[{timestamp}]   ⚠️  Classification failed: {str(classify_result)[:80]}")
         incident_type = "other"
         severity = "medium"
+    else:
+        incident_type = classify_result["incident_type"]
+        severity = classify_result["severity"]
+        method = classify_result["method"]
+        print(f"[{timestamp}]   ✅ Type: {incident_type} ({severity}) [via {method}]")
     
-    
-    # ========================================
-    # STEP 5: Summarization (REAL — Day 47)
-    # ========================================
-    
-    print(f"[{timestamp}] 📝 Generating summary...")
-    
-    # Combine all available text sources for the richest possible summary
-    summary_input = incident["description"]
-    if transcript and not transcript.startswith("[Transcription failed"):
-        summary_input += " " + transcript
-    if image_caption and not image_caption.startswith("["):
-        summary_input += " Visual observation: " + image_caption
-    
-    try:
-        summary_result = await summarize_text(summary_input)
-        summary = summary_result["summary"]
-        summary_method = summary_result["method"]
-        
-        print(f"[{timestamp}] ✅ Summary (via {summary_method}): {summary[:100]}...")
-    except Exception as e:
-        print(f"[{timestamp}] ❌ Summarization error: {str(e)}")
+    # Extract summarization result
+    summary_result, summary_time = phase2_results[1]
+    if isinstance(summary_result, Exception):
+        print(f"[{timestamp}]   ⚠️  Summarization failed: {str(summary_result)[:80]}")
+        # Fallback: truncate description
         summary = incident["description"][:150] + "..." if len(incident["description"]) > 150 else incident["description"]
+    else:
+        summary = summary_result["summary"]
+        method = summary_result["method"]
+        print(f"[{timestamp}]   ✅ Summary (via {method}): {summary[:80]}...")
     
-    
-    # ========================================
-    # STEP 6: Risk Scoring (REAL — Day 45)
-    # ========================================
-    
-    print(f"[{timestamp}] ⚠️  Calculating risk score...")
-    
-    # Include all text sources for risk assessment
-    risk_text = incident["description"]
-    if transcript and not transcript.startswith("[Transcription failed"):
-        risk_text += " " + transcript
-    if image_caption and not image_caption.startswith("["):
-        risk_text += " " + image_caption
-    
-    try:
-        risk_result = await calculate_risk_score(risk_text)
-        risk_score = risk_result["score"]
-        print(f"[{timestamp}] ✅ Risk score: {risk_score:.4f} (via {risk_result['method']})")
-    except Exception as e:
-        print(f"[{timestamp}] ❌ Risk scoring error: {str(e)}")
+    # Extract risk scoring result
+    risk_result, risk_time = phase2_results[2]
+    if isinstance(risk_result, Exception):
+        print(f"[{timestamp}]   ⚠️  Risk scoring failed: {str(risk_result)[:80]}")
         severity_defaults = {"high": 0.8, "medium": 0.5, "low": 0.2}
         risk_score = severity_defaults.get(severity, 0.5)
+    else:
+        risk_score = risk_result["score"]
+        method = risk_result["method"]
+        print(f"[{timestamp}]   ✅ Risk: {risk_score:.4f} [via {method}]")
+    
+    phase2_time = time.perf_counter() - phase2_start
+    print(f"[{timestamp}]   ⏱️  Phase 2 total: {phase2_time:.1f}s")
     
     
     # ========================================
-    # STEP 7: Update Database with All AI Results
+    # STEP 3: Save All Results to Database
     # ========================================
     
-    print(f"[{timestamp}] 💾 Saving AI results to database...")
+    print(f"\n[{timestamp}] 💾 Saving AI results to database...")
+    save_start = time.perf_counter()
     
     # Build UPDATE query with ALL AI-generated fields
     update_query = (
@@ -224,29 +320,52 @@ async def process_incident(incident_id: int, log_message: str = None) -> None:
         .update()
         .where(incidents.c.id == incident_id)
         .values(
-            transcript=transcript,           # REAL from Whisper ASR (Day 34)
-            image_caption=image_caption,    # REAL from BLIP (Day 48) NEW
-            incident_type=incident_type,    # REAL from BART-MNLI (Day 46)
-            severity=severity,              # REAL from BART-MNLI (Day 46)
-            summary=summary,                # REAL from BART-Large-CNN (Day 47)
-            risk_score=risk_score,          # REAL from BART-MNLI (Day 45)
+            transcript=transcript,
+            image_caption=image_caption,
+            incident_type=incident_type,
+            severity=severity,
+            summary=summary,
+            risk_score=risk_score,
         )
     )
     
+    # Execute the update
     await database.execute(update_query)
     
-    print(f"[{timestamp}] ✅ Processing complete for incident {incident_id}")
+    save_time = time.perf_counter() - save_start
+    print(f"    ⏱️  DB save: {save_time:.1f}s")
+    
+    
+    # ========================================
+    # PIPELINE COMPLETE — Print Timing Summary
+    # ========================================
+    
+    pipeline_total = time.perf_counter() - pipeline_start
+    
+    print(f"\n[{timestamp}] {'=' * 60}")
+    print(f"[{timestamp}] ✅ PROCESSING COMPLETE for incident {incident_id}")
+    print(f"[{timestamp}] ⏱️  TIMING SUMMARY:")
+    print(f"[{timestamp}]     DB fetch:  {step1_time:.1f}s")
+    print(f"[{timestamp}]     Phase 1:   {phase1_time:.1f}s (ASR + Image — parallel)")
+    print(f"[{timestamp}]     Phase 2:   {phase2_time:.1f}s (Classify + Summarize + Risk — parallel)")
+    print(f"[{timestamp}]     DB save:   {save_time:.1f}s")
+    print(f"[{timestamp}]     ─────────────────")
+    print(f"[{timestamp}]     TOTAL:     {pipeline_total:.1f}s")
     print(f"[{timestamp}] {'=' * 60}")
 
 
 # ========================================
-# IMPLEMENTATION STATUS (Day 48) — FULLY MULTIMODAL
+# IMPLEMENTATION STATUS (Day 49) — OPTIMIZED
 # ========================================
 
-# ✅ REAL: Audio transcription (Day 34) - openai/whisper-base
-# ✅ REAL: Image analysis (Day 48) - Salesforce/blip-image-captioning-base
-# ✅ REAL: Text classification (Day 46) - facebook/bart-large-mnli
-# ✅ REAL: Summarization (Day 47) - facebook/bart-large-cnn
-# ✅ REAL: Risk scoring (Day 45) - facebook/bart-large-mnli
+# ✅ Parallel Phase 1: ASR + Image analysis (simultaneous)
+# ✅ Parallel Phase 2: Classification + Summarization + Risk scoring (simultaneous)
+# ✅ Per-step timing measurements
+# ✅ Total pipeline duration tracking
+# ✅ Graceful error handling (one failure doesn't kill others)
 #
-# Four models, three modalities (audio + text + images), zero stubs!
+# Models:
+#   - openai/whisper-base (ASR)
+#   - facebook/detr-resnet-50 (image detection)
+#   - facebook/bart-large-mnli (classification + risk)
+#   - facebook/bart-large-cnn (summarization)

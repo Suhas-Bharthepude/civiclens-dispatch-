@@ -223,3 +223,4 @@ class IncidentResponse(BaseModel):
         and have them automatically converted to JSON-serializable format.
         """
         from_attributes = True
+IncidentRead = IncidentResponse
