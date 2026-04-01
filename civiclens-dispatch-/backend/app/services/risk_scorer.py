@@ -35,7 +35,9 @@ from app.config import settings
 # The Hugging Face Inference API endpoint for the zero-shot classification model
 # facebook/bart-large-mnli is a model trained on natural language inference
 # It can classify text into ANY categories you define (zero-shot = no training needed)
-RISK_MODEL_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-mnli"
+# Updated March 2026: Hugging Face migrated from api-inference.huggingface.co
+# to router.huggingface.co - the old URL returns 410 Gone
+RISK_MODEL_URL = "https://router.huggingface.co/hf-inference/models/facebook/bart-large-mnli"
 
 # These are the urgency labels we ask the model to classify text into
 # The model will return a confidence score (0.0 to 1.0) for each label
@@ -237,16 +239,16 @@ async def _call_zero_shot_api(text: str) -> dict:
 # PARSE THE API RESPONSE INTO A RISK SCORE
 # ========================================
 
-def _parse_classification_response(data: dict) -> dict:
+def _parse_classification_response(data) -> dict:
     """
     Convert the zero-shot classification response into a risk score.
     
-    The API returns something like:
-    {
-        "labels": ["critical life-threatening emergency", "high urgency dangerous situation", ...],
-        "scores": [0.72, 0.15, 0.08, 0.03, 0.02],
-        "sequence": "Building on fire..."
-    }
+    The router.huggingface.co API returns a list of dicts like:
+    [
+        {"label": "critical life-threatening emergency", "score": 0.72},
+        {"label": "high urgency dangerous situation", "score": 0.15},
+        ...
+    ]
     
     We convert this into a single 0.0-1.0 score using weighted sum:
     score = sum(label_confidence * label_weight) for each label
@@ -254,16 +256,26 @@ def _parse_classification_response(data: dict) -> dict:
     Returns dict with score, labels, and method.
     """
     
-    # Extract the labels and their confidence scores from the API response
-    # The API returns them sorted by confidence (highest first)
-    response_labels = data.get("labels", [])
-    response_scores = data.get("scores", [])
+    # The new Hugging Face router API returns a list of {label, score} dicts
+    # The old API returned {labels: [...], scores: [...]} — that format is deprecated
+    # We handle both formats for safety
     
     # Build a dictionary mapping label text to confidence score
     # Example: {"critical life-threatening emergency": 0.72, "high urgency...": 0.15, ...}
     label_confidences = {}
-    for label, score in zip(response_labels, response_scores):
-        label_confidences[label] = round(score, 4)
+    
+    if isinstance(data, list):
+        # New format from router.huggingface.co (March 2026+)
+        # Each item is {"label": "some label", "score": 0.72}
+        for item in data:
+            label_confidences[item["label"]] = round(item["score"], 4)
+    elif isinstance(data, dict):
+        # Old format from api-inference.huggingface.co (deprecated)
+        # {"labels": [...], "scores": [...]}
+        response_labels = data.get("labels", [])
+        response_scores = data.get("scores", [])
+        for label, score in zip(response_labels, response_scores):
+            label_confidences[label] = round(score, 4)
     
     # Calculate the weighted risk score
     # For each urgency label, multiply its confidence by its weight
