@@ -16,8 +16,13 @@ from app.config import settings
 # Import routers (route handlers organized by feature)
 from app.routes.incidents import router as incidents_router
 
+from app.routes.ai_status import router as ai_status_router
+
+
 # Import file utilities
 from app.utils.file_utils import ensure_upload_dirs
+
+
 
 
 # ========================================
@@ -62,6 +67,9 @@ app.include_router(
     prefix="",  # No prefix - routes already include /incidents
     tags=["incidents"]
 )
+
+app.include_router(ai_status_router)
+
 
 
 # ========================================
@@ -111,6 +119,7 @@ async def root():
         "version": settings.VERSION,
         "docs": "/docs"
     }
+
 
 
 @app.get("/health")

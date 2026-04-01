@@ -365,3 +365,73 @@ async def upload_image(
     background_tasks.add_task(process_incident, incident_id, "Image uploaded — re-processing")
 
     return {"message": "Image uploaded successfully", "file_path": file_path, "incident_id": incident_id}
+
+
+
+
+
+# Import BackgroundTasks if not already imported at the top of the file
+# It should already be there from the create incident endpoint
+# from fastapi import BackgroundTasks
+
+# Import process_incident if not already imported at the top
+# from app.services.incident_processor import process_incident
+
+
+# ========================================
+# REPROCESS ENDPOINT
+# ========================================
+
+@router.post("/{incident_id}/reprocess")
+async def reprocess_incident(
+    incident_id: int,
+    background_tasks: BackgroundTasks
+):
+    """
+    Re-run the full AI pipeline on an existing incident.
+    
+    Use this when:
+    - Original AI processing failed (timeout, rate limit, model down)
+    - Incident was updated and needs re-analysis
+    - AI models have been improved and you want fresh results
+    
+    The AI pipeline runs in the background (same as initial processing).
+    The endpoint returns immediately with a confirmation message.
+    
+    Args:
+        incident_id: The ID of the incident to reprocess
+        background_tasks: FastAPI's BackgroundTasks for async execution
+    
+    Returns:
+        JSON confirmation that reprocessing has been queued
+    """
+    
+    # First, check if the incident exists in the database
+    # We don't want to queue a reprocess for a non-existent incident
+    query = incidents.select().where(incidents.c.id == incident_id)
+    incident = await database.fetch_one(query)
+    
+    # If incident doesn't exist, return 404 error
+    if not incident:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=404,
+            detail=f"Incident {incident_id} not found"
+        )
+    
+    # Queue the AI pipeline to run in the background
+    # This is the same function that runs when an incident is first created
+    # background_tasks.add_task() schedules it to run after the response is sent
+    background_tasks.add_task(
+        process_incident,
+        incident_id,
+        f"Reprocessing incident {incident_id} (manual trigger)"
+    )
+    
+    # Return confirmation immediately (don't wait for AI processing)
+    return {
+        "message": f"Reprocessing queued for incident {incident_id}",
+        "incident_id": incident_id,
+        "status": "queued",
+        "note": "AI pipeline will run in the background. Refresh to see updated results."
+    }
