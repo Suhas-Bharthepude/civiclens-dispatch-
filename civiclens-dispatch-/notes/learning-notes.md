@@ -3414,3 +3414,104 @@ The app is now a genuine AI-powered dispatch system, not just a prototype with f
 
 
 
+
+
+
+## Day 48: Real Image Analysis with BLIP Vision Model
+
+**CivicLens is now truly multimodal!** The system processes audio, text, AND images.
+
+### What Changed
+
+**Before Day 48:**
+Images were uploaded and stored on disk, but nothing happened with them. The pipeline completely ignored image files.
+
+**After Day 48:**
+```python
+# incident_processor.py - NEW STEP 3
+if incident["image_path"]:
+    image_result = await analyze_image(incident["image_path"])
+    image_caption = image_result["caption"]  # "A car accident on a highway"
+```
+
+### Image Captioning Concept
+
+Image captioning is the task of generating text that describes an image. The BLIP model has two parts:
+
+**Vision encoder:** Looks at the image pixels and creates a mathematical representation of what objects, scenes, and relationships are present.
+
+**Text decoder:** Takes that representation and generates English text word-by-word, like: "A building with smoke coming from the roof."
+
+### Sending Images vs Text to APIs
+
+Text APIs receive JSON payloads:
+```python
+json={"inputs": "some text", "parameters": {...}}
+```
+
+Image APIs receive raw bytes:
+```python
+content=image_bytes  # Raw binary data
+headers={"Content-Type": "image/jpeg"}
+```
+
+This is because images are binary data, not text strings. The API needs the raw pixel data to analyze.
+
+### Cross-Modal Integration
+
+The image caption doesn't just get stored — it feeds into other services:
+
+```python
+# Classification gets image context
+classify_text = description + " " + transcript + " Image shows: " + image_caption
+
+# Summarization gets visual context
+summary_input = description + " " + transcript + " Visual observation: " + image_caption
+
+# Risk scoring gets the full picture
+risk_text = description + " " + transcript + " " + image_caption
+```
+
+If someone uploads a photo of a burning building but only writes "something happening at Main Street," the image caption "a building engulfed in flames" helps the classifier recognize it as a fire incident.
+
+### Database Change
+
+Added `image_caption` column to the incidents table:
+```python
+Column("image_caption", String, nullable=True),
+```
+
+Nullable because most incidents won't have images.
+
+### Four Models, Three Modalities
+
+```
+Audio:  openai/whisper-base              → transcript
+Text:   facebook/bart-large-mnli         → type, severity, risk score
+Text:   facebook/bart-large-cnn          → summary
+Vision: Salesforce/blip-image-captioning  → image caption
+```
+
+### Pipeline is Now 7 Steps
+
+1. Fetch incident from database
+2. Transcribe audio (if present) → transcript
+3. Analyze image (if present) → image_caption  ← NEW
+4. Classify text → type + severity
+5. Summarize text → summary
+6. Score risk → risk_score
+7. Save all results to database
+
+### Key Learnings
+
+**Binary vs JSON payloads:** Image APIs work differently from text APIs. You send the raw file bytes with the appropriate Content-Type header, not a JSON object. This tripped me up initially.
+
+**Cross-modal helps accuracy:** Feeding image captions into text classification and risk scoring makes those services smarter. A vague text description + a clear photo = better overall analysis.
+
+**File validation matters:** Always check that image files exist, aren't too large, and aren't corrupt before sending them to the API. Sending a 50MB image would timeout; sending an empty file would error.
+
+**Graceful degradation:** If image analysis fails, the rest of the pipeline keeps running. The dispatcher still gets transcript, classification, summary, and risk score — they just don't get the image caption.
+
+---
+
+*Day 48 complete! CivicLens is now truly multimodal: audio + text + images!* 🖼️🎤📝
