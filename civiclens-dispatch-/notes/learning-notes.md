@@ -3230,3 +3230,187 @@ except:
 ---
 
 *Day 45 complete! Real ML risk scoring replacing the stub!* 🔮📊
+
+
+
+## Day 46: Real ML-Based Text Classification
+
+**Replaced the last major stub!** Incident type and severity now use a real AI model.
+
+### What Changed
+
+**Before Day 46 (STUB):**
+```python
+# incident_processor.py - STEP 3
+if "fire" in text_lower:
+    incident_type = "fire"
+    severity = "high"
+elif "noise" in text_lower:
+    incident_type = "noise"
+    severity = "low"
+```
+
+**After Day 46 (REAL):**
+```python
+# incident_processor.py - STEP 3
+classification = await classify_incident(classify_text)
+incident_type = classification["incident_type"]   # ML-determined
+severity = classification["severity"]             # ML-determined
+```
+
+### Two-Pass Classification
+
+The model runs twice per incident because type and severity are different questions:
+
+**Pass 1 — "What kind of incident?"**
+Labels: fire, medical, traffic, crime, noise, infrastructure, other
+
+**Pass 2 — "How severe?"**
+Labels: high, medium, low
+
+You can't combine them into one pass because the model would treat "fire" and "high severity" as competing alternatives instead of complementary dimensions.
+
+### ML vs Keywords: Why It Matters
+
+**Keywords fail on:**
+- "Several people feeling ill after chemical spill" → keywords say "other" (no "medical" keyword), ML says "medical"
+- "Small kitchen fire, already out" → keywords say severity "high" (matches "fire"), ML says "low"
+- "Suspicious package found near school" → keywords say "other", ML says "crime"
+
+The ML model understands **meaning**, not just word presence.
+
+### API Optimization
+
+We reuse the same model (facebook/bart-large-mnli) across three services:
+1. Text classification (Day 46) — 2 API calls
+2. Risk scoring (Day 45) — 1 API call
+3. Total: 3 API calls per incident
+
+The model stays loaded on Hugging Face's servers between calls, so there's no cold-start penalty after the first request.
+
+### Pipeline Status After Day 46
+
+```
+✅ REAL: Audio transcription (Day 34) - Whisper
+✅ REAL: Text classification (Day 46) - BART-MNLI (type + severity)
+✅ REAL: Risk scoring (Day 45) - BART-MNLI (urgency score)
+🚧 STUB: Summarization - template-based (LAST ONE!)
+```
+
+### Key Learnings
+
+**Same model, different tasks:** One model (BART-MNLI) handles both risk scoring AND text classification. The difference is in the candidate labels you provide. This is the power of zero-shot — the model is flexible enough to handle any categorization task.
+
+**Two passes are necessary:** Type and severity can't be classified in one pass because they're different dimensions. Fire incidents can be high OR low severity. Medical incidents can be moderate. The model needs to evaluate each dimension independently.
+
+**Fallbacks chain gracefully:** ML model → keyword fallback → hardcoded default. Three layers of safety. The dispatcher always sees classifications, even if the API is completely down.
+
+**Confidence scores are useful:** The model reports how confident it is. A classification with 0.90 confidence is more reliable than one with 0.35. We store these for potential future use (like flagging low-confidence classifications for human review).
+
+---
+
+*Day 46 complete! Text classification is now real ML!* 🏷️🤖
+
+
+
+
+
+## Day 47: Real ML-Based Summarization — Last Stub Replaced!
+
+**The final stub is gone!** Every AI service in the pipeline is now powered by a real ML model.
+
+### What Changed
+
+**Before Day 47 (STUB):**
+```python
+# incident_processor.py - STEP 4
+summary = f"{incident_type.capitalize()} incident. {description[:50]}... Audio transcript available."
+```
+
+**After Day 47 (REAL):**
+```python
+# incident_processor.py - STEP 4
+summary_result = await summarize_text(summary_text)
+summary = summary_result["summary"]  # Real generated summary from BART-Large-CNN
+```
+
+### Abstractive vs Extractive Summarization
+
+**Extractive:** Picks the most important sentences from the original. Like highlighting a textbook.
+- Input: "A fire broke out. Three people injured. Fire trucks arrived."
+- Output: "A fire broke out. Three people injured." (just selected sentences)
+
+**Abstractive (what we use):** Reads the text and writes a new, shorter version.
+- Input: "A fire broke out. Three people injured. Fire trucks arrived."
+- Output: "A fire at the location injured three people; emergency services responded." (new text!)
+
+### Different Models for Different Tasks
+
+We now use THREE different Hugging Face models:
+
+| Model | Task | Why this model? |
+|-------|------|----------------|
+| openai/whisper-base | Audio → Text | Trained on 680k hours of speech |
+| facebook/bart-large-mnli | Classification + Risk | Trained on natural language inference |
+| facebook/bart-large-cnn | Summarization | Trained on news article summaries |
+
+Each model was chosen because it was specifically trained for that task. Using the right model for the right job gives better results than forcing one model to do everything.
+
+### The Complete Pipeline — ALL REAL!
+
+```
+Citizen submits incident (with optional audio)
+    ↓
+STEP 1: Fetch from database
+    ↓
+STEP 2: Whisper ASR transcribes audio → transcript         ✅ REAL
+    ↓
+STEP 3: BART-MNLI classifies text → type + severity        ✅ REAL
+    ↓
+STEP 4: BART-Large-CNN summarizes text → summary           ✅ REAL
+    ↓
+STEP 5: BART-MNLI scores urgency → risk_score              ✅ REAL
+    ↓
+STEP 6: Save all AI results to database
+    ↓
+Dispatcher sees: transcript, type, severity, summary, risk score
+```
+
+**Total API calls per incident: 4** (1 ASR + 2 classification + 1 summarization + 1 risk scoring = 5 if you count classification as 2)
+
+### Summarization Nuances
+
+**Short text passthrough:** If the input is under 80 characters, we skip summarization and return the text as-is. You can't meaningfully summarize "Noise complaint from apartment 4B."
+
+**Max input length:** BART-Large-CNN can handle ~1024 tokens (~3000 characters). Longer inputs get truncated. For most incidents, the description + transcript fits easily.
+
+**Deterministic output:** We set `do_sample=False` so the same input always produces the same summary. This matters for consistency in a dispatch system.
+
+### Key Learnings
+
+**Text generation models are slower:** Classification returns results in 1-3 seconds. Summarization takes 3-8 seconds because the model has to generate text word by word. We compensate with a longer timeout (90 seconds vs 60).
+
+**Fallback strategies differ by task:** For classification, the fallback is keyword matching (still useful). For summarization, the fallback is text truncation (less useful, but something). For risk scoring, the fallback is keyword-based scoring. Each fallback is designed to give the best possible result without the ML model.
+
+**The pipeline is resilient:** If ANY single service fails, the others still run. A failed summarization doesn't stop classification or risk scoring. Each step is independent and wrapped in its own try/except. The dispatcher always gets as much AI-processed data as possible.
+
+### Milestone Achievement
+
+**Day 47 marks the completion of the full AI pipeline.** Every stub from Day 34 has been replaced:
+- Day 34: ASR (real transcription)
+- Day 45: Risk scoring (real urgency scores)
+- Day 46: Text classification (real type + severity)
+- Day 47: Summarization (real generated summaries)
+
+The app is now a genuine AI-powered dispatch system, not just a prototype with fake data.
+
+---
+
+*Day 47 complete! ALL STUBS REPLACED! The entire pipeline is real ML!* 🎉🤖📝
+
+
+
+
+
+
+
