@@ -1,401 +1,150 @@
-# CivicLens Dispatch - System Architecture
+# CivicLens Dispatch — System Architecture
 
-## Overview
+*Last updated: Day 54*
 
-CivicLens Dispatch is a multimodal AI-powered emergency triage system that processes citizen reports (text, audio, images) and assists dispatchers in prioritizing and routing incidents.
+## High-Level Overview
 
-## High-Level Architecture
+CivicLens Dispatch is a three-tier application with an AI processing pipeline:
 
 ```
-┌─────────────┐         ┌──────────────┐         ┌─────────────┐
-│   Citizen   │────────▶│   FastAPI    │────────▶│ PostgreSQL  │
-│  (Browser)  │◀────────│   Backend    │◀────────│  Database   │
-└─────────────┘         └──────────────┘         └─────────────┘
-                              │
-                              │
-                              ▼
-                        ┌──────────┐
-                        │ AI Models│
-                        │  (Async) │
-                        └──────────┘
-                              │
-                        ┌─────┴──────┐
-                        │            │
-                        ▼            ▼
-                    ┌─────┐      ┌───────┐
-                    │ ASR │      │Vision │
-                    └─────┘      └───────┘
+┌─────────────────────┐
+│   React Frontend    │  Port 5173
+│   (Vite + React 18) │  Displays dashboard, forms, AI results
+└─────────┬───────────┘
+          │ HTTP/JSON
+          ▼
+┌─────────────────────┐
+│   FastAPI Backend   │  Port 8000
+│   (Python 3.13)     │  REST API, file handling, AI orchestration
+└─────────┬───────────┘
+          │
+    ┌─────┴─────┐
+    ▼           ▼
+┌────────┐  ┌──────────────────────┐
+│ SQLite │  │ Hugging Face AI      │
+│   DB   │  │ (4 models, 3 modals) │
+└────────┘  └──────────────────────┘
 ```
 
-## System Components
+## Component Details
 
-### 1. Frontend (Future - Days 22-30)
-- **Technology**: React + TypeScript
-- **Purpose**: User interfaces for citizens and dispatchers
-- **Components**:
-  - Citizen submission form (text, audio, image)
-  - Dispatcher dashboard (incident list + detail view)
-  - Real-time updates (WebSockets - stretch goal)
+### Frontend (React)
+- **Framework:** React 18 with Vite build tool
+- **State management:** React hooks (useState, useEffect, useMemo, useCallback)
+- **API communication:** Centralized client (`api/client.js`) with shared error handling
+- **Key components:**
+  - `StatsBar` — Dashboard KPIs computed from incident data
+  - `IncidentsList` — Table with sort, filter, search, auto-refresh
+  - `IncidentDetail` — Side panel showing all AI analysis results
+  - `SubmitIncidentForm` — Citizen submission form with file uploads
+  - `AIStatusIndicator` — Real-time AI pipeline health badge
+  - `HealthCheck` — Backend connectivity indicator
 
-### 2. Backend API (Current)
-- **Technology**: FastAPI + Python
-- **Port**: 8000 (development)
-- **Responsibilities**:
-  - Accept incident submissions
-  - Store data in database
-  - Serve incident data to frontend
-  - Orchestrate AI processing pipeline
-  - Handle file uploads
+### Backend (FastAPI)
+- **Framework:** FastAPI with async/await throughout
+- **Database:** SQLAlchemy Core + databases library (async)
+- **Validation:** Pydantic models for request/response schemas
+- **Background tasks:** FastAPI BackgroundTasks for AI pipeline
+- **File handling:** UUID-named files in local media directory
+- **CORS:** Configured for frontend access
 
-### 3. Database (Current)
-- **Technology**: PostgreSQL (async with asyncpg)
-- **Purpose**: Persistent storage
-- **Tables**:
-  - `incidents`: Main incident data + AI outputs
-  - `users` (future): Dispatcher authentication
+### Database (SQLite)
+- **Table:** `incidents` with 12 columns
+- **Core fields:** id, source, description, location, created_at
+- **File fields:** audio_path, image_path
+- **AI fields:** transcript, incident_type, severity, summary, risk_score, image_caption
 
-### 4. AI Processing Pipeline (Stub - Days 31-54)
-- **Approach**: Asynchronous background processing
-- **Services** (all stubs currently):
-  - ASR (Automatic Speech Recognition)
-  - Text Classification
-  - Summarization
-  - Vision Analysis
-  - Risk Scoring
+### AI Pipeline
+- **Orchestrator:** `incident_processor.py` coordinates all services
+- **Execution:** Two-phase parallel processing with asyncio.gather()
+- **Error handling:** Each service has independent try/except with fallbacks
+- **Models:**
 
-### 5. File Storage (Current - Local Disk)
-- **Location**: `backend/app/media/tmp/`
-- **Structure**:
-  - `audio/`: Audio recordings
-  - `images/`: Incident photos
-- **Future**: S3-compatible object storage (MinIO/AWS S3)
+| Service | Model | Input | Output |
+|---------|-------|-------|--------|
+| ASR | openai/whisper-large-v3 | Audio bytes | Transcript text |
+| Object Detection | facebook/detr-resnet-50 | Image bytes | Object labels |
+| Classification | facebook/bart-large-mnli | Text | Type + Severity |
+| Summarization | facebook/bart-large-cnn | Text | Summary |
+| Risk Scoring | facebook/bart-large-mnli | Text | Score (0.0-1.0) |
 
-## Data Flow: Incident Submission to Triage
+## Data Flow
 
-### Phase 1: Submission (Synchronous)
+### Incident Submission
 ```
-1. Citizen submits incident via POST /incidents
-   ├─ Text description (required)
-   ├─ Location (required)
-   ├─ Source (required)
-   └─ Audio/Image files (optional)
-
-2. FastAPI validates data using Pydantic schemas
-
-3. Insert core fields into database
-   └─ Returns incident_id immediately
-
-4. Schedule background AI processing
-   └─ Response sent to user (fast!)
+1. Citizen fills form → POST /incidents → incident created (ID returned)
+2. Audio uploaded → POST /incidents/{id}/audio → file saved to disk
+3. Image uploaded → POST /incidents/{id}/image → file saved to disk
+4. Background task queued → process_incident(id) starts asynchronously
+5. Response returned immediately (user doesn't wait for AI)
 ```
 
-### Phase 2: AI Processing (Asynchronous Background)
+### AI Processing (Background)
 ```
-5. Background task starts (doesn't block HTTP response)
+Phase 1 — Media Processing (parallel):
+  ├─ ASR: audio file → Whisper API → transcript text
+  └─ Vision: image file → DETR API → object labels
 
-6. IF audio_path exists:
-   ├─ Transcribe audio → transcript
-   └─ Save transcript to database
+Phase 2 — Text Analysis (parallel, needs Phase 1 output):
+  ├─ Classification: combined text → BART-MNLI → type + severity
+  ├─ Summarization: combined text → BART-CNN → summary
+  └─ Risk Scoring: combined text → BART-MNLI → risk score
 
-7. Classify text (description + transcript):
-   ├─ Determine incident_type
-   ├─ Determine severity
-   └─ Save to database
-
-8. Generate summary:
-   ├─ Combine description + transcript
-   ├─ Create concise summary
-   └─ Save to database
-
-9. IF image_path exists:
-   ├─ Analyze image (detect objects, hazards)
-   ├─ Extract labels
-   └─ Save to database
-
-10. Calculate risk score:
-    ├─ Fusion logic combines:
-    │  ├─ Text severity
-    │  ├─ Image labels
-    │  └─ Keywords (emergency, urgent)
-    └─ Save risk_score to database
-
-11. Processing complete!
+All results saved to database in single UPDATE query
 ```
 
-### Phase 3: Dispatcher View (Synchronous)
+### Dispatcher View
 ```
-12. Dispatcher opens dashboard
-
-13. Frontend fetches GET /incidents
-    └─ With filters: severity, type, risk_score
-
-14. Display sorted list:
-    ├─ Highest risk_score first
-    ├─ Color-coded by severity
-    └─ Show AI summary
-
-15. Dispatcher clicks incident
-
-16. Frontend fetches GET /incidents/{id}
-
-17. Show full details:
-    ├─ Original description
-    ├─ AI transcript (if audio)
-    ├─ AI summary
-    ├─ AI classifications
-    ├─ Risk score + explanation
-    └─ Media (audio player, image viewer)
+1. Dashboard auto-refreshes every 30 seconds
+2. New incidents appear in table with AI results
+3. Click incident → detail panel shows all AI fields
+4. Filter by type/severity, search by keyword, sort by any column
+5. Reprocess button re-runs AI if initial processing failed
 ```
 
 ## API Endpoints
 
-### Core Incident Management
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| GET | `/health` | Health check |
-| GET | `/incidents` | List incidents (with filters) |
-| POST | `/incidents` | Create new incident |
-| GET | `/incidents/{id}` | Get incident details |
-| PATCH | `/incidents/{id}` | Update incident |
-| DELETE | `/incidents/{id}` | Delete incident |
+| GET | /health | Server health |
+| GET | /ai/status | AI model health (parallel checks) |
+| POST | /incidents | Create incident |
+| GET | /incidents | List (with filter/search) |
+| GET | /incidents/{id} | Get one |
+| PATCH | /incidents/{id} | Update |
+| DELETE | /incidents/{id} | Delete |
+| POST | /incidents/{id}/audio | Upload audio |
+| POST | /incidents/{id}/image | Upload image |
+| POST | /incidents/{id}/reprocess | Re-run AI pipeline |
 
-### File Uploads
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/incidents/{id}/audio` | Upload audio file |
-| POST | `/incidents/{id}/image` | Upload image file |
+## Performance
 
-### Processing
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/incidents/{id}/process` | Manually trigger AI processing |
-
-## Technology Stack
-
-### Backend
-- **FastAPI**: Async web framework
-- **Uvicorn**: ASGI server
-- **SQLAlchemy**: ORM for database
-- **databases**: Async database client
-- **Pydantic**: Data validation
-- **python-dotenv**: Environment configuration
-
-### Database
-- **PostgreSQL**: Production database
-- **asyncpg**: Async PostgreSQL driver
-- **psycopg2**: Sync driver (for table creation)
-
-### AI/ML (Future)
-- **Hugging Face Transformers**: Pre-trained models
-- **Whisper**: ASR model
-- **BLIP/CLIP**: Vision models
-- **DistilBERT**: Text classification
-
-### Storage
-- **Current**: Local filesystem
-- **Future**: S3-compatible (MinIO/AWS S3)
-
-### Frontend (Future)
-- **React**: UI framework
-- **TypeScript**: Type safety
-- **Vite**: Build tool
-- **MUI/Chakra**: Component library
-
-## File Organization
-
-```
-backend/
-├── app/
-│   ├── main.py              # FastAPI app + lifecycle
-│   ├── config.py            # Environment configuration
-│   ├── db/
-│   │   ├── database.py      # Database connection
-│   │   ├── models.py        # SQLAlchemy table definitions
-│   │   └── dependencies.py  # get_db() dependency
-│   ├── routes/
-│   │   └── incidents.py     # All incident endpoints
-│   ├── schemas/
-│   │   └── incident.py      # Pydantic request/response models
-│   ├── services/
-│   │   └── incident_processor.py  # AI pipeline orchestrator
-│   ├── utils/
-│   │   └── file_utils.py    # File upload helpers
-│   └── media/
-│       └── tmp/
-│           ├── audio/       # Uploaded audio files
-│           └── images/      # Uploaded image files
-├── scripts/
-│   └── seed_incidents.py    # Populate test data
-├── tests/
-│   └── test_incidents.py    # API tests
-└── requirements.txt         # Python dependencies
-```
+- **Pipeline time:** ~20-45s parallel vs ~60-120s sequential
+- **AI status check:** ~0.5s (all 4 models checked in parallel)
+- **API response:** <50ms for CRUD operations
+- **Auto-refresh:** 30s for incidents, 60s for AI status
 
 ## Security Considerations
 
-### Current (Development)
-- ✅ Environment variables for secrets
-- ✅ CORS enabled (restricted in production)
-- ✅ Input validation with Pydantic
-- ⚠️ No authentication yet
+**Current (Development):**
+- Environment variables for API keys
+- CORS configured (allows all origins in dev)
+- Pydantic input validation
+- No authentication (development only)
 
-### Future (Production)
-- 🔒 JWT-based authentication
-- 🔒 Role-based access control (dispatcher vs admin)
-- 🔒 Rate limiting
-- 🔒 HTTPS/TLS
-- 🔒 Input sanitization
-- 🔒 SQL injection prevention (automatic with SQLAlchemy)
+**Production would need:**
+- JWT authentication
+- Role-based access (dispatcher vs admin)
+- HTTPS/TLS
+- Rate limiting
+- Restricted CORS origins
+- Input sanitization
 
-## Storage Strategy
+## Future Enhancements
 
-### Current Decision: Local Disk
-**Why:**
-- Simple for development
-- No external dependencies
-- Fast local access
-- No API costs
-
-**Location:**
-```
-backend/app/media/tmp/
-├── audio/
-│   └── {uuid}.wav
-└── images/
-    └── {uuid}.jpg
-```
-
-**Database Storage:**
-- Store relative path: `"backend/app/media/tmp/audio/abc-123.wav"`
-- Used to retrieve file later for processing/serving
-
-### Future: S3-Compatible Storage
-**When:** Day 50+ or production deployment
-
-**Why Upgrade:**
-- ✅ Scalable (unlimited storage)
-- ✅ Redundancy (automatic backups)
-- ✅ CDN integration (fast global access)
-- ✅ No local disk space limits
-
-**Options:**
-- AWS S3 (cloud)
-- MinIO (self-hosted S3-compatible)
-- Cloudflare R2 (cloud, lower cost)
-
-**Migration Plan:**
-1. Install boto3/minio client
-2. Add S3 credentials to .env
-3. Update `file_utils.py` to use S3 SDK
-4. Keep database paths as-is (just change storage backend)
-5. Optional: Migrate existing files from disk to S3
-
-## Performance Considerations
-
-### Current Bottlenecks
-1. **Sequential AI processing**: Each model runs one after another
-2. **Single-threaded background tasks**: FastAPI's built-in BackgroundTasks
-
-### Future Optimizations (Days 50+)
-1. **Parallel AI processing**: Run ASR and vision analysis simultaneously
-2. **Distributed task queue**: Celery + Redis for multiple workers
-3. **Caching**: Redis for frequently accessed incidents
-4. **Database indexing**: Speed up queries on risk_score, severity, type
-5. **Connection pooling**: Reuse database connections
-
-## Monitoring & Observability (Days 55+)
-
-### Metrics to Track
-- API request latency (per endpoint)
-- AI processing time (per service)
-- Error rates
-- Incident volume over time
-- Database query performance
-
-### Logging Strategy
-- Structured logs (JSON format)
-- Log levels: DEBUG, INFO, WARNING, ERROR
-- Timestamp all log entries
-- Include incident_id for traceability
-
-## Scalability Path
-
-### Phase 1: Single Server (Current)
-- All components on one machine
-- Good for development and MVP
-
-### Phase 2: Separated Services (Future)
-```
-├── Web Server (FastAPI)
-├── Database Server (PostgreSQL)
-├── Worker Pool (Celery workers)
-└── Object Storage (S3)
-```
-
-### Phase 3: Containerization (Day 68)
-- Docker containers for each service
-- docker-compose for local dev
-- Kubernetes for production (stretch)
-
-## AI Model Integration Strategy
-
-### Current: Stubs
-All AI services return fake/hardcoded data for testing architecture.
-
-### Phase 1: API-Based Models (Days 31-54)
-- Use hosted Hugging Face Inference API
-- Pros: No local GPU needed, easy to swap models
-- Cons: API costs, network latency
-
-### Phase 2: Self-Hosted Models (Advanced)
-- Run models locally with GPU
-- Pros: Lower latency, no API costs
-- Cons: Requires GPU, more complex deployment
-
-## Next Steps
-
-- [x] Day 19: Add .env configuration ✅
-- [x] Day 20: Write pytest tests ✅
-- [x] Day 21: Clean up and document ✅
-- [ ] Days 22-30: Build React frontend
-- [ ] Days 31-40: Add real AI models (ASR, summarization)
-- [ ] Days 41-50: Add vision and classification models
-
-## Recent Changes (Day 21 Review)
-
-### What Changed Since Day 18
-
-#### Configuration (Day 19)
-- Added comprehensive environment variable management
-- Created `.env.example` template
-- Switched to SQLite for development (no PostgreSQL server needed)
-- Fixed database.py to handle sync/async SQLite properly
-
-#### Testing (Day 20)
-- Added pytest with 19 tests
-- Created test_basics.py (pytest fundamentals - 6 tests)
-- Created test_api.py (endpoint tests - 5 tests)
-- Created test_incidents.py (CRUD tests - 8 tests)
-- Added test fixtures for database setup/teardown
-- Added pytest-cov for coverage reporting
-
-#### Code Organization (Day 21)
-- Marked `app/tasks/incident_tasks.py` as deprecated
-- All background processing now in `app/services/incident_processor.py`
-- Test directory properly structured in `backend/tests/`
-- Created comprehensive project documentation
-
-### Current State Summary
-
-**Working:**
-- All API endpoints functional
-- Database operations (CRUD)
-- File uploads (audio, images)
-- Background AI processing (stub)
-- 19 tests passing
-- Configuration management
-
-**Ready for:**
-- Frontend development (React)
-- Real AI model integration (Days 31+)
-- Advanced features (maps, auth, etc.)
+- WebSocket real-time updates (replace polling)
+- PostgreSQL for production
+- Docker containerization
+- Celery + Redis for distributed task queue
+- Map visualization for incident locations
+- User authentication and role management
