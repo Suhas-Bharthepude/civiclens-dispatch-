@@ -4135,3 +4135,91 @@ query = query.order_by(sort_column.desc())
 ---
 
 *Day 56 complete! Database indexed and query performance measured!* ⚡📊
+
+
+
+
+
+
+
+
+
+
+
+## Day 57: Production Configuration & Requirements Cleanup
+
+**Made the app environment-aware** and ready for deployment configuration.
+
+### What Was Built
+
+**Enhanced config.py**: All settings in one place with environment variable support and sensible defaults. Settings class with properties for derived values (sync DB URL, CORS list).
+
+**Complete .env.example**: Template documenting every configuration option with explanations. New developers can copy this and fill in their values.
+
+**Config endpoint** (`GET /config`): Shows current configuration without revealing secrets. HF API key shows as true/false, database URL hides password portion.
+
+**Pinned requirements**: Exact package versions for reproducible installations.
+
+### Configuration Patterns
+
+**Environment variables over hardcoding:**
+```python
+# Bad — hardcoded, can't change without editing code
+CORS_ORIGINS = ["*"]
+
+# Good — configurable per environment
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
+```
+
+**Secrets must never be logged or exposed:**
+```python
+# Bad — exposes the actual API key
+return {"api_key": settings.HUGGINGFACE_API_KEY}
+
+# Good — only reveals whether a key exists
+return {"huggingface_key_set": bool(settings.HUGGINGFACE_API_KEY)}
+```
+
+**Derived properties keep logic clean:**
+```python
+@property
+def SYNC_DATABASE_URL(self):
+    # Automatically derives sync URL from async URL
+    return self.DATABASE_URL.replace("aiosqlite", "sqlite")
+```
+
+### Development vs Production
+
+| Setting | Development | Production |
+|---------|------------|------------|
+| DEBUG | true | false |
+| DATABASE_URL | sqlite:///./test.db | postgresql://... |
+| CORS_ORIGINS | * | https://myapp.com |
+| LOG_LEVEL | INFO | WARNING |
+| USE_MOCK_AI | false | false |
+
+### Why Pin Dependencies
+
+```
+# Unpinned (dangerous):
+fastapi
+sqlalchemy
+
+# Pinned (safe):
+fastapi==0.115.0
+sqlalchemy==2.0.35
+```
+
+Unpinned means "install whatever is newest." If a library releases a breaking change tomorrow, your app breaks. Pinned means "install exactly this version" — reproducible everywhere.
+
+### Key Learnings
+
+**Configuration is code.** How you manage settings determines whether your app can be deployed, tested, and maintained. A well-organized config system with environment variables is a production requirement.
+
+**Never expose secrets in endpoints.** The config endpoint shows `huggingface_key_set: true` instead of the actual key. Same principle applies to database passwords, session secrets, etc.
+
+**.env.example is documentation.** It tells new developers exactly what they need to configure. Without it, they'd have to read through all your code to find environment variable references.
+
+---
+
+*Day 57 complete! App is now environment-aware and production-configurable!* ⚙️🔧

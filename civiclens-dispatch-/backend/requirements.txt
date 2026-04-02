@@ -1,92 +1,35 @@
-# backend/requirements.txt
-# Python dependencies for CivicLens Dispatch backend
-
-# ========================================
-# WEB FRAMEWORK
-# ========================================
-fastapi==0.109.0          # Modern async web framework
-uvicorn[standard]==0.27.0 # ASGI server for running FastAPI
-python-multipart==0.0.6   # Required for file uploads
-
-# ========================================
-# DATABASE
-# ========================================
-databases[postgresql]==0.8.0  # Async database interface
-SQLAlchemy==2.0.25           # SQL toolkit and ORM
-psycopg2-binary==2.9.9       # PostgreSQL driver (sync - for table creation)
-asyncpg==0.29.0              # PostgreSQL driver (async - for queries)
-alembic==1.13.1              # Database migrations (optional but recommended)
-
-# ========================================
-# DATA VALIDATION
-# ========================================
-pydantic==2.5.3              # Data validation using type hints
-pydantic-settings==2.1.0     # Settings management
-
-# ========================================
-# CONFIGURATION
-# ========================================
-python-dotenv==1.0.0         # Load environment variables from .env
-
-# ========================================
-# HTTP CLIENT (for external APIs)
-# ========================================
-httpx==0.26.0                # Async HTTP client
-requests==2.31.0             # Sync HTTP client (for simple scripts)
-
-# ========================================
-# TESTING
-# ========================================
-pytest==7.4.4                # Testing framework
-pytest-asyncio==0.23.3       # Async test support
-
-# ========================================
-# FILE HANDLING
-# ========================================
-python-magic==0.4.27         # File type detection (optional)
-Pillow==10.2.0               # Image processing (for later days)
-
-# ========================================
-# BACKGROUND JOBS (Optional - for later)
-# ========================================
-# celery==5.3.4              # Distributed task queue (Day 15 advanced option)
-# redis==5.0.1               # Redis client for Celery backend
-
-# ========================================
-# AI/ML LIBRARIES (for later days 31+)
-# ========================================
-# transformers==4.37.0       # Hugging Face transformers
-# torch==2.1.2               # PyTorch (if using local models)
-# sentence-transformers==2.3.1  # For embeddings
-
-# ========================================
-# DEVELOPMENT TOOLS
-# ========================================
-black==24.1.1                # Code formatter
-flake8==7.0.0                # Linter
-mypy==1.8.0                  # Type checker
-
-# ========================================
-# DOCUMENTATION
-# ========================================
-# mkdocs==1.5.3              # Documentation generator (optional)
-
-# ========================================
-# NOTES
-# ========================================
-# Install with: pip install -r requirements.txt --break-system-packages
-# Or in virtual environment: pip install -r requirements.txt
-#
-# Some packages commented out are for later days in the roadmap
-# Uncomment them when you reach those sections
-
-
-
-# Add missing dependencies
-echo "aiosqlite==0.22.1         # Async SQLite driver" 
-echo "greenlet==3.3.1           # Required for SQLAlchemy async" 
-# ========================================
-# TESTING (Day 20)
-# ========================================
-pytest-cov==7.0.0            # Test coverage reports
-httpx==0.26.0                # Required for TestClient
+aiosqlite==0.22.1
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.1
+asyncpg==0.31.0
+certifi==2026.1.4
+charset-normalizer==3.4.4
+click==8.3.1
+coverage==7.13.4
+databases==0.9.0
+fastapi==0.128.0
+greenlet==3.3.1
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.11
+iniconfig==2.3.0
+packaging==26.0
+pluggy==1.6.0
+psycopg2-binary==2.9.11
+pydantic==2.12.5
+pydantic_core==2.41.5
+Pygments==2.19.2
+pytest==9.0.2
+pytest-asyncio==1.3.0
+pytest-cov==7.0.0
+python-dotenv==1.2.1
+python-multipart==0.0.22
+requests==2.32.5
+SQLAlchemy==2.0.45
+starlette==0.50.0
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.6.3
+uvicorn==0.40.0

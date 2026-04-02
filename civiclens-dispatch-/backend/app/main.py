@@ -43,7 +43,7 @@ metadata.create_all(engine)
 # ========================================
 
 
-setup_logging("INFO")
+setup_logging(settings.LOG_LEVEL)
 
 app = FastAPI(
     title=settings.APP_TITLE,
@@ -57,8 +57,8 @@ app = FastAPI(
 # ========================================
 # Allows frontend (React) to call this API from different origin
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    CORSMiddleware,    
+    allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -146,6 +146,27 @@ async def health_check():
         "status": "ok",
         "service": settings.APP_TITLE,
         "version": settings.VERSION
+    }
+
+
+@app.get("/config")
+async def get_config():
+    """
+    Show current configuration (without secrets).
+    Useful for debugging deployed instances.
+    """
+    return {
+        "app_title": settings.APP_TITLE,
+        "version": settings.VERSION,
+        "environment": settings.ENVIRONMENT,
+        "debug": settings.DEBUG,
+        "database": settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else settings.DATABASE_URL,
+        "cors_origins": settings.cors_origin_list,
+        "log_level": settings.LOG_LEVEL,
+        "upload_dir": settings.UPLOAD_DIR,
+        "max_upload_size_mb": settings.MAX_UPLOAD_SIZE / (1024 * 1024),
+        "huggingface_key_set": bool(settings.HUGGINGFACE_API_KEY),
+        "use_mock_ai": settings.USE_MOCK_AI,
     }
 
 @app.get("/health/pipeline")
