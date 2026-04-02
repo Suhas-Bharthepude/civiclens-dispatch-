@@ -98,6 +98,8 @@ async def list_incidents(
     # When provided, returns incidents where description, location,
     # transcript, or summary contains this string (case-insensitive)
     search: str = None,
+    sort_by: str = "created_at",
+    sort_dir: str = "desc",
 ):
     """
     Fetch all incidents. Supports filtering by status/type/severity
@@ -160,6 +162,28 @@ async def list_incidents(
     # Order by id descending — newest incidents first
     # We use id instead of created_at because older incidents had NULL created_at
     query = query.order_by(incidents.c.id.desc())
+
+
+    # ── APPLY SORTING (Day 56) ───────────────────────────
+    # Whitelist of allowed sort columns to prevent SQL injection
+    # Only these column names can be used for sorting
+    allowed_sort_columns = {
+        "created_at": incidents.c.created_at,
+        "risk_score": incidents.c.risk_score,
+        "severity": incidents.c.severity,
+        "incident_type": incidents.c.incident_type,
+        "id": incidents.c.id,
+    }
+    
+    # Get the sort column (default to created_at if invalid)
+    sort_column = allowed_sort_columns.get(sort_by, incidents.c.created_at)
+    
+    # Apply sort direction (desc = newest/highest first, asc = oldest/lowest first)
+    if sort_dir.lower() == "asc":
+        query = query.order_by(sort_column.asc())
+    else:
+        query = query.order_by(sort_column.desc())
+        
 
     # Execute and fetch all matching rows
     rows = await database.fetch_all(query)

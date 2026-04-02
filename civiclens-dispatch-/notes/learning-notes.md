@@ -4049,3 +4049,89 @@ This is much more efficient — the database does the math, not Python.
 ---
 
 *Day 55 complete! Structured logging and observability added!* 📊🔍
+
+
+
+
+
+
+
+
+
+
+## Day 56: Database Indexing & Query Performance
+
+**Added database indexes** on the most commonly queried columns and server-side sorting.
+
+### What Was Built
+
+**Database indexes** on 4 columns: `incident_type`, `severity`, `risk_score`, `created_at`. These speed up filtering and sorting operations.
+
+**Server-side sorting**: Added `sort_by` and `sort_dir` query parameters to `GET /incidents` so the database handles sorting (much faster than JavaScript sorting in the frontend).
+
+**Performance test script**: Creates 50 test incidents, runs 10 different query patterns, measures timing, and cleans up.
+
+### How Database Indexes Work
+
+Without index (table scan):
+```
+Query: WHERE severity = 'high'
+Database: Check row 1... no. Row 2... no. Row 3... yes! Row 4... no. (check ALL rows)
+Time: O(n) — scales linearly with table size
+```
+
+With index (index lookup):
+```
+Query: WHERE severity = 'high'
+Database: Look up 'high' in severity index → rows 3, 7, 12. Done.
+Time: O(log n) — scales logarithmically (much faster)
+```
+
+### Index Trade-offs
+
+Indexes speed up reads but slightly slow down writes:
+- Every INSERT must also update the index
+- Every UPDATE on an indexed column must update the index
+- Indexes use extra disk space
+
+Rule of thumb: index columns that appear in WHERE and ORDER BY clauses.
+
+### Server-Side Sorting
+
+Before (client-side):
+```javascript
+// Frontend sorts in JavaScript — works but doesn't scale
+const sorted = incidents.sort((a, b) => b.risk_score - a.risk_score)
+```
+
+After (server-side):
+```python
+# Database sorts with index — fast even with millions of rows
+query = query.order_by(incidents.c.risk_score.desc())
+```
+
+### SQL Injection Prevention in Sort
+
+Never do this:
+```python
+query = query.order_by(sort_by)  # DANGEROUS — user controls SQL
+```
+
+Always whitelist:
+```python
+allowed = {"created_at": incidents.c.created_at, "risk_score": incidents.c.risk_score}
+sort_column = allowed.get(sort_by, incidents.c.created_at)  # SAFE
+query = query.order_by(sort_column.desc())
+```
+
+### Key Learnings
+
+**Indexes are invisible optimization.** The application code doesn't change — queries use the same syntax. The database automatically uses indexes when they exist. You add them once and every query benefits.
+
+**Measure before and after.** Without timing data, you can't prove optimization worked. The performance test script gives concrete numbers.
+
+**Whitelist, don't blacklist.** For user-controlled SQL parameters (like sort column names), maintain a list of ALLOWED values rather than trying to block bad ones.
+
+---
+
+*Day 56 complete! Database indexed and query performance measured!* ⚡📊
