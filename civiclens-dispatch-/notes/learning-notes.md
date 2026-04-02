@@ -3977,3 +3977,75 @@ A recruiter spends ~30 seconds on a README. In those 30 seconds they need to see
 ---
 
 *Day 54 complete! Project documentation is portfolio-ready!* 📝✨
+
+
+
+
+
+
+
+
+## Day 55: Structured Logging & API Metrics Middleware
+
+**Added production-grade observability** with structured logging, request timing middleware, and an analytics endpoint.
+
+### What Was Built
+
+**Logging configuration** (`app/logging_config.py`): Centralized setup using Python's `logging` module. Consistent format with timestamps, log levels, and module names. Replaces scattered `print()` statements.
+
+**Request middleware** (`app/middleware.py`): Automatically logs every API request with method, path, status code, and response time in milliseconds. No code needed in individual route handlers.
+
+**Analytics endpoint** (`GET /analytics/summary`): Aggregates incident statistics from the database — counts by type, by severity, average risk score, media attachment counts, AI processing rates.
+
+### Middleware Pattern
+
+```python
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        start = time.perf_counter()          # Start timer
+        response = await call_next(request)   # Run route handler
+        duration = time.perf_counter() - start # Stop timer
+        logger.info("GET /incidents → 200 (12ms)")
+        return response
+```
+
+Every request passes through this code automatically. You add it once and it works for all endpoints forever.
+
+### Logging vs Print
+
+| Feature | print() | logging |
+|---------|---------|---------|
+| Log levels | No | DEBUG, INFO, WARNING, ERROR |
+| Timestamps | Manual | Automatic |
+| Module name | No | Automatic (__name__) |
+| Filterable | No | Yes (by level, module) |
+| Production ready | No | Yes |
+
+### SQL Aggregate Functions
+
+The analytics endpoint uses SQL functions to compute stats in the database instead of fetching all rows and counting in Python:
+
+```python
+# COUNT — how many rows match
+select(func.count()).where(incidents.c.severity == "high")
+
+# AVG — average of a numeric column
+select(func.avg(incidents.c.risk_score))
+
+# GROUP BY — count per category
+select(incidents.c.incident_type, func.count()).group_by(incidents.c.incident_type)
+```
+
+This is much more efficient — the database does the math, not Python.
+
+### Key Learnings
+
+**Middleware is the right place for cross-cutting concerns.** Logging, timing, authentication, rate limiting — anything that applies to ALL requests belongs in middleware, not in individual route handlers.
+
+**Structured logging pays off immediately.** The first time you can grep logs for "ERROR" and see only real errors (not mixed in with debug output), you'll never go back to print().
+
+**Analytics queries should run in the database.** Fetching 1000 incidents to count them in Python wastes memory and bandwidth. A SQL `COUNT()` with `GROUP BY` returns just the numbers you need.
+
+---
+
+*Day 55 complete! Structured logging and observability added!* 📊🔍

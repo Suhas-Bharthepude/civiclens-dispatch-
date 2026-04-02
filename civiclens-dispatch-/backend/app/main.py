@@ -18,6 +18,10 @@ from app.routes.incidents import router as incidents_router
 
 from app.routes.ai_status import router as ai_status_router
 
+from app.routes.analytics import router as analytics_router
+from app.middleware import RequestLoggingMiddleware
+from app.logging_config import setup_logging
+
 
 # Import file utilities
 from app.utils.file_utils import ensure_upload_dirs
@@ -37,6 +41,10 @@ metadata.create_all(engine)
 # ========================================
 # CREATE FASTAPI APPLICATION
 # ========================================
+
+
+setup_logging("INFO")
+
 app = FastAPI(
     title=settings.APP_TITLE,
     version=settings.VERSION,
@@ -56,6 +64,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(RequestLoggingMiddleware)
+
+
 
 # ========================================
 # REGISTER ROUTERS
@@ -69,6 +80,8 @@ app.include_router(
 )
 
 app.include_router(ai_status_router)
+
+app.include_router(analytics_router)
 
 
 
