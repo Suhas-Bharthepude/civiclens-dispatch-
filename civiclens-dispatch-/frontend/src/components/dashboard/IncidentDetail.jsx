@@ -9,6 +9,10 @@
 //   - handleStatusChange: calls PATCH API, then notifies parent via onStatusChange
 //   - Optimistic UI: parent updates selectedIncident immediately
 //
+// Day 51 additions:
+//   - Image caption display (from DETR object detection, Day 48)
+//   - Reprocess with AI button (calls POST /incidents/{id}/reprocess, Day 50)
+//
 // Props received from App.jsx:
 //   incident       - the currently selected incident object (or null)
 //   onClose        - called when dispatcher clicks Close or presses ESC
@@ -199,6 +203,22 @@ const IncidentDetail = ({ incident, onClose, onStatusChange }) => {
     }
   }
 
+  // ── REPROCESS HANDLER (Day 51) ─────────────────────────
+  // Called when dispatcher clicks the "Reprocess with AI" button.
+  // Sends POST /incidents/{id}/reprocess to re-run the full AI pipeline.
+  const handleReprocess = async () => {
+    try {
+      // Call the reprocess endpoint added on Day 50
+      await fetch(`http://localhost:8000/incidents/${incident.id}/reprocess`, {
+        method: 'POST'
+      })
+      // Show confirmation to the dispatcher
+      alert(`Reprocessing queued for incident #${incident.id}. Refresh in a moment to see updated AI results.`)
+    } catch (err) {
+      alert(`Failed to reprocess: ${err.message}`)
+    }
+  }
+
   // ── HELPERS ───────────────────────────────────────────
   // Format ISO date string to readable format
   const formatDate = (str) => {
@@ -331,10 +351,12 @@ const IncidentDetail = ({ incident, onClose, onStatusChange }) => {
           </div>
         )}
 
-        {incident.image_description && (
+        {/* ── IMAGE CAPTION (Day 51) ─────────────────── */}
+        {/* Only show if image_caption exists and isn't an error message */}
+        {incident.image_caption && !incident.image_caption.startsWith('[') && (
           <div className="detail-field">
-            <label className="detail-label">Image Description <AIBadge /></label>
-            <p className="detail-value summary-text">📸 {incident.image_description}</p>
+            <label className="detail-label">Image Analysis <AIBadge /></label>
+            <p className="detail-value summary-text">🖼️ {incident.image_caption}</p>
           </div>
         )}
 
@@ -381,7 +403,7 @@ const IncidentDetail = ({ incident, onClose, onStatusChange }) => {
       {/* END scrollable content */}
 
       {/* ── FOOTER ─────────────────────────────────────── */}
-      {/* Contains status action buttons + error message + close button */}
+      {/* Contains status action buttons + reprocess + error message + close button */}
       <div className="detail-footer">
 
         {/* Error message banner — only visible when an update fails */}
@@ -408,6 +430,15 @@ const IncidentDetail = ({ incident, onClose, onStatusChange }) => {
             isUpdating={isUpdating}
             onUpdate={handleStatusChange}
           />
+
+          {/* Reprocess button (Day 51) — re-runs the full AI pipeline */}
+          <button
+            className="btn btn--status btn--reprocess"
+            onClick={handleReprocess}
+            title="Re-run all AI models on this incident"
+          >
+            🔄 Reprocess
+          </button>
 
           {/* Close button — always present on the right */}
           <button className="btn btn--secondary" onClick={onClose}>

@@ -52,8 +52,6 @@ async def create_incident(
         description=incident_data.description,
         source=incident_data.source,
         location=incident_data.location,
-        # Set status to "pending" for all new incidents
-        status="pending",
         # Set created_at to the current UTC time
         # datetime.utcnow() returns the current time in UTC (no timezone offset)
         # Always use UTC for storage — the frontend converts to local time
@@ -66,7 +64,6 @@ async def create_incident(
         severity=None,
         audio_path=None,
         image_path=None,
-        image_description=None,
     )
 
     # Execute the INSERT and get the new row's auto-generated ID
@@ -93,8 +90,6 @@ async def create_incident(
 
 @router.get("", response_model=list[IncidentRead])
 async def list_incidents(
-    # Optional filter: show only incidents with this status
-    status: str = None,
     # Optional filter: show only incidents of this type
     incident_type: str = None,
     # Optional filter: show only incidents with this severity
@@ -122,8 +117,6 @@ async def list_incidents(
 
     # ── APPLY EXACT-MATCH FILTERS ─────────────────────────
     # These are the existing filters — nothing changed here
-    if status:
-        query = query.where(incidents.c.status == status)
     if incident_type:
         query = query.where(incidents.c.incident_type == incident_type)
     if severity:
