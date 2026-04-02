@@ -1,0 +1,96 @@
+# docker-compose.yml
+# Orchestrates both the backend and frontend containers
+#
+# Start everything:   docker-compose up --build
+# Stop everything:    docker-compose down
+# View logs:          docker-compose logs -f
+# Rebuild one service: docker-compose up --build backend
+#
+# This file goes in the PROJECT ROOT (civiclens-dispatch-/)
+# not inside backend/ or frontend/
+#
+# Day 58: Docker containerization
+
+# docker-compose file format version
+version: "3.8"
+
+# ========================================
+# SERVICES — each service becomes a container
+# ========================================
+services:
+
+  # ── BACKEND (FastAPI) ────────────────────────────
+  backend:
+    # Build the Docker image using the Dockerfile in backend/
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    # Map port 8000 on your machine to port 8000 in the container
+    # "host_port:container_port"
+    # After this, http://localhost:8000 reaches the backend container
+    ports:
+      - "8000:8000"
+
+    # Environment variables passed to the container at runtime
+    # These override any defaults in config.py
+    # Secrets are passed here (NOT baked into the Docker image)
+    environment:
+      # Database — SQLite for local Docker, PostgreSQL for production
+      - DATABASE_URL=sqlite+aiosqlite:///./test.db
+      # Environment name
+      - ENVIRONMENT=development
+      # Debug mode
+      - DEBUG=true
+      # CORS — allow the frontend container to make requests
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+      # Log level
+      - LOG_LEVEL=INFO
+      # Hugging Face API key — passed from your host machine's environment
+      # Set it with: export HUGGINGFACE_API_KEY=hf_your_key
+      # Or create a .env file in the project root
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY:-}
+
+    # Mount the media directory so uploaded files persist
+    # even when the container is stopped and restarted
+    # "host_path:container_path"
+    volumes:
+      - backend_media:/app/app/media/tmp
+
+    # Health check — Docker periodically checks if the service is alive
+    # If it fails 3 times, Docker marks the container as unhealthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ── FRONTEND (React) ────────────────────────────
+  frontend:
+    # Build the Docker image using the Dockerfile in frontend/
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      # Build argument — tells the frontend where the backend API is
+      args:
+        VITE_API_URL: http://localhost:8000
+
+    # Map port 3000 on your machine to port 3000 in the container
+    # After this, http://localhost:3000 shows the React dashboard
+    ports:
+      - "3000:3000"
+
+    # The frontend depends on the backend being started first
+    # docker-compose will start backend before frontend
+    depends_on:
+      - backend
+
+
+# ========================================
+# VOLUMES — persistent data storage
+# ========================================
+# Named volumes persist data across container restarts
+# Without this, uploaded files would be lost every time you restart
+volumes:
+  backend_media:

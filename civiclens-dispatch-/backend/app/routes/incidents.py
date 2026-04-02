@@ -14,10 +14,14 @@
 #   POST   /incidents/{id}/audio → upload_audio
 #   POST   /incidents/{id}/image → upload_image
 
+
+
 from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks
 from sqlalchemy import func, select, case, or_
 # or_ lets us combine multiple WHERE conditions with OR
 # e.g. WHERE description LIKE '%fire%' OR location LIKE '%fire%'
+from app.validators import validate_incident_create
+
 
 from datetime import datetime
 # datetime is used to set created_at when creating new incidents
@@ -44,6 +48,16 @@ async def create_incident(
     """
     Create a new incident and trigger AI processing in the background.
     """
+
+    # ── BUSINESS VALIDATION (Day 59) ──────────────────
+    # Pydantic checked types; now check business rules
+    validation_errors = validate_incident_create(incident_data)
+    if validation_errors:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=400,
+            detail={"errors": validation_errors}
+        )
 
     # Build INSERT with all initial fields
     # AI fields (transcript, summary, etc.) start as None
@@ -159,9 +173,7 @@ async def list_incidents(
         # e.g. "WHERE incident_type='fire' AND (description LIKE '%oak%' OR location LIKE '%oak%')"
         query = query.where(search_condition)
 
-    # Order by id descending — newest incidents first
-    # We use id instead of created_at because older incidents had NULL created_at
-    query = query.order_by(incidents.c.id.desc())
+
 
 
     # ── APPLY SORTING (Day 56) ───────────────────────────
@@ -183,7 +195,7 @@ async def list_incidents(
         query = query.order_by(sort_column.asc())
     else:
         query = query.order_by(sort_column.desc())
-        
+
 
     # Execute and fetch all matching rows
     rows = await database.fetch_all(query)

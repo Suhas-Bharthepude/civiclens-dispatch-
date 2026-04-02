@@ -4309,3 +4309,107 @@ services:
 ---
 
 *Day 58 complete! App is containerized and ready to deploy anywhere!* 🐳📦
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Day 59: Error Handling & Input Validation Hardening
+
+**Made the API bulletproof** — every error returns clean JSON, never a raw traceback.
+
+### What Was Built
+
+**Global exception handlers** (`error_handlers.py`): Three handlers covering HTTP exceptions (404, 403), validation errors (422), and unhandled exceptions (500). In debug mode, 500 errors include the exception type and message. In production, they return a generic message.
+
+**Business validators** (`validators.py`): Checks that descriptions are 10-5000 characters, locations aren't empty, and sources are from a valid list. Returns all errors at once instead of stopping at the first one.
+
+**Error test script** (`test_errors.py`): 14 tests sending intentionally bad requests — empty bodies, missing fields, too-short descriptions, non-existent incidents, non-JSON bodies, and valid requests as a sanity check.
+
+### Three Layers of Validation
+
+```
+Layer 1: Pydantic (automatic)
+  - Type checking: is "source" a string?
+  - Required fields: is "description" present?
+  - Returns 422 Unprocessable Entity
+
+Layer 2: Business validation (validators.py)
+  - Is description at least 10 characters?
+  - Is source a valid value (citizen, dispatcher, etc.)?
+  - Returns 400 Bad Request with specific error messages
+
+Layer 3: Global exception handler (error_handlers.py)
+  - Catches anything that slips through layers 1 and 2
+  - Returns 500 with clean JSON instead of raw traceback
+```
+
+### Collecting All Errors at Once
+
+Bad pattern (stops at first error):
+```python
+if not description:
+    raise HTTPException(400, "Description required")
+if len(description) < 10:
+    raise HTTPException(400, "Description too short")
+# User fixes one, submits, gets the next error... frustrating
+```
+
+Good pattern (returns all errors):
+```python
+errors = []
+if not description:
+    errors.append("Description required")
+if len(description) < 10:
+    errors.append("Description too short")
+if errors:
+    raise HTTPException(400, {"errors": errors})
+# User sees all problems at once, fixes them all
+```
+
+### Debug vs Production Error Responses
+
+Development (DEBUG=true):
+```json
+{
+  "error": true,
+  "status_code": 500,
+  "message": "Internal server error",
+  "debug_info": {
+    "exception_type": "ZeroDivisionError",
+    "exception_message": "division by zero"
+  }
+}
+```
+
+Production (DEBUG=false):
+```json
+{
+  "error": true,
+  "status_code": 500,
+  "message": "An unexpected error occurred. Please try again later."
+}
+```
+
+No exception type, no message, no internal details exposed.
+
+### Key Learnings
+
+**Never show tracebacks to users.** Python tracebacks contain file paths, line numbers, variable values, and library versions — all useful to attackers, confusing to users.
+
+**Validate at the right layer.** Pydantic for types, business validators for rules, exception handlers as the safety net. Each layer catches different problems.
+
+**Test the error paths, not just the happy paths.** If you only test successful requests, you have no idea what happens when things go wrong — and things ALWAYS go wrong in production.
+
+---
+
+*Day 59 complete! API is bulletproof — clean JSON responses for every error!* 🛡️✅

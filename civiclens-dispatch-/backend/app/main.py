@@ -18,6 +18,9 @@ from app.routes.incidents import router as incidents_router
 
 from app.routes.ai_status import router as ai_status_router
 
+from app.error_handlers import register_exception_handlers
+
+
 from app.routes.analytics import router as analytics_router
 from app.middleware import RequestLoggingMiddleware
 from app.logging_config import setup_logging
@@ -83,6 +86,8 @@ app.include_router(ai_status_router)
 
 app.include_router(analytics_router)
 
+
+register_exception_handlers(app)
 
 
 # ========================================
