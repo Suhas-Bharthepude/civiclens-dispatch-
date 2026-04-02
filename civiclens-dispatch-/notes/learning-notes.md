@@ -3781,3 +3781,77 @@ A simple progress bar communicates risk at a glance:
 ---
 
 *Day 51 complete! AI results now visible in the frontend!* 🎨🤖
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Day 52: End-to-End Integration Testing & API Client Update
+
+**Proved the entire system works from start to finish** with comprehensive E2E tests.
+
+### What Was Built
+
+**E2E test script** (`scripts/test_e2e.py`): Automated test that creates an incident via the API, waits for the AI pipeline to process it, verifies all AI fields are correctly populated, tests reprocess, tests search, and cleans up.
+
+**API client update**: Added `reprocessIncident()` and `getAIStatus()` to the frontend API client. Removed hardcoded URLs from IncidentDetail.jsx.
+
+### E2E Testing Pattern
+
+```python
+# 1. Create incident via API
+incident_id = await create_incident(data)
+
+# 2. Poll until AI pipeline completes
+while not all_fields_populated:
+    await asyncio.sleep(5)
+    incident = await get_incident(incident_id)
+
+# 3. Verify AI results make sense
+assert incident["incident_type"] == "fire"
+assert incident["risk_score"] > 0.5
+
+# 4. Clean up
+await delete_incident(incident_id)
+```
+
+The key pattern is **polling** — the AI pipeline runs in the background, so we can't just check immediately. We poll every 5 seconds until the fields appear, with a timeout.
+
+### Why Centralize API Calls
+
+Before:
+```jsx
+// Hardcoded URL in component — bad
+await fetch(`http://localhost:8000/incidents/${id}/reprocess`, { method: 'POST' })
+```
+
+After:
+```jsx
+// Centralized in api/client.js — good
+await reprocessIncident(id)
+```
+
+Benefits: one place to change the URL, consistent error handling, easier to test.
+
+### Key Learnings
+
+**E2E tests catch integration bugs:** Unit tests might pass but the system can still break at the seams — where frontend meets backend, where backend meets AI services, where AI results meet the database. E2E tests catch these.
+
+**Polling is necessary for async pipelines:** The AI pipeline runs in a background task. The only way to know when it's done is to repeatedly check. This is a common pattern in systems with async processing.
+
+**Test data should be cleaned up:** Always delete test incidents after tests run. Leftover test data clutters the database and confuses manual testing.
+
+---
+
+*Day 52 complete! End-to-end testing proves the full system works!* 🧪✅

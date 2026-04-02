@@ -23,8 +23,8 @@ import React, { useState } from 'react'
 // CSS for this panel
 import './IncidentDetail.css'
 
-// API function that sends PATCH /incidents/{id} with { status: newStatus }
-import { updateIncidentStatus } from '../../api/client'
+// API functions for status updates and reprocessing
+import { updateIncidentStatus, reprocessIncident } from '../../api/client'
 
 // ============================================================
 // AI BADGE — small inline sub-component
@@ -203,15 +203,13 @@ const IncidentDetail = ({ incident, onClose, onStatusChange }) => {
     }
   }
 
-  // ── REPROCESS HANDLER (Day 51) ─────────────────────────
+  // ── REPROCESS HANDLER (Day 52) ─────────────────────────
   // Called when dispatcher clicks the "Reprocess with AI" button.
-  // Sends POST /incidents/{id}/reprocess to re-run the full AI pipeline.
+  // Uses the centralized API client instead of hardcoded fetch.
   const handleReprocess = async () => {
     try {
-      // Call the reprocess endpoint added on Day 50
-      await fetch(`http://localhost:8000/incidents/${incident.id}/reprocess`, {
-        method: 'POST'
-      })
+      // Call the reprocess endpoint via the API client
+      await reprocessIncident(incident.id)
       // Show confirmation to the dispatcher
       alert(`Reprocessing queued for incident #${incident.id}. Refresh in a moment to see updated AI results.`)
     } catch (err) {
