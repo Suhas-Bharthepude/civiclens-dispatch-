@@ -12,6 +12,9 @@ import ToastContainer     from './components/shared/ToastContainer'
 // above the incidents table — gives dispatchers instant situational awareness
 import StatsBar           from './components/dashboard/StatsBar'
 
+import AIStatusIndicator  from './components/dashboard/AIStatusIndicator'
+
+
 function App() {
   const [selectedIncident, setSelectedIncident] = useState(null)
   const [refreshTrigger,   setRefreshTrigger]   = useState(0)
@@ -66,8 +69,10 @@ function App() {
           </div>
         </div>
         <div className="app-header-right">
+          <AIStatusIndicator />
           <HealthCheck />
         </div>
+
       </header>
 
       {/* BODY */}

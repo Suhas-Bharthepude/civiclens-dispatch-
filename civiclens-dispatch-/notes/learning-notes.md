@@ -3855,3 +3855,68 @@ Benefits: one place to change the URL, consistent error handling, easier to test
 ---
 
 *Day 52 complete! End-to-end testing proves the full system works!* 🧪✅
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Day 53: AI Status Indicator in Frontend
+
+**Added real-time AI pipeline health visibility** to the dispatcher dashboard.
+
+### What Was Built
+
+**AIStatusIndicator component**: A small badge in the header that shows whether the AI pipeline is healthy (green), degraded (yellow), or down (red). Checks every 60 seconds by calling GET /ai/status.
+
+### How It Works
+
+```jsx
+// Fetch AI status on mount and every 60 seconds
+useEffect(() => {
+  async function checkStatus() {
+    const data = await getAIStatus()
+    setStatus(data.pipeline_status)  // "healthy", "degraded", "down"
+    setModelsReady(data.models_ready) // e.g., 4
+  }
+  checkStatus()
+  const intervalId = setInterval(checkStatus, 60000)
+  return () => clearInterval(intervalId)  // Cleanup on unmount
+}, [])
+```
+
+The `return () => clearInterval(intervalId)` is critical — without it, the interval keeps running even after the component unmounts, causing memory leaks and phantom API calls.
+
+### Auto-Refresh Already Existed
+
+Discovered that auto-refresh was already implemented via the `useAutoRefresh` hook imported in IncidentsList. The incidents table already polls for new data periodically. No changes needed there.
+
+### Status Indicator Design
+
+The indicator uses a simple colored dot + text pattern:
+- 🟢 "AI Healthy 4/4" — all models responding
+- 🟡 "AI Degraded 3/4" — some models down
+- 🔴 "AI Down 0/4" — no models responding
+- ⚪ "AI..." — checking (initial state)
+
+Tooltip on hover shows "3/4 AI models responding" for more detail.
+
+### Key Learnings
+
+**Check frequency should match rate of change.** Incident data changes often (new submissions, AI results) → 30s refresh. AI model availability changes rarely (models don't go down every minute) → 60s check. Matching frequency to rate of change is efficient.
+
+**Cleanup functions prevent memory leaks.** Every `setInterval` inside a `useEffect` MUST have a corresponding `clearInterval` in the cleanup return. Otherwise the interval runs forever, even after navigating away from the page.
+
+**Small UI indicators have outsized impact.** A tiny green dot in the corner tells the dispatcher "the AI system is working" without them having to think about it. When it turns yellow or red, they know immediately why AI results might be missing.
+
+---
+
+*Day 53 complete! AI status visible in the dashboard header!* 🟢🤖
