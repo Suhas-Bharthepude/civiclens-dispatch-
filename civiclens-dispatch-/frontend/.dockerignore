@@ -1,0 +1,26 @@
+# frontend/.dockerignore
+# Files that should NOT be copied into the Docker image
+#
+# Day 58: Docker containerization
+
+# Node modules — installed fresh via npm ci
+node_modules/
+
+# Build output — rebuilt inside the container
+dist/
+
+# Git
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local

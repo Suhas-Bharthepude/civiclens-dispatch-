@@ -1,0 +1,47 @@
+# backend/.dockerignore
+# Files and directories that should NOT be copied into the Docker image
+# This keeps the image small and avoids leaking secrets
+#
+# Day 58: Docker containerization
+
+# Virtual environment — dependencies are installed fresh via requirements.txt
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Environment file — secrets should be passed at runtime, not baked into image
+.env
+
+# SQLite database — container starts with fresh database
+test.db
+*.db
+
+# Git directory — not needed in the container
+.git/
+.gitignore
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test and script files (optional — exclude if not needed in production)
+# Uncomment these if you don't want test scripts in the production image:
+# tests/
+# scripts/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Uploaded media files — container starts clean
+app/media/tmp/audio/*
+app/media/tmp/images/*
+
+# Documentation — not needed at runtime
+docs/
+notes/
+*.md

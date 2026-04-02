@@ -4223,3 +4223,89 @@ Unpinned means "install whatever is newest." If a library releases a breaking ch
 ---
 
 *Day 57 complete! App is now environment-aware and production-configurable!* ⚙️🔧
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Day 58: Docker Containerization
+
+**Packaged the entire app into Docker containers** so it can run anywhere with a single command.
+
+### What Was Built
+
+**Backend Dockerfile**: Installs Python 3.13, copies code, installs requirements, starts uvicorn with 2 workers.
+
+**Frontend Dockerfile**: Multi-stage build — Stage 1 builds the React app with npm, Stage 2 serves the static files with a lightweight server. Final image is tiny (~50MB vs ~500MB).
+
+**docker-compose.yml**: Orchestrates both containers. One command (`docker-compose up`) starts the entire application.
+
+**.dockerignore files**: Prevents .venv, node_modules, .env, and test.db from being copied into images.
+
+### Docker Key Concepts
+
+**Image vs Container:**
+- Image = the recipe (Dockerfile → image)
+- Container = a running instance of the recipe (image → container)
+- Like class vs object in programming
+
+**Layer Caching:**
+```dockerfile
+COPY requirements.txt .       # Layer 1 — cached if unchanged
+RUN pip install -r requirements.txt  # Layer 2 — cached if Layer 1 unchanged
+COPY . .                       # Layer 3 — always changes (code changed)
+```
+By copying requirements.txt BEFORE the code, Docker reuses the pip install layer when only code changes. This makes rebuilds fast (~5 seconds instead of ~60 seconds).
+
+**Multi-Stage Builds:**
+```dockerfile
+FROM node:20-alpine AS build    # Stage 1: big image with build tools
+RUN npm ci && npm run build     # Build the app
+
+FROM node:20-alpine             # Stage 2: clean, small image
+COPY --from=build /app/dist .   # Copy ONLY the built files
+```
+The final image doesn't contain node_modules or source code — just the compiled static files.
+
+**Why --host 0.0.0.0:**
+Inside a Docker container, `localhost` means the container itself, not your host machine. Setting `--host 0.0.0.0` makes the server listen on ALL network interfaces, which allows connections from outside the container (including your browser).
+
+### docker-compose.yml Structure
+
+```yaml
+services:
+  backend:
+    build: ./backend          # Where to find the Dockerfile
+    ports: ["8000:8000"]      # host:container port mapping
+    environment:              # Runtime config (secrets!)
+      - HUGGINGFACE_API_KEY=${HUGGINGFACE_API_KEY}
+    volumes:                  # Persistent storage
+      - backend_media:/app/media
+
+  frontend:
+    build: ./frontend
+    ports: ["3000:3000"]
+    depends_on: [backend]     # Start backend first
+```
+
+### Key Learnings
+
+**Never bake secrets into Docker images.** The .env file is in .dockerignore. Secrets are passed via environment variables at runtime (in docker-compose.yml or with `docker run -e`).
+
+**Layer caching is the #1 Docker optimization.** Copy files that change rarely (requirements.txt, package.json) before files that change often (your code). Docker rebuilds only from the first changed layer.
+
+**Multi-stage builds keep images small.** The frontend build image has 500MB of node_modules. The final serve image has only 5MB of compiled files. Smaller images deploy faster and use less memory.
+
+**Volumes preserve data.** Without volumes, uploaded files disappear when the container restarts. Named volumes persist across restarts.
+
+---
+
+*Day 58 complete! App is containerized and ready to deploy anywhere!* 🐳📦
