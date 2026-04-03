@@ -1,0 +1,54 @@
+[
+  {
+    "label": "DEMO INCIDENT 1 — High severity fire (use this for the live pipeline demo)",
+    "source": "citizen",
+    "description": "Major fire at the warehouse on Industrial Boulevard. Thick black smoke visible from miles away. Multiple fire trucks responding. At least two workers reported trapped on the second floor. Explosions heard from inside. Area being evacuated.",
+    "location": "500 Industrial Boulevard, Warehouse District",
+    "expected_type": "fire",
+    "expected_severity": "high",
+    "expected_risk": "> 0.70",
+    "demo_note": "Use this first. It produces a dramatic, clear classification and high risk score — best for showing the AI working live."
+  },
+  {
+    "label": "DEMO INCIDENT 2 — Medical emergency",
+    "source": "ems",
+    "description": "Elderly male, approximately 75 years old, collapsed in front of the library on Main Street. Bystanders report he was unresponsive for several minutes. CPR being administered by a nurse who happened to be present. Ambulance requested immediately.",
+    "location": "City Library, 120 Main Street",
+    "expected_type": "medical",
+    "expected_severity": "high",
+    "expected_risk": "> 0.75",
+    "demo_note": "Good second incident to show the system handles different incident types, not just fires."
+  },
+  {
+    "label": "DEMO INCIDENT 3 — Traffic accident, medium severity",
+    "source": "citizen",
+    "description": "Two-car collision at the intersection of Oak Avenue and 5th Street. One vehicle ran a red light. Minor injuries reported — one driver has a cut on their forehead. Cars blocking the right lane. No airbag deployment.",
+    "location": "Oak Avenue and 5th Street",
+    "expected_type": "traffic",
+    "expected_severity": "medium",
+    "expected_risk": "0.40 – 0.60",
+    "demo_note": "Shows the system correctly assigns medium severity to a non-life-threatening incident. Good contrast against incidents 1 and 2."
+  },
+  {
+    "label": "DEMO INCIDENT 4 — Low severity noise complaint",
+    "source": "citizen",
+    "description": "Loud music coming from apartment 4B at 88 Riverside Drive. This has been going on for three hours. Neighbors have knocked but received no answer. Not an emergency but becoming disruptive.",
+    "location": "88 Riverside Drive, Apartment 4B",
+    "expected_type": "noise",
+    "expected_severity": "low",
+    "expected_risk": "< 0.30",
+    "demo_note": "Shows the system correctly deprioritizes low-urgency reports. Great for demonstrating the sorting/filtering — this should appear at the bottom when sorted by risk score."
+  },
+  {
+    "label": "DEMO INCIDENT 5 — Infrastructure, downed power line",
+    "source": "sensor",
+    "description": "Downed power line sparking on Elm Street near the school. Road partially blocked. Automatic sensor triggered at 14:32. Electric company has been notified but has not yet responded. Children leaving school in 30 minutes.",
+    "location": "Elm Street, near Roosevelt Elementary School",
+    "expected_type": "infrastructure",
+    "expected_severity": "high",
+    "expected_risk": "> 0.65",
+    "demo_note": "Interesting because it comes from a sensor source, not a citizen. Also shows urgency escalation from a time-sensitive detail (children leaving school)."
+  }
+]
+
+
