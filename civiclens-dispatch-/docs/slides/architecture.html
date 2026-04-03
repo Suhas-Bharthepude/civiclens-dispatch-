@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Character encoding — ensures special characters display correctly -->
+  <meta charset="UTF-8">
+
+  <!-- Responsive viewport — makes the slide fill the screen on any device -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Browser tab title -->
+  <title>CivicLens Dispatch — Architecture Overview</title>
+
+  <style>
+    /* ============================================================
+       RESET & BASE
+       Remove browser defaults so we control everything
+    ============================================================ */
+
+    /* Remove default margin/padding from all elements */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box; /* padding included in width calculations */
+    }
+
+    /* Full-screen dark background for the whole page */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117; /* very dark navy — looks great on projectors */
+      color: #e2e8f0;      /* light gray — readable on dark background */
+      height: 100vh;       /* full viewport height */
+      overflow: hidden;    /* no scrollbars — slides fill the screen */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+
+    /* ============================================================
+       SLIDE CONTAINER
+       The outer wrapper that holds all slides
+    ============================================================ */
+
+    .slideshow {
+      width: 100%;
+      max-width: 960px;   /* cap width so text doesn't stretch too wide */
+      padding: 0 24px;    /* side padding on small screens */
+      position: relative; /* needed for absolute positioning of children */
+    }
+
+
+    /* ============================================================
+       INDIVIDUAL SLIDES
+       Each slide is hidden by default, shown when .active
+    ============================================================ */
+
+    .slide {
+      display: none;           /* hidden by default */
+      animation: fadeIn 0.3s ease; /* smooth fade when switching slides */
+      min-height: 480px;       /* consistent height across all slides */
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* The active slide is visible */
+    .slide.active {
+      display: flex;
+    }
+
+    /* Fade-in animation when a new slide appears */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+
+    /* ============================================================
+       SLIDE NUMBER BADGE
+       Small pill in top-right showing current slide / total
+    ============================================================ */
+
+    .slide-counter {
+      position: fixed;  /* stays in corner regardless of slide content */
+      top: 20px;
+      right: 24px;
+      font-size: 0.8rem;
+      color: #64748b;   /* muted gray — visible but not distracting */
+      letter-spacing: 0.5px;
+    }
+
+
+    /* ============================================================
+       NAVIGATION BUTTONS
+       Previous / Next arrows at the bottom of the screen
+    ============================================================ */
+
+    .nav {
+      position: fixed;  /* pinned to bottom of viewport */
+      bottom: 28px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;        /* space between prev button, dots, next button */
+    }
+
+    /* Shared style for both nav buttons */
+    .nav-btn {
+      background: #1e293b;  /* dark blue-gray */
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 8px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.15s ease; /* smooth hover effect */
+    }
+
+    /* Hover state — lighter to show it's clickable */
+    .nav-btn:hover {
+      background: #334155;
+      color: #e2e8f0;
+    }
+
+    /* Disabled state — when on first or last slide */
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* Dot indicators showing which slide we're on */
+    .dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Each dot — one per slide */
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;    /* makes it a circle */
+      background: #334155;   /* inactive dot color */
+      transition: background 0.2s ease;
+      cursor: pointer;       /* clicking a dot jumps to that slide */
+    }
+
+    /* Active dot — bright to show current position */
+    .dot.active {
+      background: #3b82f6; /* blue */
+    }
+
+
+    /* ============================================================
+       KEYBOARD HINT
+       Small text at bottom-left reminding users about arrow keys
+    ============================================================ */
+
+    .keyboard-hint {
+      position: fixed;
+      bottom: 28px;
+      left: 24px;
+      font-size: 0.72rem;
+      color: #475569; /* very muted — present but not distracting */
+    }
+
+
+    /* ============================================================
+       TYPOGRAPHY — Used across all slides
+    ============================================================ */
+
+    /* Large slide title at the top of each slide */
+    .slide-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #3b82f6;        /* blue accent — consistent across all slides */
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 16px;
+    }
+
+    /* Main headline on each slide — the biggest text */
+    .slide-headline {
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: #f1f5f9;        /* near-white */
+      line-height: 1.2;
+      margin-bottom: 20px;
+    }
+
+    /* Supporting text below the headline */
+    .slide-body {
+      font-size: 1.05rem;
+      color: #94a3b8;        /* medium gray */
+      line-height: 1.7;
+      max-width: 680px;
+    }
+
+    /* Highlighted span — used for emphasis within body text */
+    .highlight {
+      color: #f1f5f9;        /* bright white — stands out from gray body */
+      font-weight: 600;
+    }
+
+    /* Blue accent highlight — used for numbers and key terms */
+    .accent {
+      color: #3b82f6;
+    }
+
+    /* Green for positive results and checkmarks */
+    .green {
+      color: #10b981;
+    }
+
+    /* Yellow/amber for warnings or "coming soon" items */
+    .amber {
+      color: #f59e0b;
+    }
+
+
+    /* ============================================================
+       DIAGRAM BOXES
+       Used to build architecture diagrams with ASCII-style boxes
+    ============================================================ */
+
+    /* Container that holds a row of diagram boxes */
+    .diagram {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;       /* wraps on small screens */
+      margin: 24px 0;
+    }
+
+    /* Individual diagram box — represents one system component */
+    .box {
+      background: #1e293b;   /* dark card background */
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px 20px;
+      text-align: center;
+      min-width: 120px;
+    }
+
+    /* Box label — the component name */
+    .box-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;        /* muted — label is secondary to the icon/emoji */
+      margin-bottom: 4px;
+    }
+
+    /* Box value — the technology or description */
+    .box-value {
+      font-size: 0.95rem;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+
+    /* Arrow between diagram boxes */
+    .arrow {
+      color: #475569;        /* muted arrow — connects boxes without distraction */
+      font-size: 1.3rem;
+      flex-shrink: 0;        /* don't let arrow compress on small screens */
+    }
+
+
+    /* ============================================================
+       PIPELINE DIAGRAM
+       Two-column layout for the parallel pipeline phases
+    ============================================================ */
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: 1fr 1fr; /* two equal columns */
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    /* Phase card — contains one phase of the pipeline */
+    .phase {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+
+    /* Phase title — "Phase 1" or "Phase 2" */
+    .phase-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #3b82f6;        /* blue — consistent accent color */
+      margin-bottom: 12px;
+    }
+
+    /* Subtitle explaining the parallelism */
+    .phase-subtitle {
+      font-size: 0.72rem;
+      color: #475569;
+      margin-bottom: 10px;
+    }
+
+    /* Individual task row within a phase */
+    .task {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    /* Task name */
+    .task-name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    /* Task description — the model or output */
+    .task-desc {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+
+    /* ============================================================
+       DECISION CARDS
+       Three-column grid on the "Key Decisions" slide
+    ============================================================ */
+
+    .decisions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr); /* three equal columns */
+      gap: 14px;
+      margin: 20px 0;
+    }
+
+    /* Individual decision card */
+    .decision {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    /* Decision topic — "FastAPI", "SQLite", etc. */
+    .decision-topic {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #3b82f6;
+      margin-bottom: 6px;
+    }
+
+    /* The actual decision made */
+    .decision-choice {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 6px;
+    }
+
+    /* Rationale — why this decision was made */
+    .decision-why {
+      font-size: 0.82rem;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+
+    /* ============================================================
+       RESULTS GRID
+       Two-column layout for the results slide
+    ============================================================ */
+
+    .results {
+      display: grid;
+      grid-template-columns: 1fr 1fr; /* two equal columns */
+      gap: 14px;
+      margin: 20px 0;
+    }
+
+    /* Individual result card */
+    .result-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+
+    /* Result card title */
+    .result-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    /* Individual result line */
+    .result-line {
+      font-size: 0.88rem;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Slide counter — updated by JavaScript as slides change -->
+  <div class="slide-counter" id="counter">1 / 5</div>
+
+  <!-- Keyboard navigation hint -->
+  <div class="keyboard-hint">← → arrow keys to navigate</div>
+
+  <!-- ============================================================
+       MAIN SLIDESHOW CONTAINER
+       All 5 slides live inside here
+  ============================================================ -->
+  <div class="slideshow">
+
+
+    <!-- ============================================================
+         SLIDE 1 — THE PROBLEM
+         Hook: establish why this project exists before showing anything
+    ============================================================ -->
+    <div class="slide active" id="slide-1">
+
+      <!-- Small label above the headline -->
+      <div class="slide-title">The Problem</div>
+
+      <!-- Main headline — one sentence, bold claim -->
+      <div class="slide-headline">
+        Emergency dispatch is<br>
+        <span class="accent">a manual bottleneck</span>
+      </div>
+
+      <!-- Supporting explanation -->
+      <div class="slide-body">
+        Dispatch centers receive hundreds of unstructured reports per shift —
+        text messages, voice calls, photos — from citizens, sensors, and field units.
+        <br><br>
+        Every report must be <span class="highlight">manually read, classified, prioritized,
+        and summarized</span> before a dispatcher can act. Under pressure, this is slow
+        and error-prone.
+        <br><br>
+        <span class="accent">CivicLens Dispatch</span> automates that triage pipeline
+        using multimodal AI — so dispatchers spend less time reading reports and more
+        time making decisions.
+      </div>
+
+    </div><!-- end slide 1 -->
+
+
+    <!-- ============================================================
+         SLIDE 2 — SYSTEM OVERVIEW
+         Show the four-layer architecture at a high level
+    ============================================================ -->
+    <div class="slide" id="slide-2">
+
+      <div class="slide-title">System Overview</div>
+
+      <div class="slide-headline">Four layers,<br>one pipeline</div>
+
+      <!-- Architecture diagram — boxes connected by arrows -->
+      <div class="diagram">
+
+        <!-- Layer 1: Input -->
+        <div class="box">
+          <div class="box-label">Input</div>
+          <div class="box-value">📝 Text<br>🎤 Audio<br>📷 Image</div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <!-- Layer 2: Backend -->
+        <div class="box">
+          <div class="box-label">Backend</div>
+          <div class="box-value">⚡ FastAPI<br><span style="font-size:0.78rem;color:#64748b">async REST API</span></div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <!-- Layer 3: AI Pipeline -->
+        <div class="box" style="border-color: #3b82f6;">
+          <!-- Blue border highlights this as the key component -->
+          <div class="box-label" style="color:#3b82f6">AI Pipeline</div>
+          <div class="box-value">🤖 4 Models<br><span style="font-size:0.78rem;color:#64748b">parallel processing</span></div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <!-- Layer 4: Frontend -->
+        <div class="box">
+          <div class="box-label">Dashboard</div>
+          <div class="box-value">📊 React 18<br><span style="font-size:0.78rem;color:#64748b">live incident feed</span></div>
+        </div>
+
+      </div><!-- end diagram -->
+
+      <div class="slide-body">
+        Citizens submit reports through the form or API.
+        The backend stores the incident immediately and returns — no waiting.
+        The <span class="highlight">AI pipeline runs asynchronously</span> in the background,
+        populating classification, severity, risk score, and summary.
+        Dispatchers see the enriched, pre-sorted feed in real time.
+      </div>
+
+    </div><!-- end slide 2 -->
+
+
+    <!-- ============================================================
+         SLIDE 3 — THE AI PIPELINE
+         The most technically impressive part — show it in detail
+    ============================================================ -->
+    <div class="slide" id="slide-3">
+
+      <div class="slide-title">AI Pipeline</div>
+
+      <div class="slide-headline">Two parallel phases,<br><span class="accent">~5 seconds</span> end-to-end</div>
+
+      <!-- Two-column pipeline diagram — one column per phase -->
+      <div class="pipeline">
+
+        <!-- Phase 1 -->
+        <div class="phase">
+          <div class="phase-title">⚡ Phase 1 — Media Processing</div>
+          <div class="phase-subtitle">Both tasks run simultaneously with asyncio.gather()</div>
+
+          <!-- ASR task -->
+          <div class="task">
+            <div>
+              <div class="task-name">🎤 Audio Transcription</div>
+              <div class="task-desc">openai/whisper-base<br>voice → text transcript</div>
+            </div>
+          </div>
+
+          <!-- Vision task -->
+          <div class="task">
+            <div>
+              <div class="task-name">📷 Image Analysis</div>
+              <div class="task-desc">facebook/detr-resnet-50<br>photo → scene description</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="phase">
+          <div class="phase-title">⚡ Phase 2 — Text Analysis</div>
+          <div class="phase-subtitle">Runs after Phase 1 — needs the transcript</div>
+
+          <!-- Classification task -->
+          <div class="task">
+            <div>
+              <div class="task-name">🏷️ Classification</div>
+              <div class="task-desc">facebook/bart-large-mnli<br>type + severity label</div>
+            </div>
+          </div>
+
+          <!-- Summarization task -->
+          <div class="task">
+            <div>
+              <div class="task-name">📝 Summarization</div>
+              <div class="task-desc">facebook/bart-large-cnn<br>1–2 sentence summary</div>
+            </div>
+          </div>
+
+          <!-- Risk scoring task -->
+          <div class="task">
+            <div>
+              <div class="task-name">🎯 Risk Scoring</div>
+              <div class="task-desc">facebook/bart-large-mnli<br>urgency score 0.0 – 1.0</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end pipeline -->
+
+      <!-- Explanation of why two phases -->
+      <div class="slide-body">
+        Phase 2 needs Phase 1's transcript before it can run — but within each phase,
+        all tasks are <span class="highlight">independent and run in parallel</span>.
+        Total pipeline time ≈ max(Phase 1) + max(Phase 2), not the sum of all tasks.
+      </div>
+
+    </div><!-- end slide 3 -->
+
+
+    <!-- ============================================================
+         SLIDE 4 — KEY TECHNICAL DECISIONS
+         Show engineering judgment — most important slide for interviews
+    ============================================================ -->
+    <div class="slide" id="slide-4">
+
+      <div class="slide-title">Key Decisions</div>
+
+      <div class="slide-headline">Why I chose<br>what I chose</div>
+
+      <!-- Three decision cards in a row -->
+      <div class="decisions">
+
+        <!-- Decision 1: FastAPI -->
+        <div class="decision">
+          <div class="decision-topic">Framework</div>
+          <div class="decision-choice">FastAPI</div>
+          <div class="decision-why">
+            Async-native — essential for non-blocking background AI tasks.
+            Flask is sync by default. Django is overkill for an API-only backend.
+            Automatic Swagger docs and Pydantic validation included.
+          </div>
+        </div>
+
+        <!-- Decision 2: SQLite -->
+        <div class="decision">
+          <div class="decision-topic">Database</div>
+          <div class="decision-choice">SQLite → PostgreSQL</div>
+          <div class="decision-why">
+            SQLite for development: zero config, file-based, fast.
+            The ORM layer (SQLAlchemy) means swapping to PostgreSQL
+            for production is a config change, not a rewrite.
+          </div>
+        </div>
+
+        <!-- Decision 3: Zero-shot classification -->
+        <div class="decision">
+          <div class="decision-topic">AI Strategy</div>
+          <div class="decision-choice">Zero-Shot Classification</div>
+          <div class="decision-why">
+            No labeled training data for emergency dispatch exists publicly.
+            Zero-shot models (BART-MNLI) understand language well enough
+            to classify incident types without task-specific fine-tuning.
+          </div>
+        </div>
+
+      </div><!-- end decisions -->
+
+      <div class="slide-body">
+        Each decision traded short-term complexity for long-term maintainability —
+        and each one I can defend with a concrete technical reason.
+      </div>
+
+    </div><!-- end slide 4 -->
+
+
+    <!-- ============================================================
+         SLIDE 5 — RESULTS & WHAT'S NEXT
+         Prove it works, then show forward thinking
+    ============================================================ -->
+    <div class="slide" id="slide-5">
+
+      <div class="slide-title">Results</div>
+
+      <div class="slide-headline">Working system,<br>proven test coverage</div>
+
+      <!-- Two-column results grid -->
+      <div class="results">
+
+        <!-- Left card: test results -->
+        <div class="result-card">
+          <div class="result-title">✅ Test Results</div>
+
+          <div class="result-line">
+            <span class="green">✓</span>
+            <span>6/6 end-to-end tests passing</span>
+          </div>
+          <div class="result-line">
+            <span class="green">✓</span>
+            <span>14/14 error handling tests passing</span>
+          </div>
+          <div class="result-line">
+            <span class="green">✓</span>
+            <span>AI pipeline completes in ~5 seconds</span>
+          </div>
+          <div class="result-line">
+            <span class="green">✓</span>
+            <span>DB queries under 10ms (indexed)</span>
+          </div>
+          <div class="result-line">
+            <span class="green">✓</span>
+            <span>Fire classified correctly: high severity, 75% risk</span>
+          </div>
+        </div>
+
+        <!-- Right card: what's next -->
+        <div class="result-card">
+          <div class="result-title">🚀 What I'd Build Next</div>
+
+          <div class="result-line">
+            <span class="amber">→</span>
+            <span><span class="highlight">Celery + Redis</span> — persistent task queue (survives server restarts)</span>
+          </div>
+          <div class="result-line">
+            <span class="amber">→</span>
+            <span><span class="highlight">WebSockets</span> — live dashboard updates without polling</span>
+          </div>
+          <div class="result-line">
+            <span class="amber">→</span>
+            <span><span class="highlight">PostgreSQL</span> — production database with connection pooling</span>
+          </div>
+          <div class="result-line">
+            <span class="amber">→</span>
+            <span><span class="highlight">Docker</span> — containerized deployment (Day 68)</span>
+          </div>
+        </div>
+
+      </div><!-- end results -->
+
+      <!-- Closing statement -->
+      <div class="slide-body">
+        Built over <span class="highlight">63 days</span> as a structured learning project —
+        one commit per day, documented throughout.
+        <span class="accent">github.com/Suhas-Bharthepude/civiclens-dispatch-</span>
+      </div>
+
+    </div><!-- end slide 5 -->
+
+
+  </div><!-- end slideshow -->
+
+
+  <!-- ============================================================
+       NAVIGATION BAR
+       Previous button, dot indicators, next button
+  ============================================================ -->
+  <div class="nav">
+
+    <!-- Previous slide button -->
+    <button class="nav-btn" id="prev-btn" onclick="changeSlide(-1)" disabled>← Prev</button>
+
+    <!-- Dot indicators — one dot per slide, generated by JavaScript -->
+    <div class="dots" id="dots"></div>
+
+    <!-- Next slide button -->
+    <button class="nav-btn" id="next-btn" onclick="changeSlide(1)">Next →</button>
+
+  </div>
+
+
+  <!-- ============================================================
+       JAVASCRIPT — Slide navigation logic
+  ============================================================ -->
+  <script>
+    // Total number of slides
+    const TOTAL_SLIDES = 5;
+
+    // Track which slide we're currently on (0-indexed internally)
+    let current = 0;
+
+    // Get references to the DOM elements we'll update
+    const counter  = document.getElementById('counter');   // "1 / 5" text
+    const prevBtn  = document.getElementById('prev-btn');  // ← Prev button
+    const nextBtn  = document.getElementById('next-btn');  // Next → button
+    const dotsEl   = document.getElementById('dots');      // dot container
+
+
+    // ----------------------------------------
+    // BUILD THE DOTS
+    // Create one dot element per slide and add to the nav bar
+    // ----------------------------------------
+    for (let i = 0; i < TOTAL_SLIDES; i++) {
+      // Create a div for this dot
+      const dot = document.createElement('div');
+
+      // Give it the base "dot" class
+      dot.className = 'dot' + (i === 0 ? ' active' : ''); // first dot starts active
+
+      // Clicking a dot jumps directly to that slide
+      dot.onclick = () => goToSlide(i);
+
+      // Add the dot to the dots container in the nav
+      dotsEl.appendChild(dot);
+    }
+
+
+    // ----------------------------------------
+    // goToSlide(index)
+    // Jump directly to a specific slide by its 0-based index
+    // ----------------------------------------
+    function goToSlide(index) {
+      // Hide the currently active slide by removing the "active" class
+      document.getElementById('slide-' + (current + 1)).classList.remove('active');
+
+      // Remove "active" from the current dot
+      dotsEl.children[current].classList.remove('active');
+
+      // Update current to the new index
+      current = index;
+
+      // Show the new slide by adding the "active" class
+      document.getElementById('slide-' + (current + 1)).classList.add('active');
+
+      // Highlight the new dot
+      dotsEl.children[current].classList.add('active');
+
+      // Update the "1 / 5" counter text
+      counter.textContent = (current + 1) + ' / ' + TOTAL_SLIDES;
+
+      // Disable "Prev" button if we're on the first slide
+      prevBtn.disabled = current === 0;
+
+      // Disable "Next" button if we're on the last slide
+      nextBtn.disabled = current === TOTAL_SLIDES - 1;
+    }
+
+
+    // ----------------------------------------
+    // changeSlide(direction)
+    // Move forward (+1) or backward (-1) one slide
+    // Called by the Prev/Next buttons
+    // ----------------------------------------
+    function changeSlide(direction) {
+      // Calculate the new index (clamped to valid range)
+      const newIndex = Math.max(0, Math.min(TOTAL_SLIDES - 1, current + direction));
+
+      // Jump to that slide
+      goToSlide(newIndex);
+    }
+
+
+    // ----------------------------------------
+    // KEYBOARD NAVIGATION
+    // Listen for left/right arrow key presses
+    // ----------------------------------------
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        // Right or down arrow — go to next slide
+        changeSlide(1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        // Left or up arrow — go to previous slide
+        changeSlide(-1);
+      }
+    });
+  </script>
+
+</body>
+</html>
