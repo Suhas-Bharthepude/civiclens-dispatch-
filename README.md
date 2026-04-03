@@ -1,9 +1,22 @@
 # CivicLens Dispatch 🚨
 
-CivicLens Dispatch helps emergency dispatch centers automatically analyze, classify, and prioritize citizen incident reports using four AI models that process text, audio, and images in real time.
+> AI-powered emergency incident triage system — automatically classifies, prioritizes, and summarizes citizen-reported incidents so dispatchers can focus on what matters most.
 
+---
 
-![Dashboard Screenshot](civiclens-dispatch-/docs/screenshots/CivicLensDispatchDashboard.png)
+## Screenshots
+
+![Dashboard showing incidents sorted by risk score](docs/screenshots/dashboard.png)
+*Dispatcher dashboard — incidents pre-sorted by AI-generated risk score. Highest urgency at the top.*
+
+![Detail panel showing AI-generated fields](docs/screenshots/detail_panel.png)
+*Incident detail panel — shows AI classification, risk score, summary, and transcript side by side.*
+
+![Citizen submission form](docs/screenshots/submit_form.png)
+*Citizen submission form — accepts text description, location, optional audio and image uploads.*
+
+![AI fields on incident row](docs/screenshots/ai_fields.png)
+*AI pipeline output — incident type, severity badge, and risk score populated automatically within seconds.*
 
 ---
 
