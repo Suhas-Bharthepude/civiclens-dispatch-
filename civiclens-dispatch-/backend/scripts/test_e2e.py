@@ -124,7 +124,7 @@ async def test_create_incident(client: httpx.AsyncClient) -> int:
     
     # Incident data that should trigger clear AI classification
     incident_data = {
-        "source": "e2e_test",
+        "source": "citizen",
         "description": (
             "Major fire at the warehouse on Industrial Boulevard. "
             "Thick black smoke visible from miles away. Multiple fire trucks "
