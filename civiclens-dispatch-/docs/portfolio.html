@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Character encoding — ensures all characters display correctly -->
+  <meta charset="UTF-8">
+
+  <!-- Responsive viewport — makes the page scale correctly on phones -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Page title — shows in browser tab and search results -->
+  <title>CivicLens Dispatch — Suhas Bharthepude</title>
+
+  <!-- Meta description — shows in Google search results under the link -->
+  <meta name="description" content="CivicLens Dispatch: a full-stack AI emergency triage system built by Suhas Bharthepude. FastAPI, React, Hugging Face, async pipeline.">
+
+  <style>
+    /* ============================================================
+       RESET & BASE STYLES
+       Remove browser defaults so we control everything
+    ============================================================ */
+
+    /* Apply box-sizing to all elements so padding doesn't break layouts */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* Base font and background for the whole page */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;   /* dark navy — matches the slide deck */
+      color: #e2e8f0;        /* light gray — readable on dark background */
+      line-height: 1.6;
+      font-size: 16px;       /* base size — everything else is relative to this */
+    }
+
+    /* Remove underlines from all links by default */
+    a { text-decoration: none; }
+
+    /* ============================================================
+       LAYOUT UTILITIES
+       Reusable classes used across multiple sections
+    ============================================================ */
+
+    /* Centers content and limits max width so lines don't get too long */
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 24px;   /* side padding so content doesn't touch screen edges */
+    }
+
+    /* ============================================================
+       NAVIGATION BAR
+       Fixed bar at the top with your name and GitHub link
+    ============================================================ */
+
+    nav {
+      position: fixed;          /* stays at top while scrolling */
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;             /* sits above all other content */
+      background: rgba(15, 17, 23, 0.92);  /* semi-transparent dark */
+      backdrop-filter: blur(8px);           /* frosted glass blur effect */
+      border-bottom: 1px solid #1e293b;    /* subtle divider line */
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;  /* name on left, link on right */
+      align-items: center;
+    }
+
+    /* Your name in the nav bar */
+    .nav-name {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #f1f5f9;
+    }
+
+    /* GitHub link in the nav bar */
+    .nav-link {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      transition: color 0.2s;   /* smooth color change on hover */
+    }
+    .nav-link:hover { color: #f1f5f9; }
+
+    /* ============================================================
+       HERO SECTION
+       The first thing visitors see — must communicate value immediately
+    ============================================================ */
+
+    .hero {
+      padding: 130px 0 80px;   /* top padding accounts for fixed nav height */
+      text-align: center;
+    }
+
+    /* Small label above the main headline */
+    .hero-label {
+      display: inline-block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #3b82f6;          /* blue accent — used consistently throughout */
+      margin-bottom: 16px;
+    }
+
+    /* Main headline — the largest text on the page */
+    .hero-title {
+      font-size: clamp(2rem, 5vw, 3.2rem);  /* scales with screen width */
+      font-weight: 800;
+      color: #f1f5f9;
+      line-height: 1.15;
+      margin-bottom: 20px;
+    }
+
+    /* Highlighted word in the headline */
+    .hero-title .accent { color: #3b82f6; }
+
+    /* One-sentence description below the headline */
+    .hero-subtitle {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      max-width: 580px;
+      margin: 0 auto 32px;
+      line-height: 1.6;
+    }
+
+    /* Container for the two call-to-action buttons */
+    .hero-buttons {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;   /* buttons stack on small screens */
+    }
+
+    /* Primary button — "View on GitHub" */
+    .btn-primary {
+      background: #3b82f6;     /* blue fill */
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-primary:hover {
+      background: #2563eb;     /* darker blue on hover */
+      transform: translateY(-1px);   /* subtle lift effect */
+    }
+
+    /* Secondary button — "Architecture Slides" */
+    .btn-secondary {
+      background: transparent;
+      color: #94a3b8;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: 1px solid #334155;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover {
+      background: #1e293b;
+      color: #f1f5f9;
+      transform: translateY(-1px);
+    }
+
+    /* ============================================================
+       SECTION SHARED STYLES
+       Used by Features, Screenshots, and Tech sections
+    ============================================================ */
+
+    /* Standard section padding — consistent vertical rhythm */
+    .section {
+      padding: 72px 0;
+    }
+
+    /* Alternating background for visual separation between sections */
+    .section-alt {
+      background: #0d1018;   /* slightly darker than body background */
+    }
+
+    /* Section header — label + headline combination */
+    .section-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    /* Small uppercase label above section headline */
+    .section-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #3b82f6;
+      margin-bottom: 10px;
+    }
+
+    /* Section main headline */
+    .section-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    /* ============================================================
+       STATS BAR
+       Three numbers that prove the system works
+    ============================================================ */
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 0 0 72px;
+    }
+
+    /* Individual stat item */
+    .stat {
+      flex: 1;
+      min-width: 160px;
+      padding: 24px 20px;
+      text-align: center;
+      border-right: 1px solid #1e293b;   /* divider between stats */
+      background: #131720;
+    }
+
+    /* Remove right border from last stat */
+    .stat:last-child { border-right: none; }
+
+    /* The big number */
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #3b82f6;
+      display: block;
+    }
+
+    /* The label below the number */
+    .stat-label {
+      font-size: 0.82rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    /* ============================================================
+       FEATURE CARDS
+       Three cards explaining what the system does
+    ============================================================ */
+
+    /* Three-column grid for feature cards */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    /* Individual feature card */
+    .feature-card {
+      background: #131720;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 28px 24px;
+      transition: border-color 0.2s;   /* border lights up on hover */
+    }
+    .feature-card:hover { border-color: #3b82f6; }
+
+    /* Emoji icon at the top of each card */
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 14px;
+      display: block;
+    }
+
+    /* Card headline */
+    .feature-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 8px;
+    }
+
+    /* Card description */
+    .feature-desc {
+      font-size: 0.88rem;
+      color: #64748b;
+      line-height: 1.6;
+    }
+
+    /* ============================================================
+       SCREENSHOTS SECTION
+       Full-width vertical gallery — each screenshot large and clickable
+    ============================================================ */
+
+    /* Vertical stack — one screenshot per row, full width */
+    .screenshots-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Individual screenshot container — clickable card */
+    .screenshot-item {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #1e293b;
+      background: #131720;
+      cursor: pointer;             /* shows hand cursor — tells user it's clickable */
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    /* Highlight border and glow on hover */
+    .screenshot-item:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 1px #3b82f6, 0 8px 32px rgba(59,130,246,0.15);
+    }
+
+    /* The screenshot image — full width, max height so tall ones don't dominate */
+    .screenshot-item img {
+      width: 100%;
+      display: block;
+      max-height: 520px;           /* cap height so very tall screenshots don't overwhelm */
+      object-fit: cover;           /* crops to fill — keeps aspect ratio, no distortion */
+      object-position: top;        /* show the top of the screenshot (most important part) */
+      transition: transform 0.3s;
+    }
+    .screenshot-item:hover img { transform: scale(1.01); }
+
+    /* Caption row — label on left, "click to expand" hint on right */
+    .screenshot-caption {
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #1e293b;
+    }
+
+    /* "Click to expand" hint text */
+    .screenshot-hint {
+      font-size: 0.75rem;
+      color: #334155;
+    }
+
+    /* ============================================================
+       LIGHTBOX — Fullscreen image viewer
+       Appears when user clicks a screenshot
+    ============================================================ */
+
+    /* Dark overlay that covers the whole screen */
+    .lightbox {
+      display: none;               /* hidden by default */
+      position: fixed;             /* covers viewport regardless of scroll */
+      inset: 0;                    /* top/right/bottom/left all 0 */
+      background: rgba(0,0,0,0.92);
+      z-index: 1000;               /* above everything else */
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      cursor: zoom-out;            /* clicking anywhere closes it */
+    }
+
+    /* Show the lightbox when it has the .active class */
+    .lightbox.active {
+      display: flex;
+    }
+
+    /* The fullscreen image inside the lightbox */
+    .lightbox img {
+      max-width: 100%;
+      max-height: 90vh;            /* never taller than 90% of viewport */
+      border-radius: 8px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.8);
+      object-fit: contain;         /* show full image, no cropping */
+      cursor: default;             /* image itself doesn't close — overlay does */
+    }
+
+    /* Close button in top-right corner */
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      font-size: 1.8rem;
+      color: #94a3b8;
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.2s;
+      background: none;
+      border: none;
+    }
+    .lightbox-close:hover { color: #f1f5f9; }
+
+    /* Caption shown below the image in lightbox */
+    .lightbox-caption {
+      position: absolute;
+      bottom: 24px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+
+    /* ============================================================
+       PIPELINE DIAGRAM
+       Visual summary of the two-phase AI pipeline
+    ============================================================ */
+
+    /* Outer container for the pipeline */
+    .pipeline {
+      background: #131720;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 32px;
+      margin-top: 0;
+    }
+
+    /* Two-column grid — one column per phase */
+    .pipeline-phases {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    /* Individual phase box */
+    .pipeline-phase {
+      background: #0f1117;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 18px 20px;
+    }
+
+    /* Phase title — "Phase 1 — Parallel" */
+    .pipeline-phase-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #3b82f6;
+      margin-bottom: 12px;
+    }
+
+    /* Individual model entry within a phase */
+    .pipeline-model {
+      margin-bottom: 10px;
+    }
+
+    /* Model name */
+    .pipeline-model-name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    /* What the model does */
+    .pipeline-model-desc {
+      font-size: 0.78rem;
+      color: #475569;
+      margin-top: 2px;
+    }
+
+    /* Timing note at the bottom of the pipeline diagram */
+    .pipeline-timing {
+      text-align: center;
+      font-size: 0.88rem;
+      color: #64748b;
+      padding-top: 16px;
+      border-top: 1px solid #1e293b;
+    }
+
+    /* ============================================================
+       TECH STACK SECTION
+       Grid of technology cards with context
+    ============================================================ */
+
+    /* Responsive grid — fills available columns with min 200px each */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    /* Individual tech card */
+    .tech-card {
+      background: #131720;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+
+    /* Technology name */
+    .tech-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 4px;
+    }
+
+    /* What this technology did in the project */
+    .tech-role {
+      font-size: 0.8rem;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    /* ============================================================
+       FOOTER
+       Links and closing statement
+    ============================================================ */
+
+    footer {
+      padding: 48px 0;
+      text-align: center;
+      border-top: 1px solid #1e293b;
+    }
+
+    /* Row of footer links */
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    /* Individual footer link */
+    .footer-link {
+      color: #64748b;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .footer-link:hover { color: #f1f5f9; }
+
+    /* Closing credit line */
+    .footer-credit {
+      font-size: 0.82rem;
+      color: #334155;
+    }
+
+    /* ============================================================
+       RESPONSIVE — Stack to one column on mobile
+    ============================================================ */
+
+    @media (max-width: 680px) {
+      /* Stack feature cards vertically on small screens */
+      .features-grid { grid-template-columns: 1fr; }
+
+      /* Stack screenshots vertically on small screens */
+      .screenshots-grid { grid-template-columns: 1fr; }
+
+      /* Stack pipeline phases vertically on small screens */
+      .pipeline-phases { grid-template-columns: 1fr; }
+
+      /* Stack stats vertically on small screens */
+      .stats { flex-direction: column; }
+      .stat { border-right: none; border-bottom: 1px solid #1e293b; }
+      .stat:last-child { border-bottom: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============================================================
+       NAVIGATION BAR
+       Fixed at top — your name on left, GitHub link on right
+  ============================================================ -->
+  <nav>
+    <span class="nav-name">Suhas Bharthepude</span>
+    <a class="nav-link" href="https://github.com/Suhas-Bharthepude" target="_blank">
+      GitHub →
+    </a>
+  </nav>
+
+
+  <!-- ============================================================
+       HERO SECTION
+       First thing visitors see — project name, description, buttons
+  ============================================================ -->
+  <section class="hero">
+    <div class="container">
+
+          <!-- Small label above the headline -->
+      <span class="hero-label">Project — Built over 64 days</span>
+
+      <!-- Main headline -->
+      <h1 class="hero-title">
+        CivicLens<br>
+        <span class="accent">Dispatch</span>
+      </h1>
+
+      <!-- Plain description of what this actually is -->
+      <p class="hero-subtitle">
+        An emergency dispatch tool I built from scratch. It takes incident reports
+        (text, audio, or a photo) and uses AI to figure out what type of incident
+        it is, how urgent it is, and what happened — so a dispatcher doesn't have
+        to read and categorize every report manually.
+      </p>
+
+      <!-- Call-to-action buttons -->
+      <div class="hero-buttons">
+        <a class="btn-primary"
+           href="https://github.com/Suhas-Bharthepude/civiclens-dispatch-"
+           target="_blank">
+          View on GitHub
+        </a>
+        <a class="btn-secondary"
+           href="slides/architecture.html"
+           target="_blank">
+          Architecture Slides
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       STATS BAR
+       Three proof points that appear before any explanation
+  ============================================================ -->
+  <div class="container">
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-number">~5s</span>
+        <div class="stat-label">AI pipeline end-to-end</div>
+      </div>
+      <div class="stat">
+        <span class="stat-number">4</span>
+        <div class="stat-label">Hugging Face models</div>
+      </div>
+      <div class="stat">
+        <span class="stat-number">20/20</span>
+        <div class="stat-label">integration tests passing</div>
+      </div>
+      <div class="stat">
+        <span class="stat-number">64</span>
+        <div class="stat-label">days, one commit each</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================
+       FEATURES SECTION
+       Three cards explaining what the system does
+  ============================================================ -->
+  <section class="section">
+    <div class="container">
+
+      <div class="section-header">
+        <span class="section-label">What It Does</span>
+        <h2 class="section-title">How it works</h2>
+      </div>
+
+      <div class="features-grid">
+
+        <div class="feature-card">
+          <span class="feature-icon">📥</span>
+          <div class="feature-title">Takes reports in any format</div>
+          <div class="feature-desc">
+            A citizen (or sensor, or dispatcher) submits a report. That can be
+            a text description, a voice recording, or a photo — or all three.
+            The system handles whichever ones are provided.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🤖</span>
+          <div class="feature-title">AI fills in the details automatically</div>
+          <div class="feature-desc">
+            Four AI models run in the background after a report is submitted.
+            They transcribe audio, describe images, label the incident type
+            (fire, medical, traffic, etc.), score how urgent it is, and write
+            a one-sentence summary. This takes about 5 seconds.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">📊</span>
+          <div class="feature-title">Dispatchers see a sorted, labeled feed</div>
+          <div class="feature-desc">
+            The dashboard shows all incidents ranked by urgency score — highest
+            risk at the top. Dispatchers can filter by incident type or severity,
+            search by keyword, and click any row to see the full AI analysis.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       SCREENSHOTS SECTION
+       Show the app working — most persuasive section
+  ============================================================ -->
+  <section class="section section-alt">
+    <div class="container">
+
+      <div class="section-header">
+        <span class="section-label">In Action</span>
+        <h2 class="section-title">Screenshots</h2>
+      </div>
+
+      <div class="screenshots-grid">
+
+        <!-- Screenshot 1: Dashboard -->
+        <div class="screenshot-item" onclick="openLightbox('screenshots/dashboard.png', 'Dashboard — incidents sorted by AI-generated risk score, highest urgency first')">
+          <img src="screenshots/dashboard.png" alt="Dispatcher dashboard">
+          <div class="screenshot-caption">
+            <span>Dashboard — incidents sorted by AI-generated risk score</span>
+            <span class="screenshot-hint">click to expand ↗</span>
+          </div>
+        </div>
+
+        <!-- Screenshot 2: Detail panel -->
+        <div class="screenshot-item" onclick="openLightbox('screenshots/detail_panel.png', 'Detail panel — AI type, severity, risk score, and summary in one view')">
+          <img src="screenshots/detail_panel.png" alt="Incident detail panel">
+          <div class="screenshot-caption">
+            <span>Detail panel — AI classification, risk score, and summary</span>
+            <span class="screenshot-hint">click to expand ↗</span>
+          </div>
+        </div>
+
+        <!-- Screenshot 3: Submit form -->
+        <div class="screenshot-item" onclick="openLightbox('screenshots/submit_form.png', 'Submission form — accepts text, optional audio, and optional photo')">
+          <img src="screenshots/submit_form.png" alt="Citizen submission form">
+          <div class="screenshot-caption">
+            <span>Submission form — text, optional audio, optional photo</span>
+            <span class="screenshot-hint">click to expand ↗</span>
+          </div>
+        </div>
+
+        <!-- Screenshot 4: AI fields -->
+        <div class="screenshot-item" onclick="openLightbox('screenshots/ai_fields.png', 'AI output — type badge, severity, and risk score populated automatically')">
+          <img src="screenshots/ai_fields.png" alt="AI-generated fields">
+          <div class="screenshot-caption">
+            <span>AI output — type, severity badge, and risk score auto-populated</span>
+            <span class="screenshot-hint">click to expand ↗</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Lightbox overlay — hidden until a screenshot is clicked -->
+      <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <!-- Close button -->
+        <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+        <!-- The fullscreen image — src set by JavaScript when opened -->
+        <img id="lightbox-img" src="" alt="">
+        <!-- Caption — text set by JavaScript when opened -->
+        <div class="lightbox-caption" id="lightbox-caption"></div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       PIPELINE SECTION
+       Visual breakdown of the two-phase async pipeline
+  ============================================================ -->
+  <section class="section">
+    <div class="container">
+
+      <div class="section-header">
+        <span class="section-label">Under the Hood</span>
+        <h2 class="section-title">How the AI pipeline works</h2>
+      </div>
+
+      <div class="pipeline">
+        <div class="pipeline-phases">
+
+          <div class="pipeline-phase">
+            <div class="pipeline-phase-title">Phase 1 — runs first</div>
+
+            <div class="pipeline-model">
+              <div class="pipeline-model-name">🎤 Audio transcription</div>
+              <div class="pipeline-model-desc">If audio was uploaded, Whisper converts it to text. This runs at the same time as image analysis below.</div>
+            </div>
+
+            <div class="pipeline-model">
+              <div class="pipeline-model-name">📷 Image analysis</div>
+              <div class="pipeline-model-desc">If a photo was uploaded, DETR describes what's in it (vehicles, smoke, people, etc.).</div>
+            </div>
+          </div>
+
+          <div class="pipeline-phase">
+            <div class="pipeline-phase-title">Phase 2 — runs after Phase 1</div>
+
+            <div class="pipeline-model">
+              <div class="pipeline-model-name">🏷️ Incident classification</div>
+              <div class="pipeline-model-desc">Labels the incident as fire, medical, traffic, crime, noise, infrastructure, or other — plus a severity level (low / medium / high).</div>
+            </div>
+
+            <div class="pipeline-model">
+              <div class="pipeline-model-name">📝 Summary generation</div>
+              <div class="pipeline-model-desc">Writes a one or two sentence summary of what happened, pulling from the description, transcript, and image caption.</div>
+            </div>
+
+            <div class="pipeline-model">
+              <div class="pipeline-model-name">🎯 Urgency score</div>
+              <div class="pipeline-model-desc">Assigns a number from 0 to 1 representing how urgent the incident is. This is what the dashboard sorts by.</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="pipeline-timing">
+          Phase 1 tasks run at the same time as each other. Phase 2 tasks also run at the same time as each other.
+          Phase 2 waits for Phase 1 to finish first because it needs the transcript.
+          Total time: <strong style="color:#3b82f6">about 5 seconds</strong>.
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       TECH STACK SECTION
+       Each technology with context — not just logos
+  ============================================================ -->
+  <section class="section section-alt">
+    <div class="container">
+
+      <div class="section-header">
+        <span class="section-label">Built With</span>
+        <h2 class="section-title">Tech stack</h2>
+      </div>
+
+      <div class="tech-grid">
+
+        <div class="tech-card">
+          <div class="tech-name">FastAPI</div>
+          <div class="tech-role">The backend server. Handles all API requests, validates incoming data, and kicks off the AI pipeline in the background after each new incident.</div>
+        </div>
+
+        <div class="tech-card">
+          <div class="tech-name">React</div>
+          <div class="tech-role">The dispatcher dashboard. Fetches incidents from the backend and displays them in a live, filterable table with a detail panel on the side.</div>
+        </div>
+
+        <div class="tech-card">
+          <div class="tech-name">asyncio</div>
+          <div class="tech-role">Python's built-in tool for running tasks at the same time. Used so the AI models in each phase don't wait for each other unnecessarily.</div>
+        </div>
+
+        <div class="tech-card">
+          <div class="tech-name">Hugging Face</div>
+          <div class="tech-role">Hosts the four AI models used in the pipeline. Requests are sent over their API — no GPU or local model setup required.</div>
+        </div>
+
+        <div class="tech-card">
+          <div class="tech-name">SQLite + SQLAlchemy</div>
+          <div class="tech-role">The database where incidents and their AI-generated fields are stored. Indexed on type, severity, risk score, and date for fast filtering.</div>
+        </div>
+
+        <div class="tech-card">
+          <div class="tech-name">pytest</div>
+          <div class="tech-role">The test suite — 20 integration tests covering the full pipeline, all error conditions, and query performance.</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================================================
+       FOOTER
+       Links and closing credit
+  ============================================================ -->
+  <footer>
+    <div class="container">
+
+      <!-- Links row -->
+      <div class="footer-links">
+        <a class="footer-link"
+           href="https://github.com/Suhas-Bharthepude/civiclens-dispatch-"
+           target="_blank">
+          GitHub Repo
+        </a>
+        <a class="footer-link"
+           href="https://linkedin.com/in/suhasbharthepude"
+           target="_blank">
+          LinkedIn
+        </a>
+        <a class="footer-link"
+           href="mailto:bharthepude.s@northeastern.edu">
+          bharthepude.s@northeastern.edu
+        </a>
+        <a class="footer-link"
+           href="slides/architecture.html"
+           target="_blank">
+          Architecture Slides
+        </a>
+      </div>
+
+      <!-- Credit line -->
+      <div class="footer-credit">
+        Built by Suhas Bharthepude · CivicLens Dispatch · 64-day build · 2025–2026
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- Lightbox JavaScript -->
+  <script>
+    // openLightbox — called when user clicks a screenshot
+    // src: the image file path, caption: the caption text to show
+    function openLightbox(src, caption) {
+      // Set the image source to the clicked screenshot
+      document.getElementById('lightbox-img').src = src;
+
+      // Set the caption text
+      document.getElementById('lightbox-caption').textContent = caption;
+
+      // Show the lightbox by adding the .active class
+      document.getElementById('lightbox').classList.add('active');
+
+      // Prevent the page from scrolling while lightbox is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    // closeLightbox — called when user clicks the overlay or close button
+    function closeLightbox() {
+      // Hide the lightbox by removing the .active class
+      document.getElementById('lightbox').classList.remove('active');
+
+      // Restore page scrolling
+      document.body.style.overflow = '';
+    }
+
+    // Close lightbox when user presses Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  </script>
+</body>
+</html>
