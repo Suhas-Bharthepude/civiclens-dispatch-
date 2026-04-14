@@ -49,7 +49,7 @@ HF_IMAGE_CAPTION_URL = (
 
 # Set to True to use mock (no API calls, instant results)
 # Set to False to use the real Hugging Face API
-USE_MOCK_IMAGE_ANALYSIS = True
+USE_MOCK_IMAGE_ANALYSIS = False
 
 # How many times to retry the API call if it fails
 MAX_RETRIES = 3

@@ -25,7 +25,7 @@ from sqlalchemy import (
 )
 
 # Import datetime for setting default timestamps
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 # ========================================
@@ -63,7 +63,7 @@ incidents = Table(
 
     # When the incident was created in the database
     # default=datetime.utcnow sets this automatically on insert
-    Column("created_at", DateTime, default=datetime.utcnow),
+    Column("created_at", DateTime, default=lambda: datetime.now(timezone.utc)),
 
     # --- File upload paths ---
 

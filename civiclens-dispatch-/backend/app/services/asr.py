@@ -37,7 +37,7 @@ RETRY_DELAY = 2
 
 # Flag to use mock transcription (temporary workaround for API issues)
 # Set to True to use mock, False to use real API
-USE_MOCK_TRANSCRIPTION = True
+USE_MOCK_TRANSCRIPTION = False
 
 
 # ========================================

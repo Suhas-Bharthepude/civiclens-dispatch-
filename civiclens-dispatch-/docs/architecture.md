@@ -148,3 +148,56 @@ All results saved to database in single UPDATE query
 - Celery + Redis for distributed task queue
 - Map visualization for incident locations
 - User authentication and role management
+
+
+
+## Configuration Architecture (Day 67)
+
+### How Config Works
+
+All application settings live in `backend/app/config.py`. No other file reads directly from environment variables — everything goes through the `settings` object.
+
+```
+.env file  ──→  config.py Settings class  ──→  rest of the app
+                    ↓
+            environment-aware properties
+            (effective_debug, effective_cors_origins, etc.)
+```
+
+### Environment Variable → Behavior Map
+
+| Variable | Development | Production |
+|---|---|---|
+| `ENVIRONMENT` | `development` | `production` |
+| `DEBUG` | `true` | `false` (forced) |
+| `LOG_LEVEL` | `INFO` | `WARNING` (forced) |
+| `CORS_ORIGINS` | `*` (forced) | Your frontend URL |
+| `DATABASE_URL` | SQLite | PostgreSQL |
+| `HUGGINGFACE_API_KEY` | Your token | Your token |
+
+### Switching Environments
+
+**Development (local):**
+```bash
+# backend/.env
+ENVIRONMENT=development
+DATABASE_URL=sqlite+aiosqlite:///./test.db
+```
+
+**Production (server):**
+```bash
+# Set in Render / Railway / Heroku dashboard — never in a committed file
+ENVIRONMENT=production
+DATABASE_URL=postgresql+asyncpg://user:pass@host/db
+CORS_ORIGINS=https://your-app.vercel.app
+```
+
+No code changes between environments — only environment variables change.
+
+### Files
+
+| File | Purpose | Committed? |
+|---|---|---|
+| `backend/.env` | Your real local config with secrets | ❌ No (.gitignore) |
+| `backend/.env.example` | Template showing what variables are needed | ✅ Yes |
+| `backend/app/config.py` | Settings class + environment-aware properties | ✅ Yes |

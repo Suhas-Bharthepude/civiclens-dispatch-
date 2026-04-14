@@ -18,7 +18,7 @@
 
 # Import BaseModel from Pydantic — the base class all our models inherit from
 # BaseModel provides automatic data validation, serialization, and documentation
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 
 # Import Optional from typing — used to mark fields that can be None
 # Optional[str] means the field can be a string OR None
@@ -213,10 +213,19 @@ class IncidentResponse(BaseModel):
     
     # --- Pydantic configuration ---
     
+    @field_serializer('created_at')
+    def serialize_created_at(self, value: datetime) -> Optional[str]:
+        # Append "Z" so JavaScript's new Date() treats this as UTC,
+        # not local time. Without "Z", browsers interpret the string as
+        # local time and display the wrong hour.
+        if value is None:
+            return None
+        return value.strftime('%Y-%m-%dT%H:%M:%S') + 'Z'
+
     class Config:
         """
         Pydantic model configuration.
-        
+
         from_attributes = True (formerly orm_mode = True) tells Pydantic
         to read data from SQLAlchemy model attributes, not just dictionaries.
         This allows us to pass database row objects directly to this model

@@ -4489,3 +4489,109 @@ The final phase focuses on deployment and presentation:
 
 
 
+
+
+
+
+
+
+
+
+
+## Day 67: Production vs Development Configuration
+
+### What I built
+Updated `config.py` to be environment-aware — the app now automatically adjusts its behavior based on a single `ENVIRONMENT` variable. Added `configure_logging()` and `print_startup_summary()` helpers called at startup. Updated `main.py` to use environment-aware properties for debug mode, CORS, API docs visibility, and logging.
+
+### The Core Idea: One Variable Controls Everything
+
+Setting `ENVIRONMENT=production` in your server's environment variables automatically triggers:
+- Debug mode off (never expose stack traces to users)
+- Log level set to WARNING (don't fill server storage with INFO logs)
+- CORS restricted to specific frontend URL only
+- API docs (/docs, /redoc) hidden
+- 4 worker processes instead of 1
+
+You don't edit any code between environments. Only the config changes.
+
+### What Each Property Does
+
+**`is_development` / `is_production`**
+Simple boolean checks. Used everywhere else: `if settings.is_development: ...`
+
+**`effective_debug`**
+Returns the DEBUG setting, but forces False in production no matter what.
+Why: If someone accidentally sets DEBUG=true in a production .env, you still never expose stack traces.
+
+**`effective_log_level`**
+Returns LOG_LEVEL in development, but forces WARNING in production.
+Why: DEBUG/INFO logs in production generate thousands of lines per hour and fill server storage.
+
+**`effective_cors_origins`**
+Returns ["*"] in development (localhost just works), returns the specific URLs from CORS_ORIGINS in production.
+Why: Allowing all origins in production means any website on the internet could make requests to your API.
+
+**`effective_workers`**
+Returns 1 in development (easy to debug), 4 in production (handles more concurrent requests).
+
+### Why Not Just Use if/else in main.py?
+
+Bad pattern — scattered environment checks everywhere:
+```python
+# main.py
+if os.getenv("ENVIRONMENT") == "production":
+    debug = False
+else:
+    debug = True
+
+# routes/incidents.py
+if os.getenv("ENVIRONMENT") == "production":
+    log_level = "WARNING"
+```
+
+Good pattern — all environment logic in one place:
+```python
+# config.py — one place
+@property
+def effective_debug(self):
+    if self.is_production:
+        return False
+    return self.DEBUG
+
+# everywhere else — just read it
+app = FastAPI(debug=settings.effective_debug)
+```
+
+The config file is the single source of truth. If you want to change how production behaves, you change it in one place.
+
+### The Safety Net Pattern
+
+```python
+@property
+def effective_debug(self) -> bool:
+    if self.is_production:
+        return False   # Always off in prod, no exceptions
+    return self.DEBUG  # In dev, respect whatever .env says
+```
+
+This is called a safety net — even if configuration is wrong (someone set DEBUG=true in production), the property corrects it. You can never accidentally run debug mode in production.
+
+### Dev vs Prod at a Glance
+
+| Setting | Development | Production |
+|---|---|---|
+| Debug mode | True | **Always False** |
+| Log level | INFO/DEBUG | **Always WARNING** |
+| CORS | ["*"] (allow all) | Specific URL only |
+| API docs (/docs) | Visible | Hidden |
+| Workers | 1 | 4 |
+| Auto-reload | True | False |
+
+### Key Concepts Learned
+- **Environment variables** — the standard way to configure apps for different environments without changing code
+- **Safety nets** — properties that enforce correct behavior even if the raw config value is wrong
+- **Single source of truth** — all environment logic in config.py, nowhere else
+- **12-factor app** — the industry standard for building deployable apps; factor 3 is "store config in the environment"
+
+### Next Steps
+Day 68 — Docker. Now that config is environment-aware, containerizing the app is straightforward: build the image once, run it anywhere by passing environment variables.
