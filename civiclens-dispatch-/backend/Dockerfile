@@ -1,93 +1,129 @@
 # backend/Dockerfile
-# Builds a Docker container for the CivicLens Dispatch FastAPI backend
 #
-# This container includes:
-#   - Python 3.13
-#   - All Python dependencies from requirements.txt
-#   - The application code
-#   - Uvicorn server configured to start automatically
+# Recipe for building the CivicLens Dispatch backend into a Docker image.
+# Docker reads this top to bottom and executes each instruction in order.
 #
-# Usage:
-#   docker build -t civiclens-backend .
-#   docker run -p 8000:8000 --env-file .env civiclens-backend
+# Build manually:  docker build -t civiclens-backend .
+# Run via compose: docker compose up --build
 #
-# Or use docker-compose (recommended):
-#   docker-compose up --build
-#
-# Day 58: Docker containerization
+# Day 68: Docker containerization
 
-# ========================================
+# ============================================================
 # BASE IMAGE
-# ========================================
-# Start from the official Python 3.13 slim image
-# "slim" is a smaller version (~150MB vs ~1GB for full)
-# It has Python pre-installed but not extra tools we don't need
-FROM python:3.13-slim
+# Start from an official Python 3.11 image on slim Linux.
+# "slim" = minimal OS with just enough to run Python (~50MB vs 900MB full).
+# We pin to 3.11 specifically so the image never changes unexpectedly.
+# ============================================================
 
-# ========================================
-# ENVIRONMENT VARIABLES
-# ========================================
-# PYTHONDONTWRITEBYTECODE=1 prevents Python from creating .pyc files
-# These cache files are unnecessary in a container (saves space)
-ENV PYTHONDONTWRITEBYTECODE=1
+FROM python:3.11-slim
 
-# PYTHONUNBUFFERED=1 forces Python to print output immediately
-# Without this, log messages might be delayed or lost in Docker
-ENV PYTHONUNBUFFERED=1
 
-# ========================================
+# ============================================================
+# SYSTEM DEPENDENCIES
+# Install Linux packages that some Python packages need to compile.
+# This runs before everything else because it rarely changes
+# and we want Docker to cache it aggressively.
+# ============================================================
+
+RUN apt-get update \
+    # --no-install-recommends keeps the image small (no optional extras)
+    && apt-get install -y --no-install-recommends \
+        # curl is needed for the health check command later
+        curl \
+        # gcc is a C compiler needed by some Python packages
+        gcc \
+        # libpq-dev has PostgreSQL client headers (needed when we add Postgres)
+        libpq-dev \
+    # Delete the package cache after install — we don't need it anymore
+    # This reduces the final image size
+    && rm -rf /var/lib/apt/lists/*
+
+
+# ============================================================
 # WORKING DIRECTORY
-# ========================================
-# Set the working directory inside the container
-# All subsequent commands run from this directory
-# This is like doing "cd /app" inside the container
+# All subsequent instructions run inside /app.
+# This is the folder where your code lives inside the container.
+# ============================================================
+
+# Create /app and switch into it
 WORKDIR /app
 
-# ========================================
-# INSTALL DEPENDENCIES
-# ========================================
-# Copy requirements.txt FIRST, before the rest of the code
-# This is a Docker optimization called "layer caching"
-# If requirements.txt hasn't changed, Docker reuses the cached layer
-# and skips pip install (which is slow), even if your code changed
+
+# ============================================================
+# INSTALL PYTHON DEPENDENCIES
+# IMPORTANT: We copy requirements.txt and install packages BEFORE
+# copying the rest of the code.
+#
+# Why? Docker caches each step as a "layer."
+# If requirements.txt hasn't changed, Docker reuses the cached
+# pip install layer even if your Python files changed.
+# This makes rebuilds much faster — seconds instead of minutes.
+# ============================================================
+
+# Copy only requirements.txt first (not the whole project)
 COPY requirements.txt .
 
-# Install all Python packages from requirements.txt
-# --no-cache-dir saves space by not caching downloaded packages
-# --upgrade pip ensures we have the latest pip version
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Upgrade pip then install everything in requirements.txt
+# --no-cache-dir = don't store pip's download cache (reduces image size)
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
-# ========================================
+
+# ============================================================
 # COPY APPLICATION CODE
-# ========================================
-# Copy the entire backend directory into the container
-# The .dockerignore file excludes unnecessary files (.venv, test.db, etc.)
+# Now copy the rest of the code — AFTER pip install.
+# The .dockerignore file controls what gets excluded:
+#   .venv, .env, .git, __pycache__, test.db are all excluded.
+# ============================================================
+
+# Copy everything from backend/ into /app inside the container
 COPY . .
 
-# ========================================
-# CREATE MEDIA DIRECTORIES
-# ========================================
-# Ensure the upload directories exist inside the container
-# These are where audio and image files get stored temporarily
-RUN mkdir -p app/media/tmp/audio app/media/tmp/images
 
-# ========================================
+# ============================================================
+# CREATE UPLOAD DIRECTORIES
+# The app saves uploaded audio and images here.
+# These directories must exist before uvicorn starts.
+# ============================================================
+
+# -p = create parent directories too, no error if they already exist
+RUN mkdir -p app/media/tmp/audio \
+    && mkdir -p app/media/tmp/images \
+    && mkdir -p app/media/tmp/documents
+
+
+# ============================================================
+# ENVIRONMENT VARIABLES
+# Default env vars that apply inside the container.
+# These can all be overridden by docker-compose.yml or the hosting platform.
+# ============================================================
+
+# Don't write .pyc bytecode files — not needed in a container
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Don't buffer stdout/stderr — print() output appears in docker logs immediately
+ENV PYTHONUNBUFFERED=1
+
+# Set Python module search path to /app so imports work correctly
+ENV PYTHONPATH=.
+
+
+# ============================================================
 # EXPOSE PORT
-# ========================================
-# Document that this container listens on port 8000
-# This doesn't actually publish the port — that's done with -p flag or docker-compose
+# Documents that the container listens on port 8000.
+# This alone doesn't publish the port — docker-compose.yml does that.
+# ============================================================
+
 EXPOSE 8000
 
-# ========================================
+
+# ============================================================
 # STARTUP COMMAND
-# ========================================
-# The command that runs when the container starts
-# uvicorn app.main:app — runs the FastAPI application
-# --host 0.0.0.0 — listen on all network interfaces (required for Docker)
-#   Without this, the server only listens on localhost (127.0.0.1)
-#   which is not accessible from outside the container
-# --port 8000 — listen on port 8000
-# --workers 2 — run 2 worker processes for handling concurrent requests
-#   In production, set this to (2 * CPU_CORES) + 1
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# The command Docker runs when the container starts.
+# --host 0.0.0.0 = accept connections from any IP (required in Docker)
+# --port 8000    = listen on port 8000
+# --workers 1    = one worker (fine for dev; increase for production)
+# No --reload    = auto-reload is for development only, not containers
+# ============================================================
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

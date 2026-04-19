@@ -1,47 +1,88 @@
 # backend/.dockerignore
-# Files and directories that should NOT be copied into the Docker image
-# This keeps the image small and avoids leaking secrets
 #
-# Day 58: Docker containerization
+# Tells Docker which files to EXCLUDE when copying the project into the image.
+# Works exactly like .gitignore.
+#
+# Without this file Docker copies EVERYTHING — including your .venv
+# (hundreds of MB), .env (your secrets), and test databases.
+# This file keeps the image small and secrets-free.
+#
+# Day 68: Docker containerization
 
-# Virtual environment — dependencies are installed fresh via requirements.txt
-.venv/
-venv/
-__pycache__/
-*.pyc
+# ============================================================
+# SECRETS — never bake these into an image
+# If an image with your .env gets pushed to a registry,
+# your API token is exposed to anyone who pulls it.
+# ============================================================
 
-# Environment file — secrets should be passed at runtime, not baked into image
 .env
+.env.local
+.env.production
 
-# SQLite database — container starts with fresh database
+# ============================================================
+# VIRTUAL ENVIRONMENT
+# Docker installs packages fresh via pip using requirements.txt.
+# The .venv folder is hundreds of MB and is not needed in the image.
+# ============================================================
+
+.venv
+venv
+env
+
+# ============================================================
+# GIT HISTORY
+# Version control files are not needed to run the app.
+# ============================================================
+
+.git
+.gitignore
+.gitattributes
+
+# ============================================================
+# PYTHON CACHE
+# Auto-generated at runtime — don't bake stale ones in.
+# ============================================================
+
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# ============================================================
+# TEST FILES
+# Tests don't run inside the production container.
+# ============================================================
+
+scripts/test_*.py
+.pytest_cache
+.coverage
+htmlcov/
+
+# ============================================================
+# DATABASES
+# The container creates its own fresh database on first run.
+# ============================================================
+
 test.db
 *.db
 
-# Git directory — not needed in the container
-.git/
-.gitignore
+# ============================================================
+# UPLOADED MEDIA
+# Don't bake test uploads into the image.
+# Real uploads happen at runtime and are persisted via volumes.
+# The Dockerfile creates the empty directories separately.
+# ============================================================
 
-# IDE and editor files
+app/media/tmp/
+
+# ============================================================
+# EDITOR AND OS FILES
+# ============================================================
+
 .vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Test and script files (optional — exclude if not needed in production)
-# Uncomment these if you don't want test scripts in the production image:
-# tests/
-# scripts/
-
-# OS-generated files
 .DS_Store
-Thumbs.db
+*.egg-info/
+dist/
+build/
 
-# Uploaded media files — container starts clean
-app/media/tmp/audio/*
-app/media/tmp/images/*
-
-# Documentation — not needed at runtime
-docs/
-notes/
-*.md
+# NOTE: Do NOT ignore requirements.txt — the Dockerfile needs it.

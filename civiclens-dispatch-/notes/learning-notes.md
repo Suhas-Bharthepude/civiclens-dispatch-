@@ -4595,3 +4595,88 @@ This is called a safety net — even if configuration is wrong (someone set DEBU
 
 ### Next Steps
 Day 68 — Docker. Now that config is environment-aware, containerizing the app is straightforward: build the image once, run it anywhere by passing environment variables.
+
+
+
+
+
+
+
+
+
+## Day 68: Docker Containerization
+
+### What I built
+Three files that package the CivicLens backend into a portable container:
+- `backend/Dockerfile` — recipe for building the backend image
+- `backend/.dockerignore` — excludes secrets, venv, cache, and test files from the image
+- `docker-compose.yml` — defines the full stack and how to run it with one command
+
+### Core Concepts
+
+**Image vs Container**
+- Image = the blueprint (static). Built once from the Dockerfile, reused many times.
+- Container = a running instance of an image (active).
+- `docker build` creates an image. `docker compose up` creates and starts a container from it.
+
+**Why Docker?**
+Without Docker, running your app on a new machine requires manually installing
+the right Python version, creating a venv, installing packages, configuring .env,
+and running the right command. With Docker it's just `docker compose up --build`.
+The image bundles everything — Python version, packages, code, startup command.
+
+**Layer Caching — Why Package Order Matters**
+Docker builds images in layers, one per instruction. If a layer hasn't changed,
+Docker reuses the cached version. That's why we install packages before copying code:
+
+```dockerfile
+COPY requirements.txt .          # Layer: rarely changes
+RUN pip install -r requirements.txt  # Layer: cached unless requirements.txt changes
+COPY . .                         # Layer: changes often — but packages already cached
+```
+
+If you copy all code first then pip install, every single code change triggers
+a full package reinstall. With the right order, rebuilds take seconds not minutes.
+
+**Secrets in Docker — Never Bake Them In**
+Never put API tokens or passwords in a Dockerfile.
+Images can be inspected, shared, or accidentally pushed to public registries.
+Secrets go in environment variables injected at runtime:
+- Development: `env_file: ./backend/.env` in docker-compose.yml
+- Production: environment variables set in the hosting dashboard (Render, Railway)
+
+**.dockerignore is Critical**
+Without it Docker copies your entire project including:
+- `.venv/` — hundreds of MB (Docker installs its own via pip)
+- `.env` — your API token
+- `test.db` — your dev database
+- `.git/` — full version history
+Always create `.dockerignore` before building.
+
+**Volumes — Persisting Data**
+Files written inside a container disappear when it restarts.
+Volumes fix this by linking a folder on your machine to a folder inside the container:
+```yaml
+volumes:
+  - ./backend/app/media:/app/app/media  # uploads survive restarts
+  - ./backend/test.db:/app/test.db      # database survives restarts
+```
+
+**Health Checks**
+Docker periodically hits `/health` to verify the app is genuinely responding,
+not just running. After 3 consecutive failures it marks the container unhealthy.
+
+### Key Commands
+
+```bash
+docker compose up --build   # Build images and start containers
+docker compose up -d        # Start in background
+docker compose down         # Stop and remove containers
+docker compose logs -f      # Follow all logs live
+docker ps                   # List running containers
+docker images               # List built images
+```
+
+### Next Steps
+Day 69 — Final end-to-end QA. Test the whole app as a real user would,
+catch any remaining edge cases before the final polish days.
