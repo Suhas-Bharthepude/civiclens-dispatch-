@@ -17,14 +17,16 @@
 //   incident       - the currently selected incident object (or null)
 //   onClose        - called when dispatcher clicks Close or presses ESC
 //   onStatusChange - called after a status update: onStatusChange(id, newStatus)
+//   onDeleted      - called after a successful delete so parent can clear state (Day 72)
+//   userRole       - "admin" or "dispatcher"; delete button is hidden for dispatchers
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 // CSS for this panel
 import './IncidentDetail.css'
 
-// API functions for status updates and reprocessing
-import { updateIncidentStatus, reprocessIncident } from '../../api/client'
+// API functions for status updates, reprocessing, and delete (Day 72)
+import { updateIncidentStatus, reprocessIncident, deleteIncident } from '../../api/client'
 
 // ============================================================
 // AI BADGE — small inline sub-component
@@ -148,14 +150,12 @@ const StatusActions = ({ currentStatus, isUpdating, onUpdate }) => {
 // ============================================================
 // MAIN COMPONENT: IncidentDetail
 // ============================================================
-const IncidentDetail = ({ incident, onClose, onStatusChange }) => {
+const IncidentDetail = ({ incident, onClose, onStatusChange, onDeleted, userRole }) => {
 
   // isUpdating: true while the PATCH request is in flight
-  // Used to disable all status buttons to prevent double-clicking
   const [isUpdating, setIsUpdating] = useState(false)
 
-  // updateError: stores an error message if the PATCH request fails
-  // Displayed as a small error banner in the footer area
+  // updateError: stores an error message if the PATCH/DELETE request fails
   const [updateError, setUpdateError] = useState(null)
 
   // ── STATUS CHANGE HANDLER ──────────────────────────────
@@ -199,6 +199,24 @@ const IncidentDetail = ({ incident, onClose, onStatusChange }) => {
     } finally {
       // Always re-enable buttons, whether request succeeded or failed
       // 'finally' runs even if the try or catch threw an error
+      setIsUpdating(false)
+    }
+  }
+
+  // ── DELETE HANDLER (Day 72 — admin only) ──────────────
+  // Asks for confirmation, then permanently deletes the incident.
+  // Backend enforces the admin role — the button is hidden in the UI too.
+  const handleDelete = async () => {
+    if (!window.confirm(`Permanently delete incident #${incident.id}? This cannot be undone.`)) return
+    setIsUpdating(true)
+    setUpdateError(null)
+    try {
+      await deleteIncident(incident.id)
+      // Tell App.jsx to clear the selected incident and refresh the list
+      onDeleted?.()
+    } catch (err) {
+      setUpdateError(`Delete failed: ${err.message}`)
+    } finally {
       setIsUpdating(false)
     }
   }
@@ -437,6 +455,20 @@ const IncidentDetail = ({ incident, onClose, onStatusChange }) => {
           >
             🔄 Reprocess
           </button>
+
+          {/* Delete button (Day 72) — visible to admin users only.
+              The backend also enforces this via require_role("admin"),
+              so hiding in the UI is defence-in-depth, not the only guard. */}
+          {userRole === 'admin' && (
+            <button
+              className="btn btn--danger"
+              onClick={handleDelete}
+              disabled={isUpdating}
+              title="Permanently delete this incident (admin only)"
+            >
+              🗑 Delete
+            </button>
+          )}
 
           {/* Close button — always present on the right */}
           <button className="btn btn--secondary" onClick={onClose}>

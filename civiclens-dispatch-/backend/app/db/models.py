@@ -102,6 +102,36 @@ incidents = Table(
 
 
 # ========================================
+# USERS TABLE (Day 72)
+# ========================================
+# Stores dispatcher and admin accounts.
+# Passwords are stored as bcrypt hashes — never plaintext.
+# The role column controls which endpoints a user may call:
+#   "dispatcher" — can view, create, update, reprocess incidents
+#   "admin"      — all dispatcher rights plus DELETE /incidents/{id}
+
+users = Table(
+    "users",
+    metadata,
+
+    # Primary key — auto-incremented integer ID
+    Column("id", Integer, primary_key=True, autoincrement=True),
+
+    # Login name — must be unique across all users
+    Column("username", String, unique=True, nullable=False),
+
+    # bcrypt hash of the password — never store plaintext
+    Column("hashed_password", String, nullable=False),
+
+    # Role string: "admin" or "dispatcher"
+    Column("role", String, nullable=False),
+
+    # Creation timestamp — useful for auditing account creation
+    Column("created_at", DateTime, default=lambda: datetime.now(timezone.utc)),
+)
+
+
+# ========================================
 # DATABASE INDEXES (Day 56)
 # ========================================
 # Indexes speed up queries that filter or sort by these columns.

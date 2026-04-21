@@ -87,6 +87,14 @@ class Settings:
             return url.replace("postgresql+asyncpg", "postgresql")
         return url
 
+    # ── AUTH (Day 72) ────────────────────────────────
+
+    # Secret key used to sign JWTs.
+    # NEVER commit a real secret — this default is intentionally obvious
+    # so it cannot be shipped to production without a visible change.
+    # Generate a production value with: openssl rand -hex 32
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "CHANGE-ME-dev-only-not-for-production")
+
     # ── AI / HUGGING FACE ───────────────────────────
 
     # Hugging Face API key for accessing AI models
