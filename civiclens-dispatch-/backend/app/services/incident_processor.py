@@ -305,8 +305,18 @@ async def process_incident(incident_id: int, log_message: str = None) -> None:
     
     phase2_time = time.perf_counter() - phase2_start
     print(f"[{timestamp}]   ⏱️  Phase 2 total: {phase2_time:.1f}s")
-    
-    
+
+    # Calibrate risk score so it reflects the determined severity.
+    # The ML weighted-sum produces mid-range values (~0.5-0.65) even for
+    # clearly critical incidents, so we enforce minimum/maximum bounds here.
+    if severity == "high":
+        risk_score = max(risk_score, 0.75)
+    elif severity == "low":
+        risk_score = min(risk_score, 0.30)
+    risk_score = round(risk_score, 4)
+    print(f"[{timestamp}]   📊 Final risk (after severity calibration): {risk_score:.4f} [{severity}]")
+
+
     # ========================================
     # STEP 3: Save All Results to Database
     # ========================================

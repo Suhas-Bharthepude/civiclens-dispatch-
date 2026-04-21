@@ -38,25 +38,22 @@ CLASSIFIER_MODEL_URL = "https://router.huggingface.co/hf-inference/models/facebo
 # Each label is written as a natural language description so the model understands it
 # The model picks whichever label best matches the meaning of the incident text
 INCIDENT_TYPE_LABELS = [
-    "fire or explosion emergency",                # Maps to → "fire"
-    "medical emergency or health crisis",          # Maps to → "medical"
-    "traffic accident or vehicle collision",       # Maps to → "traffic"
-    "criminal activity theft robbery or assault",  # Maps to → "crime"
-    "noise disturbance or noise complaint",        # Maps to → "noise"
-    "infrastructure damage water leak or flood",   # Maps to → "infrastructure"
-    "other general matter or miscellaneous issue", # Maps to → "other"
+    "fire or explosion emergency",                                          # Maps to → "fire"
+    "medical emergency or health crisis",                                   # Maps to → "medical"
+    "traffic accident or vehicle collision",                                # Maps to → "traffic"
+    "criminal activity theft robbery or assault",                           # Maps to → "crime"
+    "noise disturbance or noise complaint",                                 # Maps to → "noise"
+    "power line electrical outage infrastructure damage utility failure",   # Maps to → "infrastructure"
+    "other general matter or miscellaneous issue",                          # Maps to → "other"
 ]
 
-# Mapping from the natural language labels above to the short type names
-# stored in our database. The database uses short strings like "fire", "medical"
-# This dictionary translates the model's label back to our database format
 LABEL_TO_TYPE = {
     "fire or explosion emergency": "fire",
     "medical emergency or health crisis": "medical",
     "traffic accident or vehicle collision": "traffic",
     "criminal activity theft robbery or assault": "crime",
     "noise disturbance or noise complaint": "noise",
-    "infrastructure damage water leak or flood": "infrastructure",
+    "power line electrical outage infrastructure damage utility failure": "infrastructure",
     "other general matter or miscellaneous issue": "other",
 }
 
@@ -75,6 +72,22 @@ LABEL_TO_SEVERITY = {
     "moderate severity situation requiring attention but not immediately dangerous": "medium",
     "minor low severity non-urgent issue that can be handled routinely": "low",
 }
+
+# Keywords that override the ML severity classification when present.
+# The ML model (BART-large-mnli) is reliable for incident TYPE but often
+# under-estimates severity for extreme descriptions. These lists patch that gap.
+CRITICAL_SEVERITY_KEYWORDS = [
+    "unresponsive", "no pulse", "not breathing", "cardiac arrest", "cpr",
+    "explosion", "explosions", "spreading to adjacent", "engulfed",
+    "trapped", "fatality", "fatalities", "life-threatening",
+    "sparking", "downed power line", "downed line", "power line",
+    "multiple casualties", "mass casualty",
+]
+
+LOW_SEVERITY_KEYWORDS = [
+    "noise complaint", "loud music", "noise disturbance",
+    "pothole", "graffiti", "non-urgent", "barking dog",
+]
 
 # Maximum number of retries if the model is loading (503 status)
 MAX_RETRIES = 4
@@ -152,14 +165,17 @@ async def classify_incident(text: str) -> dict:
         # --- PASS 2: Classify severity ---
         # Send the text with severity labels
         severity_result = await _call_zero_shot_api(text, SEVERITY_LABELS)
-        
+
         # Find the label with the highest confidence
         top_severity_label = severity_result[0]["label"]
         top_severity_confidence = severity_result[0]["score"]
-        
+
         # Map to our short database severity name
         severity = LABEL_TO_SEVERITY.get(top_severity_label, "medium")
-        
+
+        # Override with keyword check — ML underestimates severity for extreme text
+        severity = _apply_severity_keywords(text, severity)
+
         # Return the classification results
         return {
             "incident_type": incident_type,
@@ -174,6 +190,27 @@ async def classify_incident(text: str) -> dict:
         print(f"  ⚠️  ML classification failed: {str(e)}")
         print(f"  ⚠️  Falling back to keyword-based classification")
         return _fallback_classification(text)
+
+
+# ========================================
+# SEVERITY KEYWORD OVERRIDE
+# ========================================
+
+def _apply_severity_keywords(text: str, ml_severity: str) -> str:
+    """
+    Override ML severity when unambiguous critical or low keywords are present.
+    BART-large-mnli reliably classifies incident type but tends to underestimate
+    severity for extreme descriptions, so we patch the result here.
+    """
+    text_lower = text.lower()
+    for kw in CRITICAL_SEVERITY_KEYWORDS:
+        if kw in text_lower:
+            return "high"
+    if ml_severity != "high":
+        for kw in LOW_SEVERITY_KEYWORDS:
+            if kw in text_lower:
+                return "low"
+    return ml_severity
 
 
 # ========================================

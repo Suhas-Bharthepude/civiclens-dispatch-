@@ -105,6 +105,8 @@ async def create_incident(
         severity=None,
         audio_path=None,
         image_path=None,
+        # New incidents start as pending — dispatcher changes via status buttons
+        status="pending",
     )
 
     # Execute the INSERT and get the auto-generated ID
@@ -241,6 +243,7 @@ async def get_incident_stats():
         func.count(case((incidents.c.incident_type == "medical", 1))).label("medical_count"),
         func.count(case((incidents.c.incident_type == "crime", 1))).label("crime_count"),
         func.count(case((incidents.c.incident_type == "traffic", 1))).label("traffic_count"),
+        func.count(case((incidents.c.incident_type == "noise", 1))).label("noise_count"),
         func.count(case((incidents.c.incident_type == "infrastructure", 1))).label("infrastructure_count"),
         func.count(case((incidents.c.incident_type == "other", 1))).label("other_count"),
         # Count of high-risk incidents (risk score above 0.7)
@@ -267,6 +270,7 @@ async def get_incident_stats():
             "medical":        raw["medical_count"],
             "crime":          raw["crime_count"],
             "traffic":        raw["traffic_count"],
+            "noise":          raw["noise_count"],
             "infrastructure": raw["infrastructure_count"],
             "other":          raw["other_count"],
         },

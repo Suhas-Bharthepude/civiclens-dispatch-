@@ -2,9 +2,6 @@
 # This file sets up the database connection for the application
 # It uses async database access for FastAPI
 
-# Import SQLAlchemy's MetaData to track table definitions
-from sqlalchemy import MetaData
-
 # Import SQLAlchemy's create_engine for sync operations (table creation only)
 from sqlalchemy import create_engine
 
@@ -13,6 +10,11 @@ from databases import Database
 
 # Import settings from config
 from app.config import settings
+
+# Import the canonical metadata that has the incidents table registered on it.
+# This MUST come from models.py — database.py must not create its own MetaData()
+# because create_all(engine) would then run on an empty registry and create nothing.
+from app.db.models import metadata
 
 
 # Create the async database connection object
@@ -37,8 +39,3 @@ else:
         "postgresql+psycopg2://"
     )
     engine = create_engine(sync_db_url)
-
-
-# Shared metadata object
-# All table definitions will register here
-metadata = MetaData()

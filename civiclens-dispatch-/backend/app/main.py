@@ -253,7 +253,7 @@ async def pipeline_health():
 
     # Build a status dict for each AI service
     services = {
-        "asr":            {"status": "mock" if USE_MOCK_TRANSCRIPTION else "ok",  "model": "openai/whisper-small"},
+        "asr":            {"status": "mock" if USE_MOCK_TRANSCRIPTION else "ok",  "model": "openai/whisper-large-v3-turbo"},
         "classification": {"status": "mock" if USE_MOCK_CLASSIFICATION else "ok", "model": "facebook/bart-large-mnli"},
         "summarization":  {"status": "mock" if USE_MOCK_SUMMARIZATION else "ok",  "model": "facebook/bart-large-cnn"},
         "image_analysis": {"status": "mock" if USE_MOCK_IMAGE_ANALYSIS else "ok", "model": "Salesforce/blip-image-captioning-base"},

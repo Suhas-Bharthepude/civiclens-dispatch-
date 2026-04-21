@@ -149,7 +149,7 @@ async def pipeline_health():
         # ASR: audio → text using Whisper
         "asr": service_status(
             is_mock=USE_MOCK_TRANSCRIPTION,
-            model_name="openai/whisper-small",
+            model_name="openai/whisper-large-v3-turbo",
             description="Audio transcription (speech-to-text)",
         ),
         # Classification: text → type + severity using BART-MNLI

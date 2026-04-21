@@ -21,7 +21,7 @@ import './SubmitIncidentForm.css'
 // Component that renders incident submission form
 // Props:
 //   - onIncidentSubmitted: Callback function to notify parent when incident is created
-function SubmitIncidentForm({ onIncidentSubmitted }) {
+function SubmitIncidentForm({ onSubmitted }) {
   
   // ========================================
   // STATE - Form Data
@@ -311,8 +311,8 @@ function SubmitIncidentForm({ onIncidentSubmitted }) {
       // Notify parent component that incident was submitted
       // Parent (App.jsx) will increment refreshTrigger
       // This causes IncidentsList to re-fetch and show the new incident
-      if (onIncidentSubmitted) {
-        onIncidentSubmitted();
+      if (onSubmitted) {
+        onSubmitted();
       }
       
       // Hide success message after 5 seconds

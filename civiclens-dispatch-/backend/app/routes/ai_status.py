@@ -51,8 +51,8 @@ router = APIRouter(
 # and what type of health check to run (text or image)
 AI_MODELS = [
     {
-        "name": "openai/whisper-base",
-        "url": "https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3",
+        "name": "openai/whisper-large-v3-turbo",
+        "url": "https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3-turbo",
         "task": "Audio Transcription (ASR)",
         "check_type": "audio",
     },
@@ -76,10 +76,10 @@ AI_MODELS = [
     },
 ]
 
-# Timeout for health check requests (seconds)
-# Health checks should be fast — if a model doesn't respond in 10 seconds,
-# we consider it unavailable
-HEALTH_CHECK_TIMEOUT = 10
+# HF serverless models (especially bart-large-mnli) routinely take 10-15s
+# to respond when cold. 30s matches real classification timeout well enough
+# to avoid false "degraded" reports on a working pipeline.
+HEALTH_CHECK_TIMEOUT = 30
 
 
 # ========================================

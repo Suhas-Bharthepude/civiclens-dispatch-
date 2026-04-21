@@ -18,7 +18,7 @@ import AIStatusIndicator  from './components/dashboard/AIStatusIndicator'
 function App() {
   const [selectedIncident, setSelectedIncident] = useState(null)
   const [refreshTrigger,   setRefreshTrigger]   = useState(0)
-  const { toasts, addToast } = useToast()
+  const { toasts, showToast: addToast } = useToast()
 
   useEffect(() => {
     const onKey = (e) => {

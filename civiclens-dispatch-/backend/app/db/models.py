@@ -94,6 +94,10 @@ incidents = Table(
 
     # Image caption from DETR object detection (Day 48)
     Column("image_caption", String, nullable=True),
+
+    # Dispatcher-managed status of this incident
+    # Values: "pending" (new, unhandled), "active" (being handled), "resolved" (closed)
+    Column("status", String, default="pending", nullable=False),
 )
 
 

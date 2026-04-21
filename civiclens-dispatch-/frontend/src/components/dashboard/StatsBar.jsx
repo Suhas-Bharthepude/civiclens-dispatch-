@@ -82,9 +82,9 @@ function StatsBar({ refreshTrigger }) {
     inc => inc.incident_type && inc.incident_type.toLowerCase() === 'fire'
   ).length
   
-  // Count of low-risk incidents as "resolved" (risk < 0.3)
+  // Count of incidents the dispatcher has marked resolved
   const resolved = incidents.filter(
-    inc => inc.risk_score !== null && inc.risk_score !== undefined && inc.risk_score < 0.3
+    inc => inc.status === 'resolved'
   ).length
   
   

@@ -22,9 +22,9 @@ from app.config import settings
 # CONFIGURATION
 # ========================================
 
-# Hugging Face API endpoint for Whisper model
-# Using whisper-small as it's more stable than whisper-base
-HF_API_URL = "https://router.huggingface.co/hf-inference/models/openai/whisper-small"
+# whisper-small is no longer supported by hf-inference provider (returns 400).
+# whisper-large-v3-turbo is actively deployed on HF serverless inference.
+HF_API_URL = "https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3-turbo"
 
 
 # Maximum number of retry attempts if API fails
@@ -120,11 +120,10 @@ async def transcribe_audio(audio_path: str) -> str:
     # STEP 3: Prepare API request
     # ========================================
     
-    # Prepare authorization header with API token
-    # "Bearer" is the authentication scheme
-    # settings.HUGGINGFACE_API_KEY comes from .env file
+    # Content-Type is required — without it the router returns 500 "Internal Error"
     headers = {
-        "Authorization": f"Bearer {settings.HUGGINGFACE_API_KEY}"
+        "Authorization": f"Bearer {settings.HUGGINGFACE_API_KEY}",
+        "Content-Type": "audio/wav",
     }
     
     # Check if API key is configured

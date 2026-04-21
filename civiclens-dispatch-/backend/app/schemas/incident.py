@@ -22,7 +22,7 @@ from pydantic import BaseModel, field_serializer
 
 # Import Optional from typing — used to mark fields that can be None
 # Optional[str] means the field can be a string OR None
-from typing import Optional
+from typing import Optional, Literal
 
 # Import datetime for the created_at timestamp field
 # This tells Pydantic to expect a datetime object (not just a string)
@@ -117,6 +117,9 @@ class IncidentUpdate(BaseModel):
     # Image caption from DETR object detection (Day 48)
     image_caption: Optional[str] = None
 
+    # Dispatcher-managed status — only these three values are valid
+    status: Optional[Literal["pending", "active", "resolved"]] = None
+
 
 # ========================================
 # RESPONSE MODEL (Output — GET /incidents, GET /incidents/{id})
@@ -210,7 +213,11 @@ class IncidentResponse(BaseModel):
     # Example: "Objects detected in image: 2 cars, 1 truck (3 objects total)"
     # None if no image was uploaded or analysis failed
     image_caption: Optional[str] = None
-    
+
+    # Dispatcher-managed status — set via the status action buttons in the UI
+    # Values: "pending" (new), "active" (being handled), "resolved" (closed)
+    status: Optional[str] = "pending"
+
     # --- Pydantic configuration ---
     
     @field_serializer('created_at')
