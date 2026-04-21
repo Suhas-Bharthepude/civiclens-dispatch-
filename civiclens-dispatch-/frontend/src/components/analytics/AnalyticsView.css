@@ -1,0 +1,147 @@
+/* frontend/src/components/analytics/AnalyticsView.css
+ * Styles for the Day 70 analytics dashboard.
+ * Matches the existing design system: bg #f8fafc, white panels,
+ * #e2e8f0 borders, #0f172a text, Inter font, 14px base size.
+ */
+
+/* ── OUTER WRAPPER ──────────────────────────────────────────── */
+/* Fills all available vertical space and scrolls if content overflows */
+.analytics-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px 32px;
+  background: #f8fafc;
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+
+/* ── LOADING / ERROR / EMPTY STATES ────────────────────────── */
+/* Centred placeholder for the three non-data states */
+.analytics-view--loading,
+.analytics-view--error,
+.analytics-view--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 8px;
+  color: #94a3b8;
+}
+
+/* Spinner — CSS-only rotating ring */
+.analytics-loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: analytics-spin 0.7s linear infinite;
+  margin-bottom: 8px;
+}
+@keyframes analytics-spin { to { transform: rotate(360deg); } }
+
+.analytics-loading-text { font-size: 13px; color: #64748b; }
+.analytics-error-icon   { font-size: 32px; }
+.analytics-error-message { font-size: 15px; font-weight: 600; color: #ef4444; }
+.analytics-error-detail  { font-size: 12px; color: #94a3b8; }
+.analytics-empty-icon    { font-size: 36px; }
+.analytics-empty-message { font-size: 15px; font-weight: 600; color: #0f172a; }
+.analytics-empty-hint    { font-size: 12px; color: #94a3b8; }
+
+/* ── HEADER ─────────────────────────────────────────────────── */
+.analytics-header {
+  margin-bottom: 20px;
+}
+.analytics-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2px;
+}
+.analytics-subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ── SUMMARY CARDS ──────────────────────────────────────────── */
+/* 4 cards in a row; each collapses to 2-per-row on narrow viewports */
+.analytics-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+@media (max-width: 900px) {
+  .analytics-cards { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Individual card */
+.analytics-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  /* Left accent stripe per variant */
+  border-left: 4px solid #e2e8f0;
+}
+.analytics-card--total { border-left-color: #3b82f6; }
+.analytics-card--risk  { border-left-color: #f59e0b; }
+.analytics-card--high  { border-left-color: #ef4444; }
+.analytics-card--type  { border-left-color: #10b981; }
+
+.analytics-card__value {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.analytics-card__label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── CHART SECTIONS ─────────────────────────────────────────── */
+/* White card wrapping each chart */
+.analytics-chart-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 18px 20px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Side-by-side bar charts container */
+.analytics-bar-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 0; /* children have their own margin-bottom */
+}
+@media (max-width: 700px) {
+  .analytics-bar-row { grid-template-columns: 1fr; }
+}
+
+/* Half-width variant (inside the bar row) — remove extra bottom margin */
+.analytics-chart-section--half {
+  margin-bottom: 16px;
+}
+
+.analytics-chart-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2px;
+}
+.analytics-chart-subtitle {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0 0 14px;
+}

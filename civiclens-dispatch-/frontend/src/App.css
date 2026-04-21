@@ -25,19 +25,21 @@ html, body, #root {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 28px;
+  padding: 0 20px;
   height: 58px;
   min-height: 58px;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  gap: 12px;
 }
 
 .app-header-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .app-title {
@@ -56,7 +58,131 @@ html, body, #root {
 .app-header-right {
   display: flex;
   align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
+
+/* ── VIEW TOGGLE (Day 70) ────────────────────────────── */
+/* Pill-style toggle between "Live Feed" and "Analytics" */
+.view-toggle {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.view-toggle__btn {
+  padding: 5px 14px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.view-toggle__btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Active state: white pill with subtle shadow */
+.view-toggle__btn--active {
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* ── WEBSOCKET LIVE INDICATOR (Day 71) ───────────────── */
+.ws-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* Green dot + "Live" when WebSocket is connected */
+.ws-indicator--live {
+  background: #f0fdf4;
+  color: #15803d;
+}
+.ws-indicator--live .ws-indicator__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  /* Pulsing animation to show it's truly live */
+  animation: ws-pulse 2s ease-in-out infinite;
+}
+
+/* Grey dot + "Polling" when falling back to HTTP polling */
+.ws-indicator--polling {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+.ws-indicator--polling .ws-indicator__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+
+@keyframes ws-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.ws-indicator__label { line-height: 1; }
+
+/* ── USER BADGE (Day 72) ─────────────────────────────── */
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.user-badge__name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Role pill — colour-coded by role */
+.user-badge__role {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.user-badge__role--admin      { background: #fef3c7; color: #92400e; }
+.user-badge__role--dispatcher { background: #dbeafe; color: #1e40af; }
+
+.user-badge__logout {
+  border: none;
+  background: none;
+  color: #94a3b8;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+.user-badge__logout:hover { color: #ef4444; }
 
 /* ── BODY ────────────────────────────────────────────── */
 .app-body {
@@ -65,6 +191,12 @@ html, body, #root {
   overflow: hidden;
   min-height: 0;
   background: #f8fafc;
+}
+
+/* Analytics view: full width, no right panel */
+.app-body--analytics {
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* LEFT: dashboard — contains StatsBar + DashboardLayout stacked vertically */
