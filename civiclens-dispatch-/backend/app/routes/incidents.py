@@ -19,7 +19,12 @@
 # Day 60: Fixed double sorting, fixed stats endpoint
 
 # Import FastAPI components used across multiple endpoints
-from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks, Depends
+
+# Import auth dependencies (Day 72)
+# get_current_user  — any authenticated user (dispatcher or admin)
+# require_role      — admin-only actions (delete)
+from app.auth import get_current_user, require_role
 
 # Import SQLAlchemy functions for building queries
 # func: aggregate functions like COUNT, AVG
@@ -49,6 +54,11 @@ from app.utils.file_utils import save_upload_file
 # Import business logic validators (Day 59)
 from app.validators import validate_incident_create
 
+# Import WebSocket broadcast manager (Day 71)
+# broadcast() is non-blocking — wrapped in try/except so WS failure
+# never breaks the HTTP response
+from app.websocket_manager import manager as ws_manager
+
 # Import uuid (used by file upload utility)
 import uuid
 
@@ -57,9 +67,15 @@ import uuid
 # ROUTER SETUP
 # ========================================
 
-# Create a router with /incidents prefix
-# All endpoints in this file start with /incidents
-router = APIRouter(prefix="/incidents", tags=["incidents"])
+# Create a router with /incidents prefix.
+# dependencies=[Depends(get_current_user)] means every endpoint in this
+# router requires a valid JWT — unauthenticated requests get HTTP 401.
+# The DELETE /{id} endpoint adds require_role("admin") on top of this.
+router = APIRouter(
+    prefix="/incidents",
+    tags=["incidents"],
+    dependencies=[Depends(get_current_user)],  # Day 72: all routes need auth
+)
 
 
 # ============================================================
@@ -123,6 +139,18 @@ async def create_incident(
         new_id,
         "New incident created"
     )
+
+    # ── WEBSOCKET BROADCAST (Day 71) ──────────────────────
+    # Push the new incident to all connected dashboards immediately.
+    # Wrapped in try/except so a WebSocket failure never breaks the
+    # HTTP 201 response — WebSocket is best-effort, not required.
+    try:
+        await ws_manager.broadcast({
+            "event": "incident_created",
+            "incident": dict(new_incident),
+        })
+    except Exception:
+        pass  # WebSocket failure must not affect the HTTP response
 
     # Return the created incident as a dict
     return dict(new_incident)
@@ -332,7 +360,14 @@ async def update_incident(incident_id: int, update_data: IncidentUpdate):
 # DELETE /incidents/{id}
 # ============================================================
 
-@router.delete("/{incident_id}", status_code=204)
+@router.delete(
+    "/{incident_id}",
+    status_code=204,
+    # Admin-only: dispatchers can view/create/update but only admins can delete.
+    # require_role("admin") internally calls get_current_user so auth is checked
+    # exactly once (FastAPI caches same-signature dependencies per request).
+    dependencies=[Depends(require_role("admin"))],
+)
 async def delete_incident(incident_id: int):
     """Permanently delete an incident."""
     # Check if incident exists

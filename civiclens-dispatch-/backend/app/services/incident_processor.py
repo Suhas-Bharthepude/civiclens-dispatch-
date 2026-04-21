@@ -346,10 +346,31 @@ async def process_incident(incident_id: int, log_message: str = None) -> None:
     print(f"    ⏱️  DB save: {save_time:.1f}s")
     
     
+    # ── WEBSOCKET BROADCAST (Day 71) ──────────────────────────
+    # After all AI fields are saved, push the updated incident to every
+    # connected dashboard.  This lets the UI replace the stale row
+    # without a poll.  Wrapped in try/except so a WebSocket failure
+    # never kills the pipeline or raises an unhandled exception.
+    try:
+        from app.websocket_manager import manager as ws_manager
+        # Re-fetch the row so the broadcast includes all AI fields we just saved
+        updated = await database.fetch_one(
+            incidents.select().where(incidents.c.id == incident_id)
+        )
+        if updated:
+            await ws_manager.broadcast({
+                "event": "incident_updated",
+                "incident": dict(updated),
+            })
+    except Exception as ws_err:
+        # Log but do not raise — pipeline success must not depend on WS
+        print(f"[{timestamp}]   ⚠️  WebSocket broadcast failed: {str(ws_err)[:80]}")
+
+
     # ========================================
     # PIPELINE COMPLETE — Print Timing Summary
     # ========================================
-    
+
     pipeline_total = time.perf_counter() - pipeline_start
     
     print(f"\n[{timestamp}] {'=' * 60}")

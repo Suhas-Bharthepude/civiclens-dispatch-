@@ -14,8 +14,9 @@ from fastapi.middleware.cors import CORSMiddleware
 # Import database tools
 from app.db.database import database, engine, metadata
 
-# Import table so it registers with metadata (needed for create_all)
-from app.db.models import incidents
+# Import tables so they register with metadata (needed for create_all)
+# Both incidents and users tables must be imported before metadata.create_all()
+from app.db.models import incidents, users  # noqa: F401
 
 # Import config — settings reads from .env and adjusts based on ENVIRONMENT
 # configure_logging sets up Python logging based on environment
@@ -26,6 +27,10 @@ from app.config import settings, configure_logging, print_startup_summary
 from app.routes.incidents import router as incidents_router
 from app.routes.ai_status import router as ai_status_router
 from app.routes.analytics import router as analytics_router
+# WebSocket router — provides /ws/incidents for real-time browser updates (Day 71)
+from app.routes.ws_routes import router as ws_router
+# Auth router — login, register, /auth/me (Day 72)
+from app.routes.auth_routes import router as auth_router
 
 # Import global exception handlers — catch errors and return clean JSON
 from app.error_handlers import register_exception_handlers
@@ -131,8 +136,14 @@ app.include_router(
 # AI status router — GET /ai/status (checks all 4 Hugging Face models)
 app.include_router(ai_status_router)
 
-# Analytics router — GET /incidents/stats and similar aggregate endpoints
+# Analytics router — GET /incidents/analytics/* aggregate endpoints
 app.include_router(analytics_router)
+
+# WebSocket router — ws://host/ws/incidents for real-time browser updates (Day 71)
+app.include_router(ws_router)
+
+# Auth router — POST /auth/login, /auth/register, GET /auth/me (Day 72)
+app.include_router(auth_router)
 
 # Register global exception handlers — catches unhandled errors and returns JSON
 register_exception_handlers(app)

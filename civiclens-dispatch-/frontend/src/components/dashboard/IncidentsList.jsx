@@ -45,7 +45,18 @@ import './IncidentsList.css'
 //   onSelectIncident(incident) - called when dispatcher clicks a row
 //   selectedIncidentId         - ID of currently selected incident
 //   refreshTrigger             - incremented by App.jsx after changes
-const IncidentsList = ({ onSelectIncident, selectedIncidentId, refreshTrigger }) => {
+//   wsUpdate    (Day 71)       - latest WebSocket event object; triggers
+//                               prepend (incident_created) or replace
+//                               (incident_updated) in local state
+//   wsConnected (Day 71)       - when true, disable 30-s polling since
+//                               WebSocket is delivering updates in real time
+const IncidentsList = ({
+  onSelectIncident,
+  selectedIncidentId,
+  refreshTrigger,
+  wsUpdate,      // Day 71: latest WebSocket event
+  wsConnected,   // Day 71: WebSocket connection state
+}) => {
 
   // ── DATA STATE ───────────────────────────────────────
   const [incidents,    setIncidents]    = useState([])
@@ -127,14 +138,32 @@ const IncidentsList = ({ onSelectIncident, selectedIncidentId, refreshTrigger })
     }
   }, [refreshTrigger, fetchIncidents])
 
+  // ── WEBSOCKET UPDATES (Day 71) ────────────────────────
+  // When App.jsx receives a WebSocket event it sets wsUpdate.
+  // We apply the change directly to local state so the table
+  // updates instantly without a round-trip API call.
+  useEffect(() => {
+    if (!wsUpdate) return
+    if (wsUpdate.event === 'incident_created') {
+      // Prepend — newest incident appears at the top of the list
+      setIncidents(prev => [wsUpdate.incident, ...prev])
+    } else if (wsUpdate.event === 'incident_updated') {
+      // Replace the matching row with the fully-updated incident object
+      setIncidents(prev =>
+        prev.map(inc => inc.id === wsUpdate.incident.id ? wsUpdate.incident : inc)
+      )
+    }
+  }, [wsUpdate])
+
   // ── AUTO REFRESH ──────────────────────────────────────
-  // Poll every 30 seconds for new incidents
+  // Poll every 30 seconds — but disabled when WebSocket is live (Day 71),
+  // because WebSocket delivers updates in real time making polling redundant.
   const {
     isRefreshing,
     lastUpdated,
     refreshError,
     triggerRefresh,
-  } = useAutoRefresh(fetchIncidents, 30000, !loading)
+  } = useAutoRefresh(fetchIncidents, 30000, !loading && !wsConnected)
 
   // ── LIVE TIMESTAMP UPDATER ────────────────────────────
   // Increments a counter every second to make "14 seconds ago" count up live
