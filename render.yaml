@@ -1,0 +1,106 @@
+# render.yaml
+#
+# Render deployment configuration for CivicLens Dispatch.
+# This file lives at the PROJECT ROOT (same level as backend/, docs/, etc.)
+#
+# Render reads this on every push to main and redeploys automatically.
+# The actual values for secret env vars (DATABASE_URL, HUGGINGFACE_API_KEY,
+# SECRET_KEY) are stored in the Render dashboard — never in this file.
+#
+# Day 74: Backend deployment to Render
+
+# ============================================================
+# SERVICES
+# A Render "service" is one deployable unit.
+# We have one: the FastAPI backend. The frontend goes on Vercel (Day 75).
+# ============================================================
+
+services:
+
+  # ----------------------------------------------------------
+  # BACKEND — FastAPI Python web service
+  # ----------------------------------------------------------
+
+  - type: web                  # "web" = HTTP service (vs background worker, cron, etc.)
+    name: civiclens-backend    # The service name — shows up in Render dashboard and URL
+    runtime: python            # Run as a Python app (Render installs Python 3 automatically)
+    plan: free                 # Free tier — sleeps after 15 min idle
+
+    # Which branch to deploy — every push here triggers a redeploy
+    branch: main
+
+    # Your backend code lives in backend/ not at the repo root
+    # Render runs all commands relative to this directory
+    rootDir: backend
+
+    # Build command — runs once when the service is first deployed
+    # and on every subsequent deploy. Installs all Python dependencies.
+    buildCommand: pip install -r requirements.txt
+
+    # Start command — runs to actually start the server
+    # --host 0.0.0.0 = accept connections from any IP (required on Render)
+    # --port $PORT = use whatever port Render assigns (NEVER hardcode 8000)
+    # We use 2 workers for better concurrency — enough for a portfolio project
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2
+
+    # Health check — Render pings this URL to know if the app is alive
+    # If it returns non-200 for too long, Render restarts the service
+    healthCheckPath: /health
+
+    # Auto-deploy on push — set to false if you want to manually deploy
+    autoDeploy: true
+
+    # ----------------------------------------------------------
+    # ENVIRONMENT VARIABLES
+    # These are referenced here but their VALUES are entered in the
+    # Render dashboard under Environment → Environment Variables.
+    # Never commit actual secrets to this file.
+    # ----------------------------------------------------------
+
+    envVars:
+
+      # Tell the app it's running in production
+      # This automatically:
+      #   - Turns off debug mode
+      #   - Restricts CORS
+      #   - Sets log level to WARNING
+      #   - Hides /docs and /redoc
+      - key: ENVIRONMENT
+        value: production
+
+      # Python module search path — so imports work correctly
+      - key: PYTHONPATH
+        value: "."
+
+      # Disable Python output buffering — makes log messages appear immediately
+      # Critical for debugging in production logs
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+      # Supabase PostgreSQL connection string
+      # Must be set manually in the Render dashboard
+      # Format: postgresql+asyncpg://user:pass@host:5432/postgres
+      - key: DATABASE_URL
+        sync: false   # sync=false means "prompt for this value, don't sync from a group"
+
+      # Hugging Face API token for AI models
+      # Must be set manually in the Render dashboard
+      - key: HUGGINGFACE_API_KEY
+        sync: false
+
+      # JWT signing secret for the auth system (Day 72)
+      # Generate with: openssl rand -hex 32
+      # Must be set manually in the Render dashboard
+      - key: SECRET_KEY
+        sync: false
+
+      # CORS allowed origins — the frontend URL that can call this API
+      # Start with "*" until we deploy the frontend tomorrow, then tighten
+      # to just the Vercel URL
+      - key: CORS_ORIGINS
+        value: "*"
+
+      # Pin the Python version so it's consistent across deploys
+      # Supports 3.11+ for FastAPI async features
+      - key: PYTHON_VERSION
+        value: "3.11.9"
