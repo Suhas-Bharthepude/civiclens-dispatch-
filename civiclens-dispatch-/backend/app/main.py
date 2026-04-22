@@ -52,8 +52,11 @@ from app.utils.file_utils import ensure_upload_dirs
 # Runs once when this module is imported.
 # Creates all tables defined in metadata if they don't already exist.
 # Uses the sync engine because create_all() is a synchronous operation.
-metadata.create_all(engine)
 
+try:
+    metadata.create_all(engine)
+except Exception as e:
+    print(f"⚠️  Table creation skipped: {e}")
 
 # ========================================
 # CONFIGURE LOGGING
