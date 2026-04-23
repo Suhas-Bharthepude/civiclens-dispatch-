@@ -16,7 +16,7 @@
 
 from fastapi import APIRouter, Query
 from sqlalchemy import func, case, select
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 
 from app.db.database import database
 from app.db.models import incidents
@@ -161,13 +161,10 @@ async def get_timeseries(
     """
 
     # Calculate the cutoff — only incidents on or after this date are counted
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = datetime.utcnow() - timedelta(days=days)
 
-    # ── SQL: group incidents by calendar day ──────────────
-    # func.strftime('%Y-%m-%d', ...) is SQLite-specific.
-    # For PostgreSQL, the equivalent is func.date_trunc('day', ...).
-    # This app targets SQLite for development; swap the expression if migrating.
-    date_expr = func.strftime("%Y-%m-%d", incidents.c.created_at)
+    # PostgreSQL: use to_char to format the timestamp as YYYY-MM-DD string
+    date_expr = func.to_char(incidents.c.created_at, "YYYY-MM-DD")
     ts_query = (
         select(
             date_expr.label("date"),
@@ -183,12 +180,9 @@ async def get_timeseries(
     db_counts = {row["date"]: row["count"] for row in rows}
 
     # ── ZERO-FILL ─────────────────────────────────────────
-    # Generate every calendar day in the range, even if no incidents occurred.
-    # Without this, recharts would draw a straight line between non-adjacent days.
     result = []
     for offset in range(days - 1, -1, -1):
-        # offset=days-1 → oldest day, offset=0 → today
-        day_str = (datetime.now(timezone.utc) - timedelta(days=offset)).strftime("%Y-%m-%d")
+        day_str = (datetime.utcnow() - timedelta(days=offset)).strftime("%Y-%m-%d")
         result.append({"date": day_str, "count": db_counts.get(day_str, 0)})
 
     return result

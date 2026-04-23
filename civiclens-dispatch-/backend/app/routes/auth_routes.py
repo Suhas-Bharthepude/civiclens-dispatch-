@@ -90,7 +90,7 @@ async def register_user(data: UserCreate):
         username=data.username,
         hashed_password=hashed,
         role=data.role,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.utcnow(),
     )
     new_id = await database.execute(insert_q)
 

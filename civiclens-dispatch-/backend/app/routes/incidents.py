@@ -112,7 +112,7 @@ async def create_incident(
         source=incident_data.source,
         location=incident_data.location,
         # Set created_at to current UTC time
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.utcnow(),
         # All AI fields start as None
         transcript=None,
         summary=None,
