@@ -188,6 +188,11 @@ async def shutdown_event():
 # ROOT ENDPOINTS
 # ========================================
 
+@app.head("/")
+async def root_head():
+    return {}
+
+
 @app.get("/")
 async def root():
     """

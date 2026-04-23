@@ -19,7 +19,7 @@ from app.db.models import metadata
 
 # Create the async database connection object
 # This will be used for all CRUD operations in routes
-database = Database(settings.DATABASE_URL)
+database = Database(settings.DATABASE_URL, min_size=0, max_size=5)
 
 
 # Create a sync engine for table creation
