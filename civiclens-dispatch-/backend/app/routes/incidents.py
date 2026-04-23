@@ -33,8 +33,6 @@ from app.auth import get_current_user, require_role
 # or_: combine WHERE conditions with OR (used in search)
 from sqlalchemy import func, select, case, or_
 
-# Import datetime for setting created_at timestamps
-from datetime import datetime, timezone
 
 # Import database connection for executing queries
 from app.db.database import database
@@ -112,7 +110,7 @@ async def create_incident(
         source=incident_data.source,
         location=incident_data.location,
         # Set created_at to current UTC time
-        created_at=datetime.utcnow(),
+        created_at=func.now(),
         # All AI fields start as None
         transcript=None,
         summary=None,

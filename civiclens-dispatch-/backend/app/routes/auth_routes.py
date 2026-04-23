@@ -8,10 +8,9 @@
 #   POST /auth/login    — verify credentials and return a JWT
 #   GET  /auth/me       — return the current user's profile
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import func
 
 from app.auth import (
     hash_password,
@@ -90,7 +89,7 @@ async def register_user(data: UserCreate):
         username=data.username,
         hashed_password=hashed,
         role=data.role,
-        created_at=datetime.utcnow(),
+        created_at=func.now(),
     )
     new_id = await database.execute(insert_q)
 
