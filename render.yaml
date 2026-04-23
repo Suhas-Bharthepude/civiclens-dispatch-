@@ -40,8 +40,8 @@ services:
     # Start command — runs to actually start the server
     # --host 0.0.0.0 = accept connections from any IP (required on Render)
     # --port $PORT = use whatever port Render assigns (NEVER hardcode 8000)
-    # We use 2 workers for better concurrency — enough for a portfolio project
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2
+    # 1 worker — free tier has limited RAM; Render sets WEB_CONCURRENCY=1 automatically
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
 
     # Health check — Render pings this URL to know if the app is alive
     # If it returns non-200 for too long, Render restarts the service
@@ -95,8 +95,7 @@ services:
         sync: false
 
       # CORS allowed origins — the frontend URL that can call this API
-      # Start with "*" until we deploy the frontend tomorrow, then tighten
-      # to just the Vercel URL
+      # Set to "*" to allow the Vercel frontend and any future domains
       - key: CORS_ORIGINS
         value: "*"
 
