@@ -264,9 +264,9 @@ async def pipeline_health():
     and confirms the database is reachable.
     """
     from app.services.asr import USE_MOCK_TRANSCRIPTION
-    from app.services.summarization import USE_MOCK_SUMMARIZATION
-    from app.services.classification import USE_MOCK_CLASSIFICATION
-    from app.services.image_analysis import USE_MOCK_IMAGE_ANALYSIS
+    from app.services.summarizer import USE_MOCK_SUMMARIZATION
+    from app.services.text_classifier import USE_MOCK_CLASSIFICATION
+    from app.services.image_analyzer import USE_MOCK_IMAGE_ANALYSIS
     from datetime import datetime
     from sqlalchemy import func, select as sa_select
 

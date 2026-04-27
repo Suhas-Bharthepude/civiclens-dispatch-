@@ -1,4 +1,4 @@
-# backend/app/websocket_manager.py
+# backend/app/services/websocket_manager.py
 # Singleton WebSocket connection manager for broadcasting incident events.
 #
 # Day 71: WebSockets for live incident updates

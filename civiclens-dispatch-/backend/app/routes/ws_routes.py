@@ -15,7 +15,7 @@
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.websocket_manager import manager
+from app.services.websocket_manager import manager
 
 
 # ── ROUTER ────────────────────────────────────────────────

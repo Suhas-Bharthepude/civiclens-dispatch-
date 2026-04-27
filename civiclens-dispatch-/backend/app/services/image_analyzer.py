@@ -49,6 +49,8 @@ IMAGE_MODEL_URL = "https://router.huggingface.co/hf-inference/models/facebook/de
 # 0.7 means we only keep objects the model is at least 70% sure about
 MIN_CONFIDENCE = 0.7
 
+USE_MOCK_IMAGE_ANALYSIS = False
+
 # Maximum number of retries if the model is loading (503 status)
 MAX_RETRIES = 5
 

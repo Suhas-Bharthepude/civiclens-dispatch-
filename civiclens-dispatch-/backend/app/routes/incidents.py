@@ -55,7 +55,7 @@ from app.validators import validate_incident_create
 # Import WebSocket broadcast manager (Day 71)
 # broadcast() is non-blocking — wrapped in try/except so WS failure
 # never breaks the HTTP response
-from app.websocket_manager import manager as ws_manager
+from app.services.websocket_manager import manager as ws_manager
 
 # Import uuid (used by file upload utility)
 import uuid

@@ -30,10 +30,10 @@ from sqlalchemy import func, select
 
 # Import each service's mock flag and configuration
 # We check these to determine if each service is in mock or real mode
-from app.services.asr            import USE_MOCK_TRANSCRIPTION
-from app.services.summarization  import USE_MOCK_SUMMARIZATION
-from app.services.classification import USE_MOCK_CLASSIFICATION
-from app.services.image_analysis import USE_MOCK_IMAGE_ANALYSIS
+from app.services.asr             import USE_MOCK_TRANSCRIPTION
+from app.services.summarizer      import USE_MOCK_SUMMARIZATION
+from app.services.text_classifier import USE_MOCK_CLASSIFICATION
+from app.services.image_analyzer  import USE_MOCK_IMAGE_ANALYSIS
 
 # Settings gives us access to the HUGGINGFACE_API_KEY env variable
 from app.config import settings

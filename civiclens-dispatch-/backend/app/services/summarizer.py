@@ -49,6 +49,8 @@ MAX_INPUT_LENGTH = 3000
 # the "summary" would be as long as the original
 MIN_INPUT_LENGTH = 80
 
+USE_MOCK_SUMMARIZATION = False
+
 # Parameters for the generated summary
 # These control how long the output summary should be (in tokens, roughly words)
 SUMMARY_MIN_LENGTH = 20   # Summary must be at least ~20 words

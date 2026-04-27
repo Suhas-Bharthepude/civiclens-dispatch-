@@ -37,6 +37,8 @@ CLASSIFIER_MODEL_URL = "https://router.huggingface.co/hf-inference/models/facebo
 # These are the categories the model will choose from when classifying incident type
 # Each label is written as a natural language description so the model understands it
 # The model picks whichever label best matches the meaning of the incident text
+USE_MOCK_CLASSIFICATION = False
+
 INCIDENT_TYPE_LABELS = [
     "fire or explosion emergency",                                          # Maps to → "fire"
     "medical emergency or health crisis",                                   # Maps to → "medical"

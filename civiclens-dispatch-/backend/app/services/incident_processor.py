@@ -352,7 +352,7 @@ async def process_incident(incident_id: int, log_message: str = None) -> None:
     # without a poll.  Wrapped in try/except so a WebSocket failure
     # never kills the pipeline or raises an unhandled exception.
     try:
-        from app.websocket_manager import manager as ws_manager
+        from app.services.websocket_manager import manager as ws_manager
         # Re-fetch the row so the broadcast includes all AI fields we just saved
         updated = await database.fetch_one(
             incidents.select().where(incidents.c.id == incident_id)
