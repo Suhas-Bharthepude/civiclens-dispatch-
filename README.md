@@ -9,10 +9,9 @@
 **Try it now:** [https://civiclens-dispatch.vercel.app](https://civiclens-dispatch.vercel.app)
 
 **Demo credentials:**
-| Role | Username | Password |
-|------|----------|----------|
-| Dispatcher | `dispatcher` | `dispatch123` |
-| Admin | `admin` | `admin123` |
+| Username | Password |
+|----------|----------|
+| `dispatcher` | `dispatch123` |
 
 > First load may take 30–60 seconds — the backend runs on Render's free tier and wakes from sleep on the first request. UptimeRobot pings every 5 minutes to keep it warm during active use.
 
