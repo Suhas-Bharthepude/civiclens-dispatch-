@@ -14,8 +14,8 @@ import './LoginPage.css'
 
 const LoginPage = () => {
 
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [username, setUsername] = useState('dispatcher')
+  const [password, setPassword] = useState('dispatch123')
   // error: API error message shown below the form
   const [error,    setError]    = useState(null)
   // loading: true while the login request is in flight
