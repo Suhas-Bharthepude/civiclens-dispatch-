@@ -32,6 +32,7 @@ function SubmitIncidentForm({ onSubmitted }) {
   // This object contains all text field values
   const [formData, setFormData] = useState({
     source: '',         // Who is reporting (dropdown selection)
+    sourceOther: '',    // Custom source text when "other" is selected
     description: '',    // What happened (textarea text)
     location: ''        // Where it happened (text input)
   })
@@ -65,6 +66,11 @@ function SubmitIncidentForm({ onSubmitted }) {
     // Empty string means placeholder "-- Select Source --" is still selected
     if (formData.source === '') {
       setSubmitError('Please select a report source');
+      return false;
+    }
+
+    if (formData.source === 'other' && formData.sourceOther.trim() === '') {
+      setSubmitError('Please specify the report source');
       return false;
     }
     
@@ -199,11 +205,18 @@ function SubmitIncidentForm({ onSubmitted }) {
       
       console.log('Step 1: Creating incident...');
       
+      // Resolve "other" source to the custom text before sending
+      const submitData = {
+        ...formData,
+        source: formData.source === 'other' ? formData.sourceOther.trim() : formData.source,
+      };
+      delete submitData.sourceOther;
+
       // Call API to create incident
       // Makes POST request to http://localhost:8000/incidents
       // Sends formData (source, description, location) as JSON
       // Backend validates, saves to database, returns created incident
-      const newIncident = await createIncident(formData);
+      const newIncident = await createIncident(submitData);
       
       // Log the created incident object
       console.log('✅ Incident created successfully:', newIncident);
@@ -291,6 +304,7 @@ function SubmitIncidentForm({ onSubmitted }) {
       // Clears the form for next submission
       setFormData({
         source: '',
+        sourceOther: '',
         description: '',
         location: ''
       });
@@ -463,7 +477,22 @@ function SubmitIncidentForm({ onSubmitted }) {
             <option value="police">Police</option>
             <option value="dispatcher">Dispatcher</option>
             <option value="sensor">Automated Sensor</option>
+            <option value="other">Other</option>
           </select>
+
+          {formData.source === 'other' && (
+            <input
+              type="text"
+              id="sourceOther"
+              name="sourceOther"
+              value={formData.sourceOther}
+              onChange={handleInputChange}
+              placeholder="Please specify the source"
+              required
+              className="form-control"
+              style={{ marginTop: '0.5rem' }}
+            />
+          )}
         </div>
         
         {/* ========================================
@@ -616,10 +645,11 @@ function SubmitIncidentForm({ onSubmitted }) {
             className="btn-reset"
             onClick={() => {
               // Reset all form fields to empty
-              setFormData({ 
-                source: '', 
-                description: '', 
-                location: '' 
+              setFormData({
+                source: '',
+                sourceOther: '',
+                description: '',
+                location: ''
               });
               
               // Clear file selections
