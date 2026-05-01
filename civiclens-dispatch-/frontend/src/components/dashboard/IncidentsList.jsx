@@ -1,14 +1,34 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Search, X, RefreshCw, ClipboardList, AlertTriangle, Filter } from 'lucide-react'
+import { Search, X, RefreshCw, ClipboardList, AlertTriangle, Filter, ArrowUpDown } from 'lucide-react'
 
 import { getIncidents }   from '../../api/client'
 import IncidentTable      from './IncidentTable'
 import { EmptyState }     from '../ui/EmptyState'
 import { Skeleton }       from '../ui/Skeleton'
 import { Button }         from '../ui/Button'
+import { Select }         from '../ui/Select'
 import { cn }             from '../../lib/cn'
 import useAutoRefresh     from '../../hooks/useAutoRefresh'
 import useDebounce        from '../../hooks/useDebounce'
+
+const TYPE_OPTIONS = [
+  { value: 'all',            label: 'All Types'      },
+  { value: 'fire',           label: 'Fire'           },
+  { value: 'medical',        label: 'Medical'        },
+  { value: 'police',         label: 'Police'         },
+  { value: 'crime',          label: 'Crime'          },
+  { value: 'infrastructure', label: 'Infrastructure' },
+  { value: 'other',          label: 'Other'          },
+]
+
+const SORT_OPTIONS = [
+  { value: 'created_at_desc',    label: 'Newest First'        },
+  { value: 'created_at_asc',     label: 'Oldest First'        },
+  { value: 'risk_score_desc',    label: 'Highest Risk'        },
+  { value: 'risk_score_asc',     label: 'Lowest Risk'         },
+  { value: 'severity_desc',      label: 'Severity ↓'          },
+  { value: 'incident_type_asc',  label: 'Type (A→Z)'          },
+]
 
 const IncidentsList = ({
   onSelectIncident,
@@ -70,7 +90,9 @@ const IncidentsList = ({
     if (secs < 60) return `${secs}s ago`
     const mins = Math.floor(secs / 60)
     if (mins < 60) return `${mins}m ago`
-    return `${Math.floor(mins / 60)}h ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    return `${Math.floor(hrs / 24)}d ago`
   }
 
   const handleSort = (field) => {
@@ -80,6 +102,13 @@ const IncidentsList = ({
       setSortField(field)
       setSortDirection('desc')
     }
+  }
+
+  const handleSortSelect = (val) => {
+    const parts = val.split('_')
+    const dir   = parts.pop()
+    setSortField(parts.join('_'))
+    setSortDirection(dir)
   }
 
   const displayedIncidents = useMemo(() => {
@@ -99,7 +128,7 @@ const IncidentsList = ({
     return (
       <div className="flex flex-col gap-2 h-full">
         {[...Array(6)].map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
+          <Skeleton key={i} className="h-11 w-full" />
         ))}
       </div>
     )
@@ -120,13 +149,16 @@ const IncidentsList = ({
     )
   }
 
+  const isFiltered = debouncedSearch || filterType !== 'all'
+  const sortValue  = `${sortField}_${sortDirection}`
+
   return (
     <div className="flex flex-col h-full gap-3 overflow-hidden">
 
       {/* Filter bar */}
       <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
 
-        {/* Search input */}
+        {/* Search */}
         <div className="relative flex-1 min-w-48">
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
           <input
@@ -135,7 +167,7 @@ const IncidentsList = ({
             onChange={e => setSearchTerm(e.target.value)}
             onKeyDown={e => { if (e.key === 'Escape') setSearchTerm('') }}
             placeholder="Search incidents…"
-            aria-label="Search incidents by description, location, or transcript"
+            aria-label="Search incidents"
             className={cn(
               'w-full pl-8 pr-8 py-1.5 text-body',
               'bg-surface-2 border border-border rounded-lg',
@@ -155,59 +187,34 @@ const IncidentsList = ({
           )}
         </div>
 
-        {/* Type filter */}
-        <div className="relative">
-          <Filter size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-          <select
+        {/* Filter + Sort grouped */}
+        <div className="flex items-center gap-1 bg-surface-2 border border-border rounded-lg p-0.5">
+          <Select
             value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-            className={cn(
-              'pl-7 pr-6 py-1.5 text-body appearance-none',
-              'bg-surface-2 border border-border rounded-lg',
-              'text-text-primary',
-              'focus:outline-none focus:border-accent',
-              'cursor-pointer',
-            )}
-          >
-            <option value="all">All Types</option>
-            <option value="fire">Fire</option>
-            <option value="medical">Medical</option>
-            <option value="police">Police</option>
-            <option value="crime">Crime</option>
-            <option value="infrastructure">Infrastructure</option>
-            <option value="other">Other</option>
-          </select>
+            onChange={setFilterType}
+            options={TYPE_OPTIONS}
+            icon={Filter}
+            className="border-0 bg-transparent hover:bg-surface rounded-md"
+          />
+          <div className="w-px h-5 bg-border flex-shrink-0" />
+          <Select
+            value={sortValue}
+            onChange={handleSortSelect}
+            options={SORT_OPTIONS}
+            icon={ArrowUpDown}
+            className="border-0 bg-transparent hover:bg-surface rounded-md"
+          />
         </div>
 
-        {/* Sort */}
-        <select
-          value={`${sortField}_${sortDirection}`}
-          onChange={e => {
-            const parts = e.target.value.split('_')
-            const dir   = parts.pop()
-            setSortField(parts.join('_'))
-            setSortDirection(dir)
-          }}
-          className={cn(
-            'px-3 py-1.5 text-body appearance-none',
-            'bg-surface-2 border border-border rounded-lg',
-            'text-text-primary',
-            'focus:outline-none focus:border-accent',
-            'cursor-pointer',
-          )}
-        >
-          <option value="created_at_desc">Newest First</option>
-          <option value="created_at_asc">Oldest First</option>
-          <option value="risk_score_desc">Highest Risk</option>
-          <option value="risk_score_asc">Lowest Risk</option>
-          <option value="severity_desc">Severity (High→Low)</option>
-          <option value="incident_type_asc">Type (A→Z)</option>
-        </select>
-
-        {/* Right side: count + refresh */}
+        {/* Count + refresh */}
         <div className="flex items-center gap-2 ml-auto flex-shrink-0">
-          <span className="text-caption text-text-muted tabular-nums">
-            {debouncedSearch || filterType !== 'all'
+          <span className={cn(
+            'text-caption tabular-nums px-2 py-0.5 rounded-full',
+            isFiltered
+              ? 'bg-accent/10 text-accent border border-accent/30'
+              : 'text-text-muted',
+          )}>
+            {isFiltered
               ? `${displayedIncidents.length} / ${incidents.length}`
               : `${incidents.length} incident${incidents.length !== 1 ? 's' : ''}`
             }

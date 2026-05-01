@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   MapPin, Clock, Mic, FileImage, Headphones,
   RefreshCw, Trash2, X, AlertTriangle, CheckCircle2,
@@ -19,15 +19,15 @@ function SectionHeading({ icon: Icon, children }) {
   return (
     <div className="flex items-center gap-2 pt-4 pb-1 border-t border-border mt-2">
       <Icon size={13} className="text-text-muted flex-shrink-0" />
-      <span className="text-caption text-text-muted uppercase tracking-widest">{children}</span>
+      <span className="text-label text-text-muted uppercase tracking-widest">{children}</span>
     </div>
   )
 }
 
 function Field({ label, children, aiBadge = false }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-caption text-text-muted uppercase tracking-widest flex items-center gap-1.5">
+    <div className="flex flex-col gap-1">
+      <span className="text-label text-text-muted uppercase tracking-widest flex items-center gap-1.5">
         {label}
         {aiBadge && <Badge variant="info" className="text-[10px] py-0 px-1.5">AI</Badge>}
       </span>
@@ -55,7 +55,7 @@ function TranscriptPanel({ incident }) {
     <div className="rounded-lg bg-surface-2 border border-border p-3">
       <div className="flex items-center gap-1.5 mb-2">
         <Mic size={13} className="text-text-muted" />
-        <span className="text-caption text-text-muted uppercase tracking-widest">Transcript</span>
+        <span className="text-label text-text-muted uppercase tracking-widest">Transcript</span>
         <Badge variant="info" className="text-[10px] py-0 px-1.5">AI</Badge>
       </div>
       <blockquote className="text-body text-text-secondary italic border-l-2 border-border pl-3">
@@ -70,12 +70,18 @@ function StatusActions({ currentStatus, isUpdating, onUpdate }) {
   return (
     <div className="flex gap-2 flex-wrap">
       {currentStatus === 'pending' && (
-        <Button variant="secondary" size="sm" icon={Zap} loading={isUpdating} onClick={() => onUpdate('active')}>
+        <Button variant="primary" size="sm" icon={Zap} loading={isUpdating} onClick={() => onUpdate('active')}>
           Mark Active
         </Button>
       )}
       {(currentStatus === 'pending' || currentStatus === 'active') && (
-        <Button variant="secondary" size="sm" icon={CheckCircle2} loading={isUpdating} onClick={() => onUpdate('resolved')}>
+        <Button
+          variant={currentStatus === 'active' ? 'primary' : 'secondary'}
+          size="sm"
+          icon={CheckCircle2}
+          loading={isUpdating}
+          onClick={() => onUpdate('resolved')}
+        >
           Resolve
         </Button>
       )}
@@ -88,9 +94,22 @@ function StatusActions({ currentStatus, isUpdating, onUpdate }) {
   )
 }
 
-const IncidentDetail = ({ incident, onClose, onStatusChange, onDeleted, userRole }) => {
+const IncidentDetail = ({ incident, onClose, onStatusChange, onDeleted, userRole, showToast }) => {
   const [isUpdating, setIsUpdating] = useState(false)
   const [updateError, setUpdateError] = useState(null)
+  const [visible, setVisible] = useState(false)
+  const prevIdRef = useRef(null)
+
+  useEffect(() => {
+    if (!incident) { setVisible(false); return }
+    if (incident.id !== prevIdRef.current) {
+      setVisible(false)
+      const t = setTimeout(() => setVisible(true), 40)
+      prevIdRef.current = incident.id
+      return () => clearTimeout(t)
+    }
+    setVisible(true)
+  }, [incident])
 
   const handleStatusChange = async (newStatus) => {
     setUpdateError(null)
@@ -99,6 +118,7 @@ const IncidentDetail = ({ incident, onClose, onStatusChange, onDeleted, userRole
     onStatusChange(incident.id, newStatus)
     try {
       await updateIncidentStatus(incident.id, newStatus)
+      showToast?.(`Incident #${String(incident.id).padStart(4, '0')} marked ${newStatus}`, 'success')
     } catch (err) {
       onStatusChange(incident.id, previousStatus)
       setUpdateError(`Failed to update: ${err.message}`)
@@ -113,6 +133,7 @@ const IncidentDetail = ({ incident, onClose, onStatusChange, onDeleted, userRole
     setUpdateError(null)
     try {
       await deleteIncident(incident.id)
+      showToast?.(`Incident #${String(incident.id).padStart(4, '0')} deleted`, 'info')
       onDeleted?.()
     } catch (err) {
       setUpdateError(`Delete failed: ${err.message}`)
@@ -124,9 +145,9 @@ const IncidentDetail = ({ incident, onClose, onStatusChange, onDeleted, userRole
   const handleReprocess = async () => {
     try {
       await reprocessIncident(incident.id)
-      alert(`Reprocessing queued for incident #${incident.id}. Refresh in a moment.`)
+      showToast?.(`Reprocessing queued for #${String(incident.id).padStart(4, '0')}`, 'info')
     } catch (err) {
-      alert(`Failed to reprocess: ${err.message}`)
+      showToast?.(`Failed to reprocess: ${err.message}`, 'error')
     }
   }
 
@@ -140,7 +161,7 @@ const IncidentDetail = ({ incident, onClose, onStatusChange, onDeleted, userRole
 
   if (!incident) {
     return (
-      <div className="h-full flex items-center justify-center bg-surface border border-border rounded-lg">
+      <div className="h-full flex items-center justify-center bg-surface border border-border rounded-xl">
         <EmptyState
           icon={ClipboardList}
           title="No incident selected"
@@ -153,38 +174,47 @@ const IncidentDetail = ({ incident, onClose, onStatusChange, onDeleted, userRole
   const riskPct = incident.risk_score != null ? Math.round(incident.risk_score * 100) : null
 
   return (
-    <div className="h-full flex flex-col bg-surface border border-border rounded-lg overflow-hidden">
+    <div className="h-full flex flex-col bg-surface border border-border rounded-xl overflow-hidden">
 
       {/* Header */}
-      <div className="flex items-start justify-between px-4 py-3 border-b border-border flex-shrink-0">
-        <div className="flex flex-col gap-1.5 min-w-0">
+      <div className="flex items-start justify-between px-5 py-4 border-b border-border flex-shrink-0 bg-surface-2/40">
+        <div className="flex flex-col gap-2 min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-label text-text-muted">
+              #{String(incident.id).padStart(4, '0')}
+            </span>
             {incident.incident_type && (
-              <Badge variant={SEVERITY_VARIANT[incident.incident_type.toLowerCase()] ?? 'default'}>
+              <Badge variant={
+                incident.incident_type.toLowerCase() === 'fire' ? 'fire' :
+                incident.incident_type.toLowerCase() === 'crime' ? 'crime' :
+                (SEVERITY_VARIANT[incident.incident_type.toLowerCase()] ?? 'default')
+              }>
                 {incident.incident_type}
               </Badge>
             )}
             <Badge variant={STATUS_VARIANT[incident.status] ?? 'pending'} dot>
               {incident.status ?? 'pending'}
             </Badge>
-            <span className="font-mono text-caption text-text-muted">
-              #{String(incident.id).padStart(4, '0')}
-            </span>
           </div>
           {riskPct != null && <RiskBar score={riskPct} />}
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-2 transition-colors flex-shrink-0"
+          className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-2 transition-colors flex-shrink-0 ml-2"
           aria-label="Close"
         >
           <X size={15} />
         </button>
       </div>
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
-
+      {/* Scrollable content with fade-in on incident switch */}
+      <div
+        className={cn(
+          'flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3.5',
+          'transition-opacity duration-200',
+          visible ? 'opacity-100' : 'opacity-0',
+        )}
+      >
         <Field label="Description">{incident.description}</Field>
 
         <Field label="Location">
@@ -212,8 +242,12 @@ const IncidentDetail = ({ incident, onClose, onStatusChange, onDeleted, userRole
 
         <Field label="Incident Type" aiBadge>
           {incident.incident_type
-            ? <Badge variant={SEVERITY_VARIANT[incident.incident_type.toLowerCase()] ?? 'default'}>{incident.incident_type}</Badge>
-            : 'Other'
+            ? <Badge variant={
+                incident.incident_type.toLowerCase() === 'fire' ? 'fire' :
+                incident.incident_type.toLowerCase() === 'crime' ? 'crime' :
+                (SEVERITY_VARIANT[incident.incident_type.toLowerCase()] ?? 'default')
+              }>{incident.incident_type}</Badge>
+            : <span className="text-text-muted">Not classified</span>
           }
         </Field>
 
@@ -275,7 +309,7 @@ const IncidentDetail = ({ incident, onClose, onStatusChange, onDeleted, userRole
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-border flex-shrink-0 flex flex-col gap-2">
+      <div className="px-5 py-3 border-t border-border flex-shrink-0 flex flex-col gap-2 bg-surface-2/30">
         {updateError && (
           <div className={cn(
             'flex items-center gap-2 px-3 py-2 rounded-lg text-body',

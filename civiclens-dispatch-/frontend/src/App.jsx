@@ -15,7 +15,6 @@ import AnalyticsView      from './components/analytics/AnalyticsView'
 import { Tabs }           from './components/ui/Tabs'
 import { SlideOver }      from './components/ui/SlideOver'
 import { Button }         from './components/ui/Button'
-import { Badge }          from './components/ui/Badge'
 import { StatusDot }      from './components/ui/StatusDot'
 import { useAuth }        from './context/AuthContext'
 import LoginPage          from './pages/LoginPage'
@@ -121,7 +120,7 @@ function App() {
           <div className="flex items-center gap-2">
             <User size={14} className="text-text-muted" />
             <span className="text-body text-text-secondary">{user.username}</span>
-            <Badge variant="role">{user.role}</Badge>
+            <span className="text-label text-text-muted uppercase tracking-widest">{user.role}</span>
           </div>
 
           <button
@@ -184,6 +183,7 @@ function App() {
                 onStatusChange={handleStatusChange}
                 onDeleted={handleDeleted}
                 userRole={user.role}
+                showToast={addToast}
               />
             </div>
 

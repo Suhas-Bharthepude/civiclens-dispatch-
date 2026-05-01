@@ -5,13 +5,16 @@ const variants = {
   low:       'bg-slate-900/60 text-slate-400 border border-slate-700',
   medium:    'bg-amber-950/60 text-amber-400 border border-amber-800',
   high:      'bg-red-950/60 text-red-400 border border-red-800',
-  critical:  'bg-red-950 text-red-300 border border-red-700',
+  critical:  'bg-red-950 text-red-300 border border-red-600 shadow-[0_0_8px_rgba(239,68,68,0.25)]',
   info:      'bg-blue-950/60 text-blue-400 border border-blue-800',
   success:   'bg-emerald-950/60 text-emerald-400 border border-emerald-800',
   pending:   'bg-surface-2 text-text-muted border border-border',
-  active:    'bg-blue-950/60 text-blue-400 border border-blue-800',
+  active:    'bg-blue-950/60 text-blue-300 border border-blue-700',
   resolved:  'bg-emerald-950/60 text-emerald-400 border border-emerald-800',
-  role:      'bg-amber-950/60 text-amber-300 border border-amber-800',
+  role:      'bg-surface-2 text-text-secondary border border-border-strong',
+  // Urgent type badges
+  fire:      'bg-red-950 text-red-300 border border-red-600 shadow-[0_0_8px_rgba(239,68,68,0.2)]',
+  crime:     'bg-orange-950/80 text-orange-300 border border-orange-700',
 }
 
 const dots = {
@@ -24,6 +27,8 @@ const dots = {
   pending:  'bg-slate-500',
   active:   'bg-blue-400',
   resolved: 'bg-emerald-400',
+  fire:     'bg-red-400',
+  crime:    'bg-orange-400',
 }
 
 export function Badge({ variant = 'default', dot = false, children, className }) {
@@ -32,7 +37,7 @@ export function Badge({ variant = 'default', dot = false, children, className })
     <span
       className={cn(
         'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full',
-        'text-caption font-medium uppercase tracking-widest whitespace-nowrap',
+        'text-label font-semibold uppercase tracking-widest whitespace-nowrap',
         variants[variant],
         className,
       )}

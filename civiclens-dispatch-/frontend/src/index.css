@@ -22,16 +22,16 @@
 
 /* ── Dark mode (operational palette) ── */
 html.dark {
-  --background:         #0a0e1a;
-  --surface:            #111726;
-  --surface-2:          #1a2236;
-  --border:             #1f2a40;
-  --border-strong:      #2a3852;
+  --background:         #080c17;
+  --surface:            #0f1623;
+  --surface-2:          #1a2640;
+  --border:             #243047;
+  --border-strong:      #2e3d57;
   --text-primary:       #f1f5f9;
   --text-secondary:     #94a3b8;
   --text-muted:         #64748b;
   --accent:             #f59e0b;
-  --accent-foreground:  #0a0e1a;
+  --accent-foreground:  #080c17;
   --severity-low:       #64748b;
   --severity-medium:    #d97706;
   --severity-high:      #dc2626;
