@@ -20,13 +20,13 @@ const HealthCheck = () => {
   }, [])
 
   const dot   = status === 'ok' ? 'live' : status === 'error' ? 'error' : 'idle'
-  const label = status === 'ok' ? 'API Connected' : status === 'error' ? 'API Offline' : 'Connecting…'
+  const label = status === 'ok' ? 'API' : status === 'error' ? 'API Offline' : 'API…'
 
   return (
-    <div className="flex items-center gap-1.5">
+    <span className="flex items-center gap-1.5">
       <StatusDot variant={dot} size="sm" />
-      <span className="text-caption text-text-secondary">{label}</span>
-    </div>
+      <span className="text-caption text-text-muted">{label}</span>
+    </span>
   )
 }
 

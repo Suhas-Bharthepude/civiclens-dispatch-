@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
 import { cn } from '../../lib/cn'
 
-export function Select({ value, onChange, options, placeholder, icon: Icon, className }) {
+export function Select({ value, onChange, options, placeholder, icon: Icon, className, compact = false }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -23,19 +23,23 @@ export function Select({ value, onChange, options, placeholder, icon: Icon, clas
 
   const selected = options.find(o => o.value === value)
 
+  const triggerCls = compact
+    ? cn(
+        'flex items-center gap-2 px-3 py-1.5 rounded-lg text-body',
+        'text-text-primary hover:bg-surface transition-colors',
+        'whitespace-nowrap cursor-pointer select-none focus:outline-none',
+      )
+    : cn(
+        'flex items-center gap-2 px-3 py-1.5 rounded-lg text-body',
+        'bg-surface-2 border border-border',
+        'text-text-primary hover:border-border-strong',
+        'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30',
+        'transition-colors whitespace-nowrap cursor-pointer select-none',
+      )
+
   return (
     <div ref={ref} className={cn('relative', className)}>
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className={cn(
-          'flex items-center gap-2 px-3 py-1.5 rounded-lg text-body',
-          'bg-surface-2 border border-border',
-          'text-text-primary hover:border-border-strong hover:bg-surface-2',
-          'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30',
-          'transition-colors whitespace-nowrap cursor-pointer select-none',
-        )}
-      >
+      <button type="button" onClick={() => setOpen(v => !v)} className={triggerCls}>
         {Icon && <Icon size={12} className="text-text-muted flex-shrink-0" />}
         <span className="flex-1 text-left min-w-0">{selected?.label ?? placeholder}</span>
         <ChevronDown
@@ -48,9 +52,8 @@ export function Select({ value, onChange, options, placeholder, icon: Icon, clas
         <div className={cn(
           'absolute z-50 top-full mt-1.5 min-w-full',
           'bg-surface border border-border-strong rounded-xl',
-          'shadow-[0_8px_32px_rgba(0,0,0,0.5)]',
+          'shadow-[0_12px_40px_rgba(0,0,0,0.6)]',
           'py-1 overflow-hidden',
-          'animate-in fade-in-0 zoom-in-95 duration-100',
         )}>
           {options.map(opt => {
             const isSelected = opt.value === value

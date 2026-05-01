@@ -187,22 +187,22 @@ const IncidentsList = ({
           )}
         </div>
 
-        {/* Filter + Sort grouped */}
-        <div className="flex items-center gap-1 bg-surface-2 border border-border rounded-lg p-0.5">
+        {/* Filter + Sort grouped in a single pill */}
+        <div className="flex items-center bg-surface-2 border border-border rounded-xl overflow-visible">
           <Select
             value={filterType}
             onChange={setFilterType}
             options={TYPE_OPTIONS}
             icon={Filter}
-            className="border-0 bg-transparent hover:bg-surface rounded-md"
+            compact
           />
-          <div className="w-px h-5 bg-border flex-shrink-0" />
+          <div className="w-px h-5 bg-border flex-shrink-0 mx-0.5" />
           <Select
             value={sortValue}
             onChange={handleSortSelect}
             options={SORT_OPTIONS}
             icon={ArrowUpDown}
-            className="border-0 bg-transparent hover:bg-surface rounded-md"
+            compact
           />
         </div>
 

@@ -76,4 +76,43 @@ html.dark {
   input, select, textarea, button {
     font-family: inherit;
   }
+
+  /* Selection */
+  ::selection {
+    background: rgba(245,158,11,0.25);
+    color: var(--text-primary);
+  }
+}
+
+/* ── Animations ── */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Tailwind animate-in shim for Select dropdown */
+.animate-in {
+  animation-fill-mode: both;
+}
+.fade-in-0 {
+  animation-name: fadeIn;
+}
+.zoom-in-95 {
+  animation-name: zoomIn95;
+}
+.duration-100 {
+  animation-duration: 100ms;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes zoomIn95 {
+  from { transform: scale(0.95); }
+  to   { transform: scale(1); }
 }

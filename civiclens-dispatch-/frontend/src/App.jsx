@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Activity, BarChart3, Plus, LogOut, User, Siren } from 'lucide-react'
+import { Activity, BarChart3, Plus, LogOut, Siren } from 'lucide-react'
 
 import useToast          from './hooks/useToast'
 import useIncidentStream from './hooks/useIncidentStream'
@@ -18,7 +18,6 @@ import { Button }         from './components/ui/Button'
 import { StatusDot }      from './components/ui/StatusDot'
 import { useAuth }        from './context/AuthContext'
 import LoginPage          from './pages/LoginPage'
-
 
 const VIEW_TABS = [
   { id: 'live',      label: 'Live Feed',  icon: Activity  },
@@ -71,7 +70,7 @@ function App() {
   const handleSubmitted = () => {
     setFormOpen(false)
     setRefreshTrigger(n => n + 1)
-    addToast('Incident submitted successfully!', 'success')
+    addToast('Incident submitted — dispatchers notified', 'success')
   }
 
   if (!user) return <LoginPage />
@@ -79,18 +78,15 @@ function App() {
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
 
-      {/* ── HEADER ─────────────────────────────────────────── */}
-      <header className="flex items-center gap-4 px-6 py-3 border-b border-border bg-surface flex-shrink-0">
+      {/* ── HEADER ── */}
+      <header className="flex items-center h-14 px-6 border-b border-border bg-surface flex-shrink-0 gap-4">
 
         {/* Brand */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-            <Siren size={16} className="text-accent-fg" />
+        <div className="flex items-center gap-2.5 flex-shrink-0 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+            <Siren size={14} className="text-accent-fg" />
           </div>
-          <div className="min-w-0">
-            <div className="text-heading text-text-primary leading-none">CivicLens Dispatch</div>
-            <div className="text-caption text-text-muted mt-0.5">AI-Powered Incident Management</div>
-          </div>
+          <span className="text-body font-semibold text-text-primary whitespace-nowrap">CivicLens Dispatch</span>
         </div>
 
         {/* View tabs — centered */}
@@ -98,43 +94,37 @@ function App() {
           <Tabs tabs={VIEW_TABS} active={activeView} onChange={setActiveView} />
         </div>
 
-        {/* System status + user */}
+        {/* Right: system status + user */}
         <div className="flex items-center gap-3 flex-shrink-0">
 
-          {/* WS / Polling indicator */}
-          <div className="flex items-center gap-1.5">
-            <StatusDot variant={wsConnected ? 'live' : 'idle'} />
-            <span className="text-caption text-text-muted">
-              {wsConnected ? 'Live' : 'Polling'}
+          {/* Status row — all items share the same dot+text style */}
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5">
+              <StatusDot variant={wsConnected ? 'live' : 'idle'} size="sm" />
+              <span className="text-caption text-text-muted">{wsConnected ? 'Live' : 'Polling'}</span>
             </span>
+            <span className="w-px h-3 bg-border" />
+            <AIStatusIndicator />
+            <span className="w-px h-3 bg-border" />
+            <HealthCheck />
           </div>
 
-          <div className="w-px h-4 bg-border" />
+          <span className="w-px h-4 bg-border" />
 
-          <AIStatusIndicator />
-          <HealthCheck />
-
-          <div className="w-px h-4 bg-border" />
-
-          {/* User badge */}
-          <div className="flex items-center gap-2">
-            <User size={14} className="text-text-muted" />
-            <span className="text-body text-text-secondary">{user.username}</span>
-            <span className="text-label text-text-muted uppercase tracking-widest">{user.role}</span>
-          </div>
+          {/* User */}
+          <span className="text-caption text-text-muted">{user.username}</span>
 
           <button
             onClick={logout}
-            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-caption text-text-muted hover:text-text-primary hover:bg-surface-2 transition-colors"
             title="Sign out"
+            className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-2 transition-colors focus:outline-none"
           >
-            <LogOut size={13} />
-            Sign out
+            <LogOut size={14} />
           </button>
         </div>
       </header>
 
-      {/* ── BODY ───────────────────────────────────────────── */}
+      {/* ── BODY ── */}
       {activeView === 'analytics' ? (
 
         <div className="flex-1 overflow-auto p-6">
@@ -145,22 +135,15 @@ function App() {
 
         <div className="flex-1 flex flex-col overflow-hidden p-6 gap-4">
 
-          {/* Stats row */}
           <StatsBar refreshTrigger={refreshTrigger} />
 
-          {/* Main split: 7 cols incidents / 5 cols detail */}
           <div className="flex-1 grid grid-cols-12 gap-4 overflow-hidden min-h-0">
 
-            {/* Incidents column */}
+            {/* Incidents list */}
             <div className="col-span-7 flex flex-col overflow-hidden min-h-0">
               <div className="flex items-center justify-between mb-3 flex-shrink-0">
                 <h2 className="text-heading text-text-primary">Incidents</h2>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  icon={Plus}
-                  onClick={() => setFormOpen(true)}
-                >
+                <Button variant="primary" size="sm" icon={Plus} onClick={() => setFormOpen(true)}>
                   New Incident
                 </Button>
               </div>
@@ -175,7 +158,7 @@ function App() {
               </div>
             </div>
 
-            {/* Detail panel column */}
+            {/* Detail panel */}
             <div className="col-span-5 overflow-hidden min-h-0">
               <IncidentDetail
                 incident={selectedIncident}
@@ -191,12 +174,8 @@ function App() {
         </div>
       )}
 
-      {/* ── NEW INCIDENT SLIDE-OVER ────────────────────────── */}
-      <SlideOver
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        title="New Incident Report"
-      >
+      {/* Slide-over form */}
+      <SlideOver open={formOpen} onClose={() => setFormOpen(false)} title="New Incident Report">
         <SubmitIncidentForm onSubmitted={handleSubmitted} />
       </SlideOver>
 
