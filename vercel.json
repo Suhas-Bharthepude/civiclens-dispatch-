@@ -1,5 +1,1 @@
-{
-  "buildCommand": "cd civiclens-dispatch-/frontend && npm install && npm run build",
-  "outputDirectory": "civiclens-dispatch-/frontend/dist",
-  "installCommand": "echo skip"
-}
+{}
