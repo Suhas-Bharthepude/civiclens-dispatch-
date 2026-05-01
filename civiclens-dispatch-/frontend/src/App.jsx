@@ -1,53 +1,45 @@
-// frontend/src/App.jsx
-// Root component — owns top-level state and layout.
-//
-// Day 70: Added "Live Feed / Analytics" toggle in the header.
-//          Conditionally renders DashboardLayout or AnalyticsView.
-// Day 71: Added useIncidentStream for WebSocket live updates.
-//          Passes wsUpdate + wsConnected down to IncidentsList.
-//          Shows "● Live" indicator when WebSocket is connected.
-// Day 72: Reads auth from AuthContext; shows login page when not
-//          authenticated; logout button in header; passes user role.
-
 import { useState, useEffect } from 'react'
-import './App.css'
-import useToast           from './hooks/useToast'
-import useIncidentStream  from './hooks/useIncidentStream'
+import { Activity, BarChart3, Plus, LogOut, User, Siren } from 'lucide-react'
+
+import useToast          from './hooks/useToast'
+import useIncidentStream from './hooks/useIncidentStream'
+
 import HealthCheck        from './components/dashboard/HealthCheck'
 import IncidentsList      from './components/dashboard/IncidentsList'
 import IncidentDetail     from './components/dashboard/IncidentDetail'
 import SubmitIncidentForm from './components/forms/SubmitIncidentForm'
-import DashboardLayout    from './components/layout/DashboardLayout'
 import ToastContainer     from './components/shared/ToastContainer'
 import StatsBar           from './components/dashboard/StatsBar'
 import AIStatusIndicator  from './components/dashboard/AIStatusIndicator'
 import AnalyticsView      from './components/analytics/AnalyticsView'
+import { Tabs }           from './components/ui/Tabs'
+import { SlideOver }      from './components/ui/SlideOver'
+import { Button }         from './components/ui/Button'
+import { Badge }          from './components/ui/Badge'
+import { StatusDot }      from './components/ui/StatusDot'
 import { useAuth }        from './context/AuthContext'
 import LoginPage          from './pages/LoginPage'
 
 
+const VIEW_TABS = [
+  { id: 'live',      label: 'Live Feed',  icon: Activity  },
+  { id: 'analytics', label: 'Analytics',  icon: BarChart3 },
+]
+
 function App() {
   const [selectedIncident, setSelectedIncident] = useState(null)
   const [refreshTrigger,   setRefreshTrigger]   = useState(0)
-  // activeView: 'live' shows the dashboard, 'analytics' shows charts (Day 70)
   const [activeView,       setActiveView]       = useState('live')
-  // wsUpdate: the latest WebSocket event object — passed to IncidentsList (Day 71)
   const [wsUpdate,         setWsUpdate]         = useState(null)
+  const [formOpen,         setFormOpen]         = useState(false)
 
-  const { toasts, showToast: addToast } = useToast()
-  // Read auth state from context (Day 72)
+  const { toasts, showToast: addToast, removeToast } = useToast()
   const { user, logout } = useAuth()
 
-  // ── WEBSOCKET STREAM (Day 71) ──────────────────────────
-  // Opens ws://localhost:8000/ws/incidents on mount.
-  // Each message is forwarded to IncidentsList via wsUpdate state.
   const { connected: wsConnected } = useIncidentStream((event) => {
-    // Forward the parsed event to IncidentsList — it handles prepend/replace
     setWsUpdate(event)
   })
 
-  // ── KEYBOARD SHORTCUT ─────────────────────────────────
-  // ESC closes the detail panel without reaching for the mouse
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'Escape' && selectedIncident) setSelectedIncident(null)
@@ -56,151 +48,159 @@ function App() {
     return () => document.removeEventListener('keydown', onKey)
   }, [selectedIncident])
 
-  const handleSelect    = (inc) => setSelectedIncident(inc)
-  const handleClose     = ()    => setSelectedIncident(null)
+  useEffect(() => {
+    document.title = activeView === 'analytics'
+      ? 'Analytics — CivicLens Dispatch'
+      : 'Live Feed — CivicLens Dispatch'
+  }, [activeView])
 
-  // Called by IncidentDetail when dispatcher clicks a status button.
-  // 1. Optimistic update: detail panel reflects the new status immediately
-  // 2. refreshTrigger: re-fetches the table row so its badge updates too
+  const handleSelect      = (inc) => setSelectedIncident(inc)
+  const handleClose       = ()    => setSelectedIncident(null)
+
   const handleStatusChange = (id, newStatus) => {
     setSelectedIncident(prev =>
-      prev && prev.id === id
-        ? { ...prev, status: newStatus }
-        : prev
+      prev && prev.id === id ? { ...prev, status: newStatus } : prev
     )
     setRefreshTrigger(n => n + 1)
   }
 
-  // Called after an incident is deleted (Day 72)
-  // Closes the detail panel and triggers a table refresh
   const handleDeleted = () => {
     setSelectedIncident(null)
     setRefreshTrigger(n => n + 1)
   }
 
   const handleSubmitted = () => {
+    setFormOpen(false)
     setRefreshTrigger(n => n + 1)
     addToast('Incident submitted successfully!', 'success')
   }
 
-  // ── AUTH GATE (Day 72) ────────────────────────────────
-  // If no user is logged in, show login page instead of the dashboard
-  if (!user) {
-    return <LoginPage />
-  }
+  if (!user) return <LoginPage />
 
   return (
-    <div className="app-shell">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
 
-      {/* HEADER */}
-      <header className="app-header">
-        <div className="app-header-left">
-          <span style={{ fontSize: 26 }}>🚨</span>
-          <div>
-            <div className="app-title">CivicLens Dispatch</div>
-            <div className="app-subtitle">AI-Powered Incident Management</div>
+      {/* ── HEADER ─────────────────────────────────────────── */}
+      <header className="flex items-center gap-4 px-6 py-3 border-b border-border bg-surface flex-shrink-0">
+
+        {/* Brand */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+            <Siren size={16} className="text-accent-fg" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-heading text-text-primary leading-none">CivicLens Dispatch</div>
+            <div className="text-caption text-text-muted mt-0.5">AI-Powered Incident Management</div>
           </div>
         </div>
 
-        {/* ── VIEW TOGGLE (Day 70) ─────────────────────── */}
-        {/* Swaps between the live dashboard and the analytics view */}
-        <div className="view-toggle">
-          <button
-            className={`view-toggle__btn ${activeView === 'live' ? 'view-toggle__btn--active' : ''}`}
-            onClick={() => setActiveView('live')}
-          >
-            🗂 Live Feed
-          </button>
-          <button
-            className={`view-toggle__btn ${activeView === 'analytics' ? 'view-toggle__btn--active' : ''}`}
-            onClick={() => setActiveView('analytics')}
-          >
-            📊 Analytics
-          </button>
+        {/* View tabs — centered */}
+        <div className="flex-1 flex justify-center">
+          <Tabs tabs={VIEW_TABS} active={activeView} onChange={setActiveView} />
         </div>
 
-        <div className="app-header-right">
-          {/* ── LIVE INDICATOR (Day 71) ──────────────────
-              Shows ● Live when WebSocket is connected,
-              ○ Polling when falling back to 30-s poll */}
-          <div className={`ws-indicator ${wsConnected ? 'ws-indicator--live' : 'ws-indicator--polling'}`}>
-            <span className="ws-indicator__dot" />
-            <span className="ws-indicator__label">
+        {/* System status + user */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+
+          {/* WS / Polling indicator */}
+          <div className="flex items-center gap-1.5">
+            <StatusDot variant={wsConnected ? 'live' : 'idle'} />
+            <span className="text-caption text-text-muted">
               {wsConnected ? 'Live' : 'Polling'}
             </span>
           </div>
 
+          <div className="w-px h-4 bg-border" />
+
           <AIStatusIndicator />
           <HealthCheck />
 
-          {/* ── USER INFO + LOGOUT (Day 72) ──────────────── */}
-          <div className="user-badge">
-            <span className="user-badge__name">
-              {user.username}
-            </span>
-            <span className={`user-badge__role user-badge__role--${user.role}`}>
-              {user.role}
-            </span>
-            <button className="user-badge__logout" onClick={logout} title="Sign out">
-              Sign out
-            </button>
+          <div className="w-px h-4 bg-border" />
+
+          {/* User badge */}
+          <div className="flex items-center gap-2">
+            <User size={14} className="text-text-muted" />
+            <span className="text-body text-text-secondary">{user.username}</span>
+            <Badge variant="role">{user.role}</Badge>
           </div>
+
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-caption text-text-muted hover:text-text-primary hover:bg-surface-2 transition-colors"
+            title="Sign out"
+          >
+            <LogOut size={13} />
+            Sign out
+          </button>
         </div>
       </header>
 
-      {/* BODY — conditionally renders live feed or analytics */}
+      {/* ── BODY ───────────────────────────────────────────── */}
       {activeView === 'analytics' ? (
 
-        /* ── ANALYTICS VIEW (Day 70) ────────────────────── */
-        <div className="app-body app-body--analytics">
+        <div className="flex-1 overflow-auto p-6">
           <AnalyticsView />
         </div>
 
       ) : (
 
-        /* ── LIVE FEED (original dashboard layout) ──────── */
-        <div className="app-body">
+        <div className="flex-1 flex flex-col overflow-hidden p-6 gap-4">
 
-          {/* LEFT: incidents table + detail panel */}
-          <div className="app-dashboard">
-            {/* StatsBar re-fetches when refreshTrigger increments */}
-            <StatsBar refreshTrigger={refreshTrigger} />
-            <DashboardLayout>
-              <IncidentsList
-                onSelectIncident={handleSelect}
-                selectedIncidentId={selectedIncident?.id}
-                refreshTrigger={refreshTrigger}
-                wsUpdate={wsUpdate}          // Latest WebSocket event (Day 71)
-                wsConnected={wsConnected}    // Disables polling when WS is live
-              />
+          {/* Stats row */}
+          <StatsBar refreshTrigger={refreshTrigger} />
+
+          {/* Main split: 7 cols incidents / 5 cols detail */}
+          <div className="flex-1 grid grid-cols-12 gap-4 overflow-hidden min-h-0">
+
+            {/* Incidents column */}
+            <div className="col-span-7 flex flex-col overflow-hidden min-h-0">
+              <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                <h2 className="text-heading text-text-primary">Incidents</h2>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={Plus}
+                  onClick={() => setFormOpen(true)}
+                >
+                  New Incident
+                </Button>
+              </div>
+              <div className="flex-1 overflow-hidden min-h-0">
+                <IncidentsList
+                  onSelectIncident={handleSelect}
+                  selectedIncidentId={selectedIncident?.id}
+                  refreshTrigger={refreshTrigger}
+                  wsUpdate={wsUpdate}
+                  wsConnected={wsConnected}
+                />
+              </div>
+            </div>
+
+            {/* Detail panel column */}
+            <div className="col-span-5 overflow-hidden min-h-0">
               <IncidentDetail
                 incident={selectedIncident}
                 onClose={handleClose}
                 onStatusChange={handleStatusChange}
-                onDeleted={handleDeleted}    // Day 72: admin delete
-                userRole={user.role}         // Day 72: hide delete for non-admin
+                onDeleted={handleDeleted}
+                userRole={user.role}
               />
-            </DashboardLayout>
-          </div>
-
-          {/* RIGHT: new incident form */}
-          <div className="app-form-panel">
-            <div className="app-form-panel-header">
-              <div className="app-form-panel-title">📝 New Incident Report</div>
-              <div className="app-form-panel-subtitle">Submit a new incident for dispatch</div>
             </div>
-            <SubmitIncidentForm onSubmitted={handleSubmitted} />
-          </div>
 
+          </div>
         </div>
       )}
 
-      {/* FOOTER */}
-      <footer className="app-footer">
-        <p>CivicLens Dispatch — For life-threatening emergencies always call 911</p>
-      </footer>
+      {/* ── NEW INCIDENT SLIDE-OVER ────────────────────────── */}
+      <SlideOver
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        title="New Incident Report"
+      >
+        <SubmitIncidentForm onSubmitted={handleSubmitted} />
+      </SlideOver>
 
-      <ToastContainer toasts={toasts} />
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   )
 }

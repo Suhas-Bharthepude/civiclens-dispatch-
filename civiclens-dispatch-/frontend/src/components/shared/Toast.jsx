@@ -1,103 +1,43 @@
-// frontend/src/components/Toast.jsx
-// Toast notification component for temporary user feedback messages
-// Appears in corner, auto-dismisses after timeout
-
-// Import React hooks
 import { useEffect } from 'react'
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react'
+import { cn } from '../../lib/cn'
 
-// Import CSS
-import './Toast.css'
+const VARIANTS = {
+  success: { icon: CheckCircle2, classes: 'border-emerald-800 bg-emerald-950/80 text-emerald-300' },
+  error:   { icon: AlertCircle,  classes: 'border-red-800 bg-red-950/80 text-red-300'             },
+  warning: { icon: AlertTriangle,classes: 'border-amber-800 bg-amber-950/80 text-amber-300'       },
+  info:    { icon: Info,         classes: 'border-blue-800 bg-blue-950/80 text-blue-300'          },
+}
 
-
-// ========================================
-// TOAST COMPONENT
-// ========================================
-
-// Toast notification component
-// Props:
-//   - message: Text to display
-//   - type: 'success', 'error', 'warning', or 'info'
-//   - duration: How long to show (milliseconds), default 5000 (5 seconds)
-//   - onClose: Callback when toast closes
 function Toast({ message, type = 'info', duration = 5000, onClose }) {
-  
-  // ========================================
-  // AUTO-DISMISS TIMER
-  // ========================================
-  
-  // useEffect to set timer for auto-dismissing toast
   useEffect(() => {
-    // If onClose callback provided and duration is set
-    if (onClose && duration) {
-      // Set timeout to call onClose after duration
-      // setTimeout returns a timer ID
-      const timer = setTimeout(() => {
-        onClose();
-      }, duration);
-      
-      // Cleanup function - cancels timer if component unmounts
-      // This prevents calling onClose on unmounted component
-      return () => {
-        clearTimeout(timer);
-      };
-    }
-    
-    // Re-run if these values change
-  }, [duration, onClose]);
-  
-  
-  // ========================================
-  // GET ICON FOR TOAST TYPE
-  // ========================================
-  
-  // Returns emoji icon based on toast type
-  function getIcon() {
-    switch (type) {
-      case 'success':
-        return '✅';
-      case 'error':
-        return '❌';
-      case 'warning':
-        return '⚠️';
-      case 'info':
-      default:
-        return 'ℹ️';
-    }
-  }
-  
-  
-  // ========================================
-  // RENDER TOAST
-  // ========================================
-  
+    if (!onClose || !duration) return
+    const t = setTimeout(onClose, duration)
+    return () => clearTimeout(t)
+  }, [duration, onClose])
+
+  const { icon: Icon, classes } = VARIANTS[type] ?? VARIANTS.info
+
   return (
-    // Main toast container
-    // CSS class varies by type: toast-success, toast-error, etc.
-    // This allows different colors for different types
-    <div className={`toast toast-${type}`}>
-      
-      {/* Icon for visual quick identification */}
-      <span className="toast-icon">
-        {getIcon()}
-      </span>
-      
-      {/* Message content */}
-      <span className="toast-message">
-        {message}
-      </span>
-      
-      {/* Close button (X) */}
-      {/* Allows manual dismissal before auto-timeout */}
+    <div
+      className={cn(
+        'flex items-start gap-3 px-4 py-3 rounded-lg border',
+        'min-w-[280px] max-w-sm shadow-lg',
+        classes,
+      )}
+      role="alert"
+    >
+      <Icon size={16} className="flex-shrink-0 mt-0.5" />
+      <span className="flex-1 text-body">{message}</span>
       {onClose && (
-        <button 
-          className="toast-close"
+        <button
           onClick={onClose}
-          aria-label="Close notification"
+          className="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+          aria-label="Dismiss"
         >
-          ×
+          <X size={14} />
         </button>
       )}
-      
     </div>
   )
 }
