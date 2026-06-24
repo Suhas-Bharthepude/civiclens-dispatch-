@@ -5,7 +5,7 @@
 // Day 71: WebSockets for live incident updates
 //
 // Features:
-//   - Opens ws://localhost:8000/ws/incidents on mount
+//   - Opens a WebSocket to <backend>/ws/incidents on mount
 //   - Calls onMessage(parsedEvent) for every incoming message
 //   - Exponential backoff reconnect: 1s → 2s → 4s → ... → 30s max
 //   - Resets backoff to 1s on a successful connection
@@ -19,10 +19,17 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-// WebSocket URL — points at the FastAPI ws endpoint
-// VITE_WS_URL can be set in .env for production deployments
+// WebSocket URL — derived from the same backend base URL the REST client uses.
+// We read VITE_API_URL (which is set on Vercel to the Render backend, and falls
+// back to localhost for local development), then swap the HTTP scheme for the
+// WebSocket scheme: https:// becomes wss:// and http:// becomes ws://.
+// Deriving it from VITE_API_URL means we only have to configure ONE environment
+// variable on Vercel instead of keeping a separate VITE_WS_URL in sync.
 const WS_URL =
-  (import.meta.env.VITE_WS_URL || 'ws://localhost:8000') + '/ws/incidents'
+  (import.meta.env.VITE_API_URL || 'http://localhost:8000')
+    .replace('https://', 'wss://')   // secure pages must use secure sockets
+    .replace('http://', 'ws://')     // local dev uses the insecure scheme
+    + '/ws/incidents'                 // the FastAPI WebSocket route path
 
 // ── CONSTANTS ─────────────────────────────────────────────
 const INITIAL_RETRY_MS = 1000    // 1 second on first retry
